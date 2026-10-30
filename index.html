@@ -1,0 +1,687 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Reporte de Suelo · Blum</title>
+<style>:root{color-scheme:light}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+</head>
+<body>
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@500;600&family=Nunito:wght@400;600;700&display=swap">
+<style>
+/* Layout: panel de pasos a la izquierda (sticky), vista previa A4 a la derecha; en teléfono se apilan. */
+:root{
+  --bg:#f3f7f6; --surface:#ffffff; --line:#d9e8e5; --fg:#10221f; --muted:#5d716e;
+  --brand:#002e2b; --brand-ink:#ffffff; --teal:#77cfc9; --teal-ink:#2e8c85; --soft:#e6f5f3;
+  --warn:#9a5b00; --err:#a3302a; --shadow:0 1px 2px rgba(0,46,43,.06),0 8px 28px rgba(0,46,43,.08);
+  --f-ui:"Nunito",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-head:"Figtree","Nunito",system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0b1716; --surface:#12211f; --line:#24403c; --fg:#e4efed; --muted:#93aaa6;
+  --brand:#77cfc9; --brand-ink:#04201d; --teal:#77cfc9; --teal-ink:#86d8d2; --soft:#173532;
+  --warn:#e8b45a; --err:#f08c84; --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 28px rgba(0,0,0,.35); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0b1716; --surface:#12211f; --line:#24403c; --fg:#e4efed; --muted:#93aaa6;
+  --brand:#77cfc9; --brand-ink:#04201d; --teal:#77cfc9; --teal-ink:#86d8d2; --soft:#173532;
+  --warn:#e8b45a; --err:#f08c84; --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 28px rgba(0,0,0,.35); color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-ui);font-size:14px;line-height:1.45}
+.app{display:grid;grid-template-columns:minmax(0,340px) minmax(0,1fr);gap:28px;max-width:1280px;margin:0 auto;
+  padding-block:24px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+@media (max-width:900px){.app{grid-template-columns:minmax(0,1fr)}}
+.panel{display:flex;flex-direction:column;gap:16px;align-self:start;position:sticky;top:calc(16px + env(safe-area-inset-top,0px))}
+@media (max-width:900px){.panel{position:static}}
+.brandrow{display:flex;align-items:center;gap:10px}
+.brandrow img{width:26px;height:auto}
+.brandrow h1{font-family:var(--f-head);font-weight:600;font-size:19px;margin:0;line-height:1.15;text-wrap:balance}
+.brandrow p{margin:2px 0 0;color:var(--muted);font-size:12.5px}
+.logo-dark{display:none}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .logo-light{display:none}:root:not([data-theme="light"]) .logo-dark{display:block}}
+:root[data-theme="dark"] .logo-light{display:none}:root[data-theme="dark"] .logo-dark{display:block}
+.step{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:12px}
+.step h2{font-family:var(--f-head);font-weight:600;font-size:14px;margin:0;display:flex;gap:8px;align-items:center}
+.step h2 .n{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--soft);color:var(--teal-ink);font-size:11.5px;font-weight:700}
+.drop{border:1.5px dashed var(--teal);border-radius:8px;padding:16px 12px;text-align:center;cursor:pointer;background:transparent;color:var(--fg);font:inherit;width:100%}
+.drop:hover,.drop.over{background:var(--soft)}
+.drop:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--teal-ink);outline-offset:2px}
+.drop strong{display:block;font-size:14px}
+.drop span{color:var(--muted);font-size:12.5px}
+.status{font-size:12.5px;color:var(--muted);display:flex;gap:6px;align-items:flex-start}
+.status.ok::before{content:"";flex:none;width:7px;height:7px;border-radius:50%;background:var(--teal);margin-top:6px}
+.status.err{color:var(--err)}
+.status.warn{color:var(--warn)}
+.chip{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--teal-ink);background:var(--soft);border-radius:999px;padding:2px 8px}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:10px 10px;align-items:end}
+.fields .full{grid-column:1/-1}
+label.f{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted);min-width:0}
+label.f input,label.f select{font:inherit;font-size:13.5px;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:7px 9px;width:100%;min-width:0}
+.check{display:flex;gap:8px;align-items:flex-start;font-size:12.5px;color:var(--fg)}
+.check input{margin-top:3px;accent-color:var(--teal-ink)}
+.btn{font:inherit;font-weight:700;font-size:14px;border-radius:8px;padding:10px 14px;cursor:pointer;border:1px solid transparent}
+.btn.primary{background:var(--brand);color:var(--brand-ink)}
+.btn.primary:hover{filter:brightness(1.12)}
+.btn.primary[disabled]{opacity:.55;cursor:progress}
+.btn.ghost{background:transparent;color:var(--teal-ink);border-color:var(--line);font-size:13px;padding:7px 12px}
+.btn.ghost:hover{background:var(--soft)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.hint{font-size:12px;color:var(--muted);margin:0}
+.preview{min-width:0}
+.preview-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.preview-head h2{font-family:var(--f-head);font-weight:600;font-size:15px;margin:0}
+.stage-wrap{width:100%;overflow:hidden}
+.stage{transform-origin:top left;width:595.28pt;display:flex;flex-direction:column;gap:18px}
+.sum{display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px 14px;margin:0;font-size:13px}
+.sum dt{color:var(--muted)}
+.sum dd{margin:0;font-weight:600;min-width:0;overflow-wrap:anywhere}
+details.edit{border-top:1px solid var(--line);padding-top:10px;font-size:12.5px}
+details.edit summary{cursor:pointer;color:var(--teal-ink);font-weight:700;margin-bottom:10px}
+details.edit[open] summary{margin-bottom:12px}
+details.fold summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center}
+details.fold summary::-webkit-details-marker{display:none}
+details.fold .chev{width:8px;height:8px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg);margin:0 4px 4px 0;transition:transform .15s}
+details.fold[open] .chev{transform:rotate(-135deg);margin:4px 4px 0 0}
+details.fold:not([open]){gap:0}
+details.help{font-size:12.5px;color:var(--muted)}
+details.help summary{cursor:pointer;color:var(--teal-ink);font-weight:700}
+details.help code{font-size:11.5px;background:var(--soft);padding:0 4px;border-radius:3px;color:var(--fg)}
+details.help ul{padding-left:18px;margin:6px 0 0}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* ===== Hoja A4 (siempre en papel blanco, igual al PDF) ===== */
+.page{--ink:#002e2b;--text:#1f2b2a;--mut:#6b7c7a;--teal:#77cfc9;--teal-d:#2e8c85;--card:#f4faf9;--card-b:#dcefec;--th:#eef7f6;--th-b:#cfe7e3;--row-b:#edf1f0;--band:#e6f5f3;--band-b:#bfe3df;--grid:#e7eceb;--gold:#b8860b;
+  width:595.28pt;height:841.89pt;background:#fff;color:var(--text);position:relative;overflow:hidden;box-shadow:var(--shadow);
+  font-family:"Nunito",sans-serif;font-size:8.6pt;line-height:1.3;flex:none}
+.page .content{position:absolute;left:42.52pt;right:42.52pt;top:45.35pt;bottom:42pt}
+.page .foot{position:absolute;left:42.52pt;right:42.52pt;top:813.5pt;display:flex;justify-content:space-between;font-size:7.5pt;color:var(--mut)}
+.page .eyebrow{font-family:var(--f-head);font-weight:600;font-size:8.5pt;letter-spacing:1.25pt;color:var(--teal-d);line-height:11pt;height:11pt;margin-top:.5pt}
+.page h1{font-family:var(--f-head);font-weight:600;font-size:21pt;line-height:26pt;margin:6.5pt 0 0;color:var(--ink);letter-spacing:-.1pt}
+.page .sub{font-size:9pt;color:var(--mut);margin-top:5.5pt;line-height:12pt;white-space:nowrap}
+.page .sub b{font-weight:600;color:var(--ink)}
+.page .logo{position:absolute;right:0;top:0;width:30pt;height:34.88pt}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:6pt;margin-top:12pt}
+.kpi{background:var(--card);border:.75pt solid var(--card-b);border-radius:4pt;height:59.5pt;padding:7pt 9.5pt 0}
+.kpi .l{font-size:7.8pt;letter-spacing:.55pt;color:var(--mut);line-height:11pt}
+.kpi .v{font-family:var(--f-head);font-weight:600;font-size:17pt;color:var(--ink);line-height:21pt;margin-top:1pt;white-space:nowrap}
+.kpi .v small{font-family:"Nunito",sans-serif;font-weight:400;font-size:9pt;color:var(--mut);margin-left:1pt}
+.kpi .s{font-size:7.8pt;color:var(--mut);line-height:10pt;margin-top:1.5pt;white-space:nowrap}
+.sec{font-family:var(--f-head);font-weight:600;font-size:12.5pt;color:var(--ink);line-height:15pt;padding:2.5pt 0 4.5pt;border-bottom:1pt solid var(--teal);margin:0}
+.kpis + .sec{margin-top:13.5pt}
+table.t{width:100%;border-collapse:collapse;margin-top:6pt;table-layout:fixed}
+table.t th{background:var(--th);font-family:var(--f-head);font-weight:600;font-size:8.2pt;color:var(--ink);height:19.8pt;padding:0 5.5pt;border-bottom:.75pt solid var(--th-b);text-align:left;white-space:nowrap}
+table.t td{height:19.5pt;padding:0 5.5pt;border-bottom:.75pt solid var(--row-b);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+table.t .r{text-align:right}
+table.t .c{text-align:center}
+table.t .b{font-weight:600;color:var(--ink)}
+table.t sup{font-size:7.2pt;font-weight:600;line-height:0;margin-left:.3pt}
+.pill{display:inline-block;font-size:7.6pt;line-height:9.1pt;height:9.1pt;padding:0 6.5pt;border-radius:4.6pt;background:#e3f4f1;color:#1e6f68;vertical-align:middle}
+.pill.low{background:#fbefd6;color:#8a5a00}
+.pill.high{background:#e2ebf7;color:#2c5a8c}
+.pill.na{background:#eef1f0;color:#6b7c7a}
+.t + .sec{margin-top:14pt}
+.legend{display:flex;gap:10.5pt;align-items:center;font-size:8pt;color:var(--mut);margin-top:6.5pt;line-height:11pt}
+.legend i{display:inline-block;width:5.25pt;height:5.25pt;margin-right:3.5pt;vertical-align:.4pt}
+.legend i.dot{background:var(--ink)}
+.legend i.gold{background:var(--gold)}
+.legend i.band{width:6.75pt;height:6.75pt;background:var(--band);border:.75pt solid var(--band-b);border-radius:1pt;vertical-align:-.3pt}
+.chart{position:relative;width:100%}
+.chart .ab{position:absolute}
+.chart .yl{position:absolute;font-size:6.8pt;color:var(--mut);text-align:right;width:20pt;line-height:8pt}
+.chart .gl{position:absolute;height:0;border-top:.6pt solid var(--grid)}
+.chart .vl{position:absolute;font-size:6pt;line-height:7pt;color:var(--ink);text-align:center;width:24pt;white-space:nowrap}
+.chart .xl{position:absolute;font-size:6.8pt;line-height:8pt;color:var(--mut);text-align:center;width:24pt}
+.chart .gline{position:absolute;height:0;border-top:.75pt solid var(--teal)}
+.chart .gname{position:absolute;font-size:6.8pt;line-height:8pt;font-weight:600;color:var(--ink);text-align:center;white-space:nowrap;overflow:hidden}
+.chart .dot{position:absolute;width:6.3pt;height:6.3pt;border-radius:50%;background:var(--ink)}
+.chart .dot.gold{background:var(--gold)}
+.chart .bar{position:absolute;background:var(--teal)}
+.chart .bandlbl{position:absolute;font-size:6pt;color:var(--mut);line-height:7pt;text-align:right;white-space:nowrap}
+.note{font-size:8pt;color:var(--mut);line-height:11.6pt;margin-top:5pt}
+ul.obs{list-style:none;margin:6.5pt 0 0;padding:0;display:flex;flex-direction:column;gap:3pt;font-size:9.5pt;line-height:13.3pt;color:var(--text)}
+ul.obs li{position:relative;padding-left:12pt}
+ul.obs li::before{content:"";position:absolute;left:4pt;top:5.5pt;width:3.2pt;height:3.2pt;border-radius:50%;background:var(--ink)}
+ul.obs b{font-weight:600;color:var(--ink)}
+ul.obs[contenteditable="true"]{outline:none;border-radius:2pt}
+ul.obs[contenteditable="true"]:hover{box-shadow:0 0 0 3pt #eef7f6}
+ul.obs[contenteditable="true"]:focus{box-shadow:0 0 0 3pt #dcefec}
+.capturing ul.obs{box-shadow:none!important}
+</style>
+
+<div class="app">
+  <aside class="panel" aria-label="Pasos">
+    <div class="brandrow">
+      <img class="logo-light" id="logoUi" alt="">
+      <img class="logo-dark" id="logoUiDark" alt="">
+      <div>
+        <h1>Reporte de suelo</h1>
+        <p>% Humedad y Conductividad Eléctrica</p>
+      </div>
+    </div>
+
+    <section class="step">
+      <h2><span class="n">1</span>Sube la planilla</h2>
+      <input type="file" id="file" accept=".xlsx,.xls,.csv" hidden>
+      <button type="button" class="drop" id="drop">
+        <strong>Elige o arrastra el Excel</strong>
+        <span>El export «Meter» de BLUM o una planilla con una fila por bloque</span>
+      </button>
+      <div class="status ok" id="status"><span><span class="chip">Ejemplo</span> Datos ficticios. Sube tu export de BLUM para ver tu reporte.</span></div>
+      <div class="row"><button type="button" class="btn ghost" id="tpl">Descargar plantilla Excel</button></div>
+      <details class="help">
+        <summary>¿Qué columnas lee?</summary>
+        <ul>
+          <li>El export de mediciones de BLUM tal como sale (hoja <code>Meter</code>): toma sector y bloque del <code>CÓDIGO ACTIVO</code> y los rangos óptimos de la planilla.</li>
+          <li>O una planilla propia con <code>Equipo</code>, <code>Sector</code>, <code>Bloque</code>, <code>Fecha</code></li>
+          <li><code>% Humedad</code> (o columnas como <code>% Humedad 30 cm</code>, <code>% Humedad 90 cm</code>)</li>
+          <li><code>CE (dS/m)</code> y, si quieres, <code>Profundidad (cm)</code></li>
+          <li>Una hoja <code>Info</code> opcional con código, agrícola, campo, período y rangos.</li>
+        </ul>
+      </details>
+    </section>
+
+    <details class="step fold" id="headStep">
+      <summary><h2><span class="n">2</span>Datos del reporte</h2><span class="chev" aria-hidden="true"></span></summary>
+      <p class="hint">Se completan solos desde el Excel. Cámbialos solo si algo viene mal.</p>
+      <label class="f full" id="dayWrap" hidden>Ronda de medición<select id="day"></select></label>
+      <div class="fields">
+        <label class="f">Código cliente<input id="code" autocomplete="off"></label>
+        <label class="f">Agrícola<input id="agricola" autocomplete="off"></label>
+        <label class="f full">Campo<input id="campo" autocomplete="off"></label>
+        <label class="f full">Período<input id="periodo" autocomplete="off"></label>
+        <label class="f">Humedad óptima mín. (%)<input id="hmin" inputmode="decimal"></label>
+        <label class="f">Humedad óptima máx. (%)<input id="hmax" inputmode="decimal"></label>
+        <label class="f">CE configurada mín. (dS/m)<input id="cemin" inputmode="decimal" placeholder="sin definir"></label>
+        <label class="f">CE configurada máx. (dS/m)<input id="cemax" inputmode="decimal" placeholder="sin definir"></label>
+        <label class="f full">Nombres de sectores<input id="names" autocomplete="off" placeholder="1 Fiesta, 2 Grande, 3 Crunch"></label>
+        <label class="f full">Profundidad del reporte<select id="depth"></select></label>
+      </div>
+      <label class="check" id="mergeWrap" hidden><input type="checkbox" id="merge"><span id="mergeTxt">Contar todas las lecturas como 30 cm</span></label>
+    </details>
+
+    <section class="step">
+      <h2><span class="n">3</span>Descarga el PDF</h2>
+      <p class="hint">Las observaciones se escriben solas a partir de los datos. Haz clic sobre ellas en la vista previa para editarlas.</p>
+      <div class="row">
+        <button type="button" class="btn primary" id="pdf">Descargar PDF</button>
+        <button type="button" class="btn ghost" id="regen">Rehacer observaciones</button>
+      </div>
+      <div class="status" id="pdfStatus" hidden></div>
+    </section>
+  </aside>
+
+  <main class="preview">
+    <div class="preview-head"><h2>Vista previa</h2><span class="hint" id="fname"></span></div>
+    <div class="stage-wrap" id="stageWrap"><div class="stage" id="stage"></div></div>
+  </main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+const LOGO="data:image/png;base64,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";
+const MESES=["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+const MES_AB=["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const pad=n=>String(n).padStart(2,"0");
+const rnd=(v,d)=>Math.round(v*10**d+1e-7)/10**d;
+const f1=v=>v==null||isNaN(v)?"–":rnd(v,1).toFixed(1).replace(".",",");
+const f2=v=>v==null||isNaN(v)?"–":rnd(v,2).toFixed(2).replace(".",",");
+const fnum=v=>{if(v==null||isNaN(v))return"";return (Math.round(v*100)/100).toString().replace(".",",")};
+const parseNum=v=>{if(v==null||v==="")return null;if(typeof v==="number")return isFinite(v)?v:null;const s=String(v).trim().replace(/\s|%/g,"").replace(",",".");if(s===""||s==="-")return null;const n=parseFloat(s);return isFinite(n)?n:null};
+const natNum=s=>{const m=String(s).match(/\d+/);return m?parseInt(m[0],10):null};
+const natCmp=(a,b)=>String(a).localeCompare(String(b),"es",{numeric:true,sensitivity:"base"});
+const lista=a=>a.length<=1?a.join(""):a.slice(0,-1).join(", ")+" y "+a[a.length-1];
+const norm=s=>String(s??"").normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().trim();
+
+const SAMPLE={info:{},rows:[]};
+const PUBLICO=true;
+if(PUBLICO){
+  const demo=[["Sector 1",[41.2,39.8,43.5,40.6],[.32,.28,.41,.30]],["Sector 2",[37.9,35.4,38.6,36.2],[.22,.25,.19,.27]],["Sector 3",[44.1,45.8,42.7,46.3],[.48,.55,.39,.44]]];
+  let n=0;SAMPLE.rows=[];demo.forEach(([sec,h,c])=>h.forEach((v,i)=>{n++;SAMPLE.rows.push({equipo:"Equipo 1",sector:sec,bloque:"Bloque "+n,fecha:{y:2026,m:10,d:15,H:9,M:4+n*3},hum:v,depth:30,ce:c[i]})}));
+  SAMPLE.info={code:"000",agricola:"Agrícola Ejemplo",campo:"Campo 01 Demostración",periodo:"",hmin:36,hmax:48,cemin:0,cemax:1.2};
+}
+const state={rows:SAMPLE.rows,info:{...SAMPLE.info},periodoAuto:true,depth:30,merge:false,obsCustom:null,isSample:true,day:"all",names:"",key:null};
+/* Recuerdo por campo (solo en este navegador): nombre de agrícola y de sectores */
+const PRESETS={};
+function memGet(k){let m=null;try{m=JSON.parse(localStorage.getItem("suelo:"+k)||"null")}catch(e){}return m||PRESETS[k]||null}
+function memSet(k,v){if(!k)return;try{localStorage.setItem("suelo:"+k,JSON.stringify({...(memGet(k)||{}),...v}))}catch(e){}}
+function parseNames(t){const m={};String(t||"").split(/[;,\n]+/).forEach(x=>{const r=x.trim().match(/^(\d+)\s*[-:=.]?\s*(.*)$/);if(r)m[+r[1]]=r[2].trim()});return m}
+function applyNames(){const m=parseNames(state.names);state.rows.forEach(r=>{if(r.secNum!=null)r.sector=("Sector "+r.secNum+(m[r.secNum]?" "+m[r.secNum]:""))})}
+
+/* ---------- Lectura del Excel ---------- */
+function parseFecha(v){
+  if(v==null||v==="")return null;
+  if(typeof v==="number"){const p=XLSX.SSF.parse_date_code(v);if(!p)return null;return{y:p.y,m:p.m,d:p.d,H:p.H,M:p.M}}
+  if(v instanceof Date)return{y:v.getFullYear(),m:v.getMonth()+1,d:v.getDate(),H:v.getHours(),M:v.getMinutes()};
+  const s=String(v).trim();let m;
+  if((m=s.match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})(?:[ T](\d{1,2}):(\d{2}))?/)))return{y:+m[1],m:+m[2],d:+m[3],H:+(m[4]||0),M:+(m[5]||0)};
+  if((m=s.match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{2,4})(?:[ ,]+(\d{1,2}):(\d{2}))?/))){let y=+m[3];if(y<100)y+=2000;return{y,m:+m[2],d:+m[1],H:+(m[4]||0),M:+(m[5]||0)}}
+  return null;
+}
+function findHeader(aoa){
+  for(let i=0;i<Math.min(aoa.length,20);i++){
+    const r=(aoa[i]||[]).map(norm);
+    if(r.some(c=>/humedad|vwc/.test(c))&&r.some(c=>/bloque|sector|block/.test(c)))return i;
+  }
+  return -1;
+}
+function findLongHeader(aoa){
+  for(let i=0;i<Math.min(aoa.length,20);i++){const r=(aoa[i]||[]).map(norm);
+    if(r.some(c=>/tipo medicion|tipo de medicion|^medicion$/.test(c))&&r.some(c=>c==="valor"))return i}
+  return -1;
+}
+function parseLong(aoa,hi,sheetName){
+  const hn=aoa[hi].map(norm);const col=re=>hn.findIndex(c=>re.test(c));
+  const cF=col(/^fecha/),cCli=col(/^cliente/),cCampo=col(/^campo/),cTipo=col(/tipo.*medicion|^medicion$/),cVal=hn.findIndex(c=>c==="valor"),
+        cMin=col(/^min\.? optimo/),cMax=col(/^max\.? optimo/),cCod=col(/codigo activo|^codigo$/),cEq=col(/^equipo/),cSec=col(/^sector/),cAct=col(/nombre activo/);
+  const rec=new Map();const info={};let key=null;
+  for(let r=hi+1;r<aoa.length;r++){
+    const a=aoa[r]||[];const tipo=norm(a[cTipo]);const v=parseNum(a[cVal]);if(!tipo||v==null)continue;
+    const isH=/humedad|vwc/.test(tipo),isC=/^ce\b|conductividad/.test(tipo);if(!isH&&!isC)continue;
+    const cod=String(a[cCod]??"");const se=cod.match(/SE0*(\d+)/i),bl=cod.match(/BL0*(\d+)/i),ca=cod.match(/CA0*(\d+)/i),cp=cod.match(/CA\d+-([A-Z]\d+)/i);
+    let secNum=se?+se[1]:null;
+    if(secNum==null&&cSec>=0&&a[cSec]!=null){const m=String(a[cSec]).match(/\d+/);if(m)secNum=+m[0]}
+    let blNum=bl?+bl[1]:null;
+    if(blNum==null&&cAct>=0){const m=String(a[cAct]??"").match(/(\d+)\s*$/);if(m&&isC)blNum=+m[1]}
+    if(secNum==null||blNum==null)continue;
+    if(!key&&ca)key="CA"+ca[1].padStart(3,"0")+(cp?"-"+cp[1].toUpperCase():"");
+    if(info.code==null&&ca)info.code=ca[1].padStart(3,"0");
+    if(info.cliente==null&&cCli>=0&&a[cCli])info.cliente=String(a[cCli]).trim();
+    if(info.campoRaw==null&&cCampo>=0&&a[cCampo])info.campoRaw=String(a[cCampo]).trim();
+    if(isH&&info.hmin==null&&cMin>=0){info.hmin=parseNum(a[cMin]);info.hmax=parseNum(a[cMax])}
+    if(isC&&info.cemin==null&&cMin>=0){info.cemin=parseNum(a[cMin]);info.cemax=parseNum(a[cMax])}
+    const f=parseFecha(a[cF]);const day=f?f.y*1e4+f.m*100+f.d:0;
+    let eq="";if(cEq>=0&&a[cEq]){const m=String(a[cEq]).match(/equipo\s*(\d+)/i);eq=m?"Equipo "+m[1]:String(a[cEq]).trim()}
+    const k=day+"|"+eq+"|"+secNum+"|"+blNum;let o=rec.get(k);
+    if(!o){o={equipo:eq,secNum,blNum,sector:"Sector "+secNum,fecha:null,hum:null,depth:null,ce:null,_th:-1,_tc:-1};rec.set(k,o)}
+    const t=fkey(f);
+    if(isH&&t>=o._th){o.hum=v;o._th=t;const dm=tipo.match(/(\d+)\s*cm/);o.depth=dm?+dm[1]:null;o.fecha=f}
+    if(isC&&t>=o._tc){o.ce=v;o._tc=t;if(o._th<0)o.fecha=f}
+  }
+  const rows=[...rec.values()];
+  if(!rows.length)throw new Error("La hoja «"+sheetName+"» no tiene lecturas de % Humedad ni de CE con código de sector y bloque.");
+  // numeración correlativa de bloques en el campo (Sector 1: 1–4, Sector 2: 5–8, …)
+  const uniq=[...new Set(rows.map(r=>r.equipo+"|"+String(r.secNum).padStart(4,"0")+"|"+String(r.blNum).padStart(4,"0")))].sort(natCmp);
+  rows.forEach(r=>{r.bloque="Bloque "+(uniq.indexOf(r.equipo+"|"+String(r.secNum).padStart(4,"0")+"|"+String(r.blNum).padStart(4,"0"))+1);delete r._th;delete r._tc});
+  const out={};
+  if(info.code)out.code=info.code;
+  if(info.cliente){const c=info.cliente.replace(/\b(exportadora|agr[ií]cola|sociedad|comercial|inversiones)\b/ig,"").replace(/\b(s\.?\s?a\.?|spa|ltda\.?|limitada|e\.?i\.?r\.?l\.?)\s*$/i,"").replace(/\s+/g," ").replace(/[ ,.]+$/,"").trim();out.agricola=c?"Ag. "+c:info.cliente}
+  if(info.campoRaw){const m=info.campoRaw.match(/^(\d+)\s*-\s*(.*)$/);out.campo=m?`Campo ${m[1].padStart(2,"0")} ${m[2].trim()}`:info.campoRaw}
+  ["hmin","hmax","cemin","cemax"].forEach(k=>{if(info[k]!=null)out[k]=info[k]});
+  return{rows,info:out,sheetName,key,long:true};
+}
+function parseWorkbook(wb){
+  for(const n of wb.SheetNames){const aoa=XLSX.utils.sheet_to_json(wb.Sheets[n],{header:1,raw:true,defval:null});const h=findLongHeader(aoa);if(h>=0)return parseLong(aoa,h,n)}
+  let sheetName=wb.SheetNames.find(n=>/lectura|dato/i.test(n)&&findHeader(XLSX.utils.sheet_to_json(wb.Sheets[n],{header:1,raw:true,defval:null}))>=0);
+  if(!sheetName)sheetName=wb.SheetNames.find(n=>findHeader(XLSX.utils.sheet_to_json(wb.Sheets[n],{header:1,raw:true,defval:null}))>=0);
+  if(!sheetName)throw new Error("No encontré una hoja con columnas de Bloque o Sector y % Humedad. Revisa los títulos de las columnas o usa la plantilla.");
+  const aoa=XLSX.utils.sheet_to_json(wb.Sheets[sheetName],{header:1,raw:true,defval:null});
+  const hi=findHeader(aoa);const head=aoa[hi].map(c=>String(c??""));const hn=head.map(norm);
+  const col=re=>hn.findIndex(c=>re.test(c));
+  const cEq=col(/equipo/),cSec=col(/sector/),cBl=col(/bloque|block/),cF=col(/fecha|date|hora|timestamp/),cDep=col(/profundidad|depth/);
+  const cCE=hn.findIndex(c=>!/humedad/.test(c)&&(/(^|[^a-z])ce([^a-z]|$)/.test(c)||/conductividad|ds\/m|\bec\b/.test(c)));
+  const humCols=[];hn.forEach((c,i)=>{if(/humedad|vwc/.test(c)&&i!==cDep){const m=c.match(/(\d+)\s*cm/);humCols.push({i,depth:m?+m[1]:null})}});
+  if(!humCols.length)throw new Error("No encontré la columna de % Humedad.");
+  const rows=[];
+  for(let r=hi+1;r<aoa.length;r++){
+    const a=aoa[r]||[];
+    let hum=null,depth=null;
+    for(const hc of humCols){const v=parseNum(a[hc.i]);if(v!=null){hum=v;depth=hc.depth;break}}
+    if(cDep>=0){const d=parseNum(a[cDep]);if(d!=null)depth=d}
+    const ce=cCE>=0?parseNum(a[cCE]):null;
+    const sector=cSec>=0&&a[cSec]!=null?String(a[cSec]).trim():"";
+    let bloque=cBl>=0&&a[cBl]!=null?String(a[cBl]).trim():"";
+    if(/^\d+$/.test(bloque))bloque="Bloque "+bloque;
+    if(!sector&&!bloque)continue;
+    if(hum==null&&ce==null&&!bloque)continue;
+    if(hum!=null&&hum>0&&hum<=1&&humCols.length)hum=hum*100; // fracciones 0–1
+    rows.push({equipo:cEq>=0&&a[cEq]!=null?String(a[cEq]).trim():"",sector,bloque,fecha:cF>=0?parseFecha(a[cF]):null,hum,depth,ce});
+  }
+  if(!rows.length)throw new Error("La hoja «"+sheetName+"» no tiene filas con datos bajo los títulos.");
+  // Hoja Info opcional
+  const info={};
+  const infoName=wb.SheetNames.find(n=>/info|encabezado|datos generales/i.test(n));
+  if(infoName){
+    XLSX.utils.sheet_to_json(wb.Sheets[infoName],{header:1,raw:true,defval:null}).forEach(r=>{
+      if(!r||r[0]==null)return;const k=norm(r[0]);const v=r[1];if(v==null||v==="")return;
+      if(/codigo|cod\.? cliente/.test(k))info.code=String(v);
+      else if(/agricola|empresa|cliente/.test(k))info.agricola=String(v);
+      else if(/^campo|predio|fundo/.test(k))info.campo=String(v);
+      else if(/periodo/.test(k))info.periodo=String(v);
+      else if(/hum.*min/.test(k))info.hmin=parseNum(v);
+      else if(/hum.*max/.test(k))info.hmax=parseNum(v);
+      else if(/(^ce|conductividad).*min/.test(k))info.cemin=parseNum(v);
+      else if(/(^ce|conductividad).*max/.test(k))info.cemax=parseNum(v);
+    });
+  }
+  return{rows,info,sheetName};
+}
+
+/* ---------- Cálculos ---------- */
+const fkey=f=>f?f.y*1e8+f.m*1e6+f.d*1e4+f.H*100+f.M:0;
+const dayOf=f=>f?f.y*1e4+f.m*100+f.d:0;
+function prepared(){
+  const src=state.day==="all"?state.rows:state.rows.filter(r=>String(dayOf(r.fecha))===state.day);
+  const rows=src.slice().sort((a,b)=>natCmp(a.equipo,b.equipo)||natCmp(a.sector,b.sector)||natCmp(a.bloque,b.bloque)||fkey(a.fecha)-fkey(b.fecha));
+  const ref=state.depth;
+  rows.forEach(r=>{r.other=!state.merge&&r.hum!=null&&r.depth!=null&&r.depth!==ref});
+  // última lectura por bloque para gráficos y resumen
+  const map=new Map();
+  rows.forEach(r=>{const k=r.equipo+"|"+r.sector+"|"+r.bloque;const p=map.get(k);if(!p||fkey(r.fecha)>=fkey(p.fecha))map.set(k,r)});
+  const blocks=[...map.values()].sort((a,b)=>natCmp(a.equipo,b.equipo)||natCmp(a.sector,b.sector)||natCmp(a.bloque,b.bloque));
+  const allBlocks=new Set(state.rows.map(r=>r.equipo+"|"+r.sector+"|"+r.bloque)).size;
+  const nDaysFile=new Set(state.rows.map(r=>dayOf(r.fecha)).filter(Boolean)).size;
+  return{rows,blocks,ref,multi:blocks.length<rows.length,allBlocks,nDaysFile};
+}
+const stat=a=>{const v=a.filter(x=>x!=null&&!isNaN(x));if(!v.length)return null;return{avg:v.reduce((s,x)=>s+x,0)/v.length,min:Math.min(...v),max:Math.max(...v),n:v.length}};
+function estado(h,hmin,hmax){if(h==null)return["Sin dato","na"];if(hmin!=null&&h<hmin)return["Bajo rango","low"];if(hmax!=null&&h>hmax)return["Sobre rango","high"];return["En rango",""]}
+const blabel=b=>{const n=natNum(b);return n!=null?"B"+n:String(b).slice(0,4)};
+const bnum=b=>{const n=natNum(b);return n!=null?String(n):String(b)};
+
+function niceStep(raw,list){for(const s of list)if(s>=raw-1e-9)return s;return list[list.length-1]}
+
+/* ---------- Construcción de las hojas ---------- */
+function el(tag,cls,html){const e=document.createElement(tag);if(cls)e.className=cls;if(html!=null)e.innerHTML=html;return e}
+function pageShell(){const p=el("div","page");const c=el("div","content");const f=el("div","foot");p.append(c,f);return{p,c,f}}
+
+function groupsOf(blocks){const g=[];blocks.forEach((b,i)=>{const k=b.equipo+"|"+b.sector;if(!g.length||g[g.length-1].k!==k)g.push({k,name:b.sector||b.equipo,start:i,n:0});g[g.length-1].n++});return g}
+function slots(blocks,W){
+  const g=groupsOf(blocks);const gap=g.length>1?10.5:0;const n=blocks.length;
+  const sw=(W-gap*(g.length-1))/Math.max(n,1);const xs=[];
+  g.forEach((gr,gi)=>{for(let j=0;j<gr.n;j++)xs[gr.start+j]=gi*gap+(gr.start+j)*sw+sw/2});
+  return{g,sw,xs,gap};
+}
+function axisGroups(ch,blocks,s,x0,yB){
+  const k=Math.min(1,s.sw/24);
+  blocks.forEach((b,i)=>{const t=el("div","xl",esc(blabel(b.bloque)));if(k<1)t.style.fontSize=(6.8*Math.max(k,.62))+"pt";t.style.left=(x0+s.xs[i]-12)+"pt";t.style.top=yB+"pt";ch.append(t)});
+  s.g.forEach(gr=>{const a=x0+s.xs[gr.start]-s.sw/2+2.3,b=x0+s.xs[gr.start+gr.n-1]+s.sw/2-2.3;
+    const ln=el("div","gline");ln.style.left=a+"pt";ln.style.width=(b-a)+"pt";ln.style.top=(yB+10.6)+"pt";ch.append(ln);
+    const nm=el("div","gname",esc(gr.name));nm.style.left=(a-6)+"pt";nm.style.width=(b-a+12)+"pt";nm.style.top=(yB+12.8)+"pt";ch.append(nm)});
+}
+function humChart(blocks,info){
+  const X0=33,W=469.8,TOP=18.6,H=99.5,yB=TOP+H+4.7;
+  const ch=el("div","chart");ch.style.height=(yB+22)+"pt";
+  const vals=blocks.map(b=>b.hum).filter(v=>v!=null);
+  const dmin=vals.length?Math.min(...vals):30,dmax=vals.length?Math.max(...vals):40;
+  const hmin=info.hmin,hmax=info.hmax;
+  let lo0=Math.max(Math.min(dmin-2,hmin!=null?hmin:dmin-2),dmin-8),hi0=Math.min(Math.max(dmax+2,hmax!=null?hmax:dmax+2),dmax+8);
+  const step=niceStep((hi0-lo0)/4,[0.5,1,2,4,5,10,20,25]);
+  let lo=Math.floor(lo0/step)*step,hi=Math.ceil(hi0/step)*step;if(lo<0)lo=0;if(hi<=lo)hi=lo+step*4;
+  const y=v=>TOP+H-(v-lo)/(hi-lo)*H;
+  // banda
+  if(hmin!=null&&hmax!=null){const a=Math.max(hmin,lo),b=Math.min(hmax,hi);if(b>a){
+    const band=el("div","ab");band.style.cssText=`left:${X0}pt;width:${W}pt;top:${y(b)}pt;height:${y(a)-y(b)}pt;background:var(--band)`;ch.append(band);
+    const bl=el("div","bandlbl",`Rango óptimo ${fnum(hmin)}–${fnum(hmax)} %`);bl.style.right=(510.3-X0-W+3.4)+"pt";bl.style.top=(y(b)-8.6)+"pt";ch.append(bl)}}
+  for(let v=lo;v<=hi+1e-9;v+=step){const g=el("div","gl");g.style.cssText=`left:${X0}pt;width:${W}pt;top:${y(v)}pt`;ch.append(g);
+    const l=el("div","yl",fnum(v));l.style.left=(X0-24.5)+"pt";l.style.top=(y(v)-4.2)+"pt";ch.append(l)}
+  const s=slots(blocks,W);
+  blocks.forEach((b,i)=>{if(b.hum==null)return;const cx=X0+s.xs[i],cy=y(Math.min(Math.max(b.hum,lo),hi));
+    const d=el("div","dot"+(b.other?" gold":""));d.style.left=(cx-3.15)+"pt";d.style.top=(cy-3.15)+"pt";ch.append(d);
+    const t=el("div","vl",f1(b.hum));if(s.sw<24)t.style.fontSize=(6*Math.max(s.sw/24,.7))+"pt";t.style.left=(cx-12)+"pt";t.style.top=(cy-11.4)+"pt";ch.append(t)});
+  axisGroups(ch,blocks,s,X0,yB);
+  return ch;
+}
+function ceChart(blocks){
+  const X0=33,W=469.8,TOP=10.6,H=112.6,yB=TOP+H+3.7;
+  const ch=el("div","chart");ch.style.height=(yB+22)+"pt";
+  const vals=blocks.map(b=>b.ce).filter(v=>v!=null);const mx=vals.length?Math.max(...vals):0.3;
+  const list=[0.01,0.02,0.025,0.05,0.1,0.2,0.25,0.5,1,2,2.5,5,10,20,25,50];
+  let step=niceStep(Math.max(mx,0.01)/3,list);let hi=Math.ceil(mx/step-1e-9)*step;if(hi<=0)hi=step;if(mx/hi>0.92)hi+=step;
+  const y=v=>TOP+H-v/hi*H;
+  for(let v=0;v<=hi+1e-9;v+=step){const g=el("div","gl");g.style.cssText=`left:${X0}pt;width:${W}pt;top:${y(v)}pt`;ch.append(g);
+    const l=el("div","yl",f2(v));l.style.left=(X0-24.5)+"pt";l.style.top=(y(v)-4.2)+"pt";ch.append(l)}
+  const s=slots(blocks,W);const bw=Math.min(s.sw*0.56,22);
+  blocks.forEach((b,i)=>{if(b.ce==null)return;const cx=X0+s.xs[i];const top=y(Math.min(b.ce,hi));
+    const r=el("div","bar");r.style.cssText=`left:${cx-bw/2}pt;width:${bw}pt;top:${top}pt;height:${TOP+H-top+0.3}pt`;ch.append(r);
+    const t=el("div","vl",f2(b.ce));if(s.sw<24)t.style.fontSize=(6*Math.max(s.sw/24,.7))+"pt";t.style.left=(cx-12)+"pt";t.style.top=(top-9.6)+"pt";ch.append(t)});
+  axisGroups(ch,blocks,s,X0,yB);
+  return ch;
+}
+
+function observaciones(P,info){
+  const out=[];const ref=P.ref;const B=P.blocks;
+  const fechas=P.rows.map(r=>r.fecha).filter(Boolean);
+  const mes=fechas.length?MESES[fechas[0].m-1]:"";
+  const days=[...new Set(fechas.map(f=>f.y*1e4+f.m*100+f.d))].sort();
+  if(fechas.length){
+    if(days.length===1){const ts=fechas.map(f=>f.H*60+f.M);const a=Math.min(...ts),b=Math.max(...ts);const f=fechas[0];
+      if(P.nDaysFile>1)out.push([`Ronda del ${pad(f.d)}-${pad(f.m)}.`,`${a!==b?`Lecturas registradas entre las ${pad(a/60|0)}:${pad(a%60)} y las ${pad(b/60|0)}:${pad(b%60)} h. `:""}El archivo tiene ${P.nDaysFile} fechas con mediciones; este reporte muestra solo esta ronda.`]);else
+      out.push(["Una sola ronda de medición.",`Todas las lecturas de suelo de ${mes} se registraron el ${pad(f.d)}-${pad(f.m)}${a!==b?`, entre las ${pad(a/60|0)}:${pad(a%60)} y las ${pad(b/60|0)}:${pad(b%60)} h`:""}. No es posible ver la evolución durante el mes.`])}
+    else{const fd=k=>pad(k%100)+"-"+pad((k/100|0)%100);
+      out.push([`${days.length} días con mediciones.`,`Las lecturas se registraron entre el ${fd(days[0])} y el ${fd(days[days.length-1])}.${P.multi?" En los gráficos y el resumen se usa la última lectura de cada bloque.":""}`])}
+  }
+  const H=B.filter(b=>b.hum!=null&&!b.other);const hs=stat(H.map(b=>b.hum));
+  if(hs&&info.hmin!=null&&info.hmax!=null){
+    const low=H.filter(b=>b.hum<info.hmin),high=H.filter(b=>b.hum>info.hmax);const rng=`${fnum(info.hmin)}–${fnum(info.hmax)} %`;
+    if(!low.length&&!high.length){
+      const p=(hs.avg-info.hmin)/(info.hmax-info.hmin);const zona=p<0.34?"baja":p>0.66?"alta":"media";
+      const nearMin=H.filter(b=>b.hum-info.hmin<1),nearMax=H.filter(b=>info.hmax-b.hum<1);
+      let t=`${H.length===1?"El bloque está":`Los ${H.length} bloques están`} entre ${f1(hs.min)} y ${f1(hs.max)} %, en la parte ${zona} del rango óptimo (${rng}).`;
+      if(nearMin.length)t+=nearMin.length===1?` El bloque ${bnum(nearMin[0].bloque)} queda a menos de 1 punto del mínimo.`:` Los bloques ${lista(nearMin.map(b=>bnum(b.bloque)))} quedan a menos de 1 punto del mínimo.`;
+      if(nearMax.length)t+=nearMax.length===1?` El bloque ${bnum(nearMax[0].bloque)} queda a menos de 1 punto del máximo.`:` Los bloques ${lista(nearMax.map(b=>bnum(b.bloque)))} quedan a menos de 1 punto del máximo.`;
+      out.push([`Humedad dentro del rango${zona==="baja"?", cerca del mínimo":zona==="alta"?", cerca del máximo":""}.`,t]);
+    }else{
+      const k=low.length+high.length;let t="";
+      if(low.length)t+=`Bajo el mínimo de ${fnum(info.hmin)} %: ${low.length===1?"bloque":"bloques"} ${lista(low.map(b=>bnum(b.bloque)+" ("+f1(b.hum)+" %)"))}. `;
+      if(high.length)t+=`Sobre el máximo de ${fnum(info.hmax)} %: ${high.length===1?"bloque":"bloques"} ${lista(high.map(b=>bnum(b.bloque)+" ("+f1(b.hum)+" %)"))}. `;
+      t+=`Los otros ${H.length-k} bloques están dentro del rango óptimo (${rng}).`;
+      out.push([`${k} ${k===1?"bloque":"bloques"} fuera del rango óptimo.`,t.trim()]);
+    }
+  }
+  const sectores=groupsOf(B).map(g=>{const bs=B.slice(g.start,g.start+g.n);return{name:g.name,bs,st:stat(bs.filter(b=>!b.other).map(b=>b.hum))}}).filter(s=>s.st);
+  if(sectores.length>1){
+    const top=sectores.reduce((a,b)=>b.st.avg>a.st.avg?b:a);const T=Math.floor(top.st.max);
+    const over=top.bs.filter(b=>!b.other&&b.hum!=null&&b.hum>=T);
+    let t=`Promedia ${f1(top.st.avg)} % en ${ref} cm`;
+    if(over.length&&over.length<top.st.n)t+=over.length===1?`; el bloque ${bnum(over[0].bloque)} supera el ${T} %.`:`; los bloques ${lista(over.map(b=>bnum(b.bloque)))} superan el ${T} %.`;else t+=".";
+    out.push([`${top.name} con la mayor humedad.`,t]);
+  }
+  const C=B.filter(b=>b.ce!=null);const cs=stat(C.map(b=>b.ce));
+  if(cs){
+    const nivel=cs.max<0.75?"baja":cs.max<2?"moderada":"alta";const homo=(cs.max-cs.min)<=Math.max(0.2,cs.avg*0.6)?"homogénea":"variable";
+    const topC=C.filter(b=>b.ce>=cs.max*0.8);
+    let t=`Los valores van de ${f2(cs.min)} a ${f2(cs.max)} dS/m.`;
+    if(topC.length&&topC.length<=Math.max(1,C.length/2)){const mn=Math.min(...topC.map(b=>b.ce));
+      t+=topC.length===1?` El bloque ${bnum(topC[0].bloque)} registra el valor más alto.`:` Los bloques ${lista(topC.map(b=>bnum(b.bloque)))} registran los valores más altos (entre ${f2(mn)} y ${f2(cs.max)} dS/m).`}
+    out.push([`CE ${nivel} y ${homo}.`,t]);
+    const a=info.cemin,b=info.cemax;
+    if(a==null&&b==null)out.push(["Rango óptimo de CE sin definir.","La CE no tiene un rango óptimo configurado, por lo que la plataforma no genera alertas. Conviene definir el rango agronómico con el cliente."]);
+    else if(a!=null&&b!=null&&b-a>=50)out.push(["Rango óptimo de CE sin definir.",`La CE tiene configurado el rango genérico ${fnum(a)}–${fnum(b)} dS/m, por lo que la plataforma no genera alertas útiles. Conviene definir el rango agronómico con el cliente.`]);
+    else{const fuera=C.filter(x=>(a!=null&&x.ce<a)||(b!=null&&x.ce>b));
+      out.push(fuera.length?[`CE fuera del rango en ${fuera.length} ${fuera.length===1?"bloque":"bloques"}.`,`${fuera.length===1?"El bloque":"Los bloques"} ${lista(fuera.map(x=>bnum(x.bloque)))} ${fuera.length===1?"queda":"quedan"} fuera del rango configurado (${a!=null?fnum(a):"–"}–${b!=null?fnum(b):"–"} dS/m).`]:["CE dentro del rango configurado.",`Todos los bloques están dentro de ${a!=null?fnum(a):"–"}–${b!=null?fnum(b):"–"} dS/m.`]);
+    }
+  }
+  return out.map(([b,t])=>`<li><b>${esc(b)}</b> ${esc(t)}</li>`).join("");
+}
+
+function defaultPeriodo(rows){
+  const f=rows.map(r=>r.fecha).filter(Boolean);if(!f.length)return"";
+  const ks=f.map(fkey);const a=f[ks.indexOf(Math.min(...ks))],b=f[ks.indexOf(Math.max(...ks))];
+  if(a.y===b.y&&a.m===b.m)return`01 al ${pad(b.d)} de ${MESES[b.m-1]} ${b.y}`;
+  return`${pad(a.d)} de ${MESES[a.m-1]}${a.y!==b.y?" "+a.y:""} al ${pad(b.d)} de ${MESES[b.m-1]} ${b.y}`;
+}
+function reportMonth(rows){const f=rows.map(r=>r.fecha).filter(Boolean);if(!f.length)return null;const ks=f.map(fkey);return f[ks.indexOf(Math.max(...ks))]}
+function compact(s){return norm(s).replace(/^(ag\.?|agricola|soc\.?|sociedad)\s+/,"").replace(/^campo\s*\d*\s*/,"").replace(/[^a-z0-9 ]/g," ").split(/\s+/).filter(Boolean).map(w=>w[0].toUpperCase()+w.slice(1)).join("")}
+function fileName(){const i=state.info;const m=reportMonth(state.rows);const parts=[compact(i.agricola),compact(i.campo),"Suelo"];if(m)parts.push(MES_AB[m.m-1]+m.y);
+  return (i.code?String(i.code).trim()+"-":"")+parts.filter(Boolean).join("_")+".pdf"}
+
+function render(){
+  const info=state.info;const P=prepared();const stage=$("stage");stage.innerHTML="";
+  const m=reportMonth(P.rows);
+  const periodo=state.periodoAuto?defaultPeriodo(P.rows):info.periodo;
+  const footTxt=[ [info.code,info.agricola].filter(Boolean).join(" · "),info.campo,"Reporte de suelo"+(m?` ${MESES[m.m-1]} ${m.y}`:"")].filter(Boolean).join(" · ");
+  const pages=[];
+  // ---- Página 1
+  const p1=pageShell();pages.push(p1);
+  const B=P.blocks;const H=B.filter(b=>b.hum!=null&&!b.other);const hs=stat(H.map(b=>b.hum));const cs=stat(B.map(b=>b.ce));
+  const nEq=new Set(B.map(b=>b.equipo).filter(Boolean)).size;const nSec=new Set(B.map(b=>b.equipo+"|"+b.sector)).size;
+  const measured=B.filter(b=>b.hum!=null||b.ce!=null).length;
+  const inR=H.filter(b=>(info.hmin==null||b.hum>=info.hmin)&&(info.hmax==null||b.hum<=info.hmax)).length;
+  const sep="  ·  ";
+  p1.c.innerHTML=`<img class="logo" src="${LOGO}" alt="">
+  <div class="eyebrow">REPORTE DE SUELO</div>
+  <h1>% Humedad y Conductividad Eléctrica</h1>
+  <div class="sub"><b>${esc([info.code,info.agricola].filter(Boolean).join(" · "))}</b>${info.campo?sep+esc(info.campo):""}${periodo?sep+"Período: "+esc(periodo):""}</div>
+  <div class="kpis">
+   <div class="kpi"><div class="l">BLOQUES MEDIDOS</div><div class="v">${measured} <small>de ${P.allBlocks}</small></div><div class="s">${nEq?`${nEq} ${nEq===1?"equipo":"equipos"} · `:""}${nSec} ${nSec===1?"sector":"sectores"}</div></div>
+   <div class="kpi"><div class="l">HUMEDAD PROM. ${P.ref} CM</div><div class="v">${f1(hs?.avg)} <small>%</small></div><div class="s">${hs?`Rango ${f1(hs.min)} – ${f1(hs.max)} %`:"Sin lecturas"}</div></div>
+   <div class="kpi"><div class="l">EN RANGO ÓPTIMO</div><div class="v">${inR} <small>de ${H.length}</small></div><div class="s">${info.hmin!=null&&info.hmax!=null?`Óptimo configurado ${fnum(info.hmin)}–${fnum(info.hmax)} %`:"Óptimo sin configurar"}</div></div>
+   <div class="kpi"><div class="l">CE PROMEDIO</div><div class="v">${f2(cs?.avg)} <small>dS/m</small></div><div class="s">${cs?`Rango ${f2(cs.min)} – ${f2(cs.max)} dS/m`:"Sin lecturas"}</div></div>
+  </div>
+  <h2 class="sec">Resumen por equipo y sector</h2>`;
+  const g=groupsOf(B);
+  const t1=el("table","t");t1.innerHTML=`<colgroup><col style="width:56pt"><col style="width:80pt"><col style="width:47pt"><col style="width:120pt"><col style="width:63pt"><col style="width:81pt"><col></colgroup>
+   <thead><tr><th>Equipo</th><th>Sector</th><th class="r">Bloques</th><th class="r">% Humedad prom. ${P.ref} cm</th><th class="r">Mín – Máx</th><th class="r">CE prom. (dS/m)</th><th class="r">Mín – Máx</th></tr></thead><tbody>${
+   g.map(gr=>{const bs=B.slice(gr.start,gr.start+gr.n);const h=stat(bs.filter(b=>!b.other).map(b=>b.hum));const c=stat(bs.map(b=>b.ce));
+     return`<tr><td>${esc(bs[0].equipo||"–")}</td><td>${esc(bs[0].sector||"–")}</td><td class="r">${gr.n}</td><td class="r b">${f1(h?.avg)}</td><td class="r">${h?f1(h.min)+" – "+f1(h.max):"–"}</td><td class="r b">${f2(c?.avg)}</td><td class="r">${c?f2(c.min)+" – "+f2(c.max):"–"}</td></tr>`}).join("")}</tbody>`;
+  p1.c.append(t1);
+  p1.c.append(el("h2","sec","% Humedad de suelo por bloque"));
+  const others=[...new Set(B.filter(b=>b.other).map(b=>b.depth))];
+  p1.c.append(el("div","legend",`<span><i class="dot" style="border-radius:50%"></i>Sensor ${P.ref} cm</span>${others.map(d=>`<span><i class="gold"></i>Registrado como ${fnum(d)} cm</span>`).join("")}${info.hmin!=null&&info.hmax!=null?`<span><i class="band"></i>Rango óptimo</span>`:""}`));
+  const hc=humChart(B,info);hc.style.marginTop="2pt";p1.c.append(hc);
+  const ce=el("h2","sec","Conductividad eléctrica (CE) por bloque");ce.style.marginTop="23pt";p1.c.append(ce);
+  const cc=ceChart(B);cc.style.marginTop="6pt";p1.c.append(cc);
+  {const nt=el("div","note","Valores en dS/m.");nt.style.marginTop="14pt";p1.c.append(nt)}
+
+  // ---- Páginas de detalle + observaciones
+  stage.append(p1.p);
+  const LIMIT=p1.c.clientHeight;
+  let cur=pageShell();pages.push(cur);stage.append(cur.p);
+  const head=`<colgroup><col style="width:56pt"><col style="width:93pt"><col style="width:71pt"><col style="width:69pt"><col style="width:70pt"><col style="width:93pt"><col></colgroup><thead><tr><th>Equipo</th><th>Sector</th><th>Bloque</th><th class="r">Fecha</th><th class="r">% Humedad</th><th class="c">Estado humedad</th><th class="r">CE (dS/m)</th></tr></thead>`;
+  const newTable=(cont)=>{const h=el("h2","sec","Detalle por bloque"+(cont?" (continuación)":""));cur.c.append(h);const t=el("table","t",head+"<tbody></tbody>");cur.c.append(t);return t.tBodies[0]};
+  let tb=newTable(false);
+  P.rows.forEach(r=>{
+    const[txt,cls]=estado(r.other?null:r.hum,info.hmin,info.hmax);const est=r.other&&r.hum!=null?[`A ${fnum(r.depth)} cm`,"na"]:[txt,cls];
+    const f=r.fecha?`${pad(r.fecha.d)}-${pad(r.fecha.m)} ${pad(r.fecha.H)}:${pad(r.fecha.M)}`:"–";
+    const tr=el("tr",null,`<td>${esc(r.equipo||"–")}</td><td>${esc(r.sector||"–")}</td><td>${esc(r.bloque||"–")}</td><td class="r">${f}</td><td class="r b">${f1(r.hum)}${r.other?"<sup>*</sup>":""}</td><td class="c"><span class="pill ${est[1]}">${esc(est[0])}</span></td><td class="r b">${f2(r.ce)}</td>`);
+    tb.append(tr);
+    if(cur.c.scrollHeight>LIMIT+1){tr.remove();cur=pageShell();pages.push(cur);stage.append(cur.p);tb=newTable(true);tb.append(tr)}
+  });
+  const otherRows=P.rows.filter(r=>r.other);
+  const blockEnd=[];
+  if(otherRows.length){const byD={};otherRows.forEach(r=>(byD[r.depth]=byD[r.depth]||[]).push(bnum(r.bloque)));
+    blockEnd.push(el("div","note",Object.entries(byD).map(([d,bs])=>`* ${bs.length===1?"Bloque":"Bloques"} ${esc(lista(bs))}: la humedad quedó registrada a ${fnum(+d)} cm. Se muestra en la tabla y los gráficos, pero no se incluye en el promedio de ${P.ref} cm.`).join("<br>")))}
+  blockEnd.forEach(n=>{cur.c.append(n);if(cur.c.scrollHeight>LIMIT+1){n.remove();cur=pageShell();pages.push(cur);stage.append(cur.p);cur.c.append(n)}});
+  const obsWrap=el("div");const oh=el("h2","sec","Observaciones");oh.style.marginTop="14pt";
+  const ul=el("ul","obs",state.obsCustom??observaciones(P,info));ul.contentEditable="true";ul.spellcheck=false;ul.id="obs";
+  ul.addEventListener("input",()=>{state.obsCustom=ul.innerHTML});
+  obsWrap.append(oh,ul);cur.c.append(obsWrap);
+  if(cur.c.scrollHeight>LIMIT+1){obsWrap.remove();cur=pageShell();pages.push(cur);stage.append(cur.p);oh.style.marginTop="0";cur.c.append(obsWrap)}
+  pages.forEach((pg,i)=>{pg.f.innerHTML=`<span>${esc(footTxt)}</span><span>Página ${i+1} de ${pages.length}</span>`});
+  $("fname").textContent=fileName();
+  fit();
+}
+function fit(){const w=$("stageWrap").clientWidth;const st=$("stage");const nat=595.28*96/72;const s=Math.min(1,w/nat);st.style.transform=s<1?`scale(${s})`:"";$("stageWrap").style.height=(st.scrollHeight*s)+"px"}
+addEventListener("resize",fit);
+
+/* ---------- Formulario ---------- */
+const FIELDS=["code","agricola","campo","periodo","hmin","hmax","cemin","cemax"];
+function fillForm(){const i=state.info;FIELDS.forEach(k=>{const v=k==="periodo"?(state.periodoAuto?defaultPeriodo(state.rows):i.periodo):i[k];$(k).value=typeof v==="number"?fnum(v):(v??"")});
+  const ds=[...new Set(state.rows.filter(r=>r.hum!=null).map(r=>r.depth??30))].sort((a,b)=>a-b);if(!ds.includes(state.depth))ds.push(state.depth);
+  $("depth").innerHTML=ds.map(d=>`<option value="${d}">${fnum(d)} cm</option>`).join("");$("depth").value=state.depth;
+  $("mergeWrap").hidden=ds.length<2;
+  const days=[...new Set(state.rows.map(r=>dayOf(r.fecha)).filter(Boolean))].sort().reverse();
+  $("dayWrap").hidden=days.length<2;
+  $("day").innerHTML=days.map(d=>{const n=new Set(state.rows.filter(r=>dayOf(r.fecha)===d).map(r=>r.equipo+"|"+r.sector+"|"+r.bloque)).size;return`<option value="${d}">${pad(d%100)}-${pad((d/100|0)%100)}-${d/1e4|0} · ${n} ${n===1?"bloque":"bloques"}</option>`}).join("")+`<option value="all">Todas las fechas (última lectura por bloque)</option>`;
+  $("day").value=state.day;
+  $("names").value=state.names;
+  $("names").closest("label").hidden=!state.rows.some(r=>r.secNum!=null);$("mergeTxt").textContent=`Contar todas las lecturas como ${fnum(state.depth)} cm`;$("merge").checked=state.merge}
+FIELDS.forEach(k=>$(k).addEventListener("input",()=>{const v=$(k).value;
+  if(k==="periodo"){state.periodoAuto=v.trim()==="";state.info.periodo=v}
+  else if(/min|max/.test(k))state.info[k]=parseNum(v);else state.info[k]=v;
+  if(/min|max/.test(k))state.obsCustom=null;render()}));
+$("day").addEventListener("change",()=>{state.day=$("day").value;state.obsCustom=null;render()});
+$("names").addEventListener("input",()=>{state.names=$("names").value;memSet(state.key,{names:state.names});applyNames();state.obsCustom=null;render()});
+["agricola","campo"].forEach(k=>$(k).addEventListener("change",()=>memSet(state.key,{[k]:$(k).value})));
+$("depth").addEventListener("change",()=>{state.depth=+$("depth").value;state.obsCustom=null;$("mergeTxt").textContent=`Contar todas las lecturas como ${fnum(state.depth)} cm`;render()});
+$("merge").addEventListener("change",()=>{state.merge=$("merge").checked;state.obsCustom=null;render()});
+$("regen").addEventListener("click",()=>{state.obsCustom=null;render()});
+
+function setStatus(id,cls,html){const s=$(id);s.hidden=false;s.className="status "+cls;s.innerHTML=`<span>${html}</span>`}
+
+/* ---------- Carga de archivo ---------- */
+async function loadFile(file){
+  try{
+    const buf=await file.arrayBuffer();const wb=XLSX.read(buf,{type:"array",cellDates:false});
+    const {rows,info,sheetName,key,long}=parseWorkbook(wb);
+    state.rows=rows;state.isSample=false;state.obsCustom=null;state.merge=false;state.key=key||null;
+    const mem=key?memGet(key):null;
+    if(long){state.info={code:"",agricola:"",campo:"",periodo:"",hmin:null,hmax:null,cemin:null,cemax:null}}
+    Object.assign(state.info,info);if(mem?.agricola)state.info.agricola=mem.agricola;if(mem?.campo)state.info.campo=mem.campo;
+    state.names=mem?.names||"";applyNames();state.periodoAuto=!info.periodo;
+    const ds=[...new Set(rows.map(r=>dayOf(r.fecha)).filter(Boolean))].sort();state.day=ds.length>1?String(ds[ds.length-1]):"all";
+    const cnt={};rows.forEach(r=>{if(r.hum!=null){const d=r.depth??30;cnt[d]=(cnt[d]||0)+1}});
+    state.depth=+(Object.entries(cnt).sort((a,b)=>b[1]-a[1])[0]?.[0]??30);
+    rows.forEach(r=>{if(r.depth==null)r.depth=state.depth});
+    if(!long)state.day="all";
+    fillForm();render();
+    const nSec=new Set(rows.map(r=>r.sector)).size;const noF=rows.filter(r=>!r.fecha).length;const nDays=new Set(rows.map(r=>dayOf(r.fecha)).filter(Boolean)).size;
+    setStatus("status",noF?"warn":"ok",`<b>${esc(file.name)}</b> · ${nDays>1?`${nDays} fechas de medición`:"cargado"}.${noF?` ${noF} sin fecha reconocible.`:""}`);
+  }catch(e){setStatus("status","err",esc(e.message||"No pude leer el archivo. Revisa que sea un Excel o CSV."))}
+}
+$("drop").addEventListener("click",()=>$("file").click());
+$("file").addEventListener("change",e=>{const f=e.target.files[0];if(f)loadFile(f);e.target.value=""});
+["dragenter","dragover"].forEach(ev=>$("drop").addEventListener(ev,e=>{e.preventDefault();$("drop").classList.add("over")}));
+["dragleave","drop"].forEach(ev=>$("drop").addEventListener(ev,e=>{e.preventDefault();$("drop").classList.remove("over")}));
+$("drop").addEventListener("drop",e=>{const f=e.dataTransfer.files[0];if(f)loadFile(f)});
+
+/* ---------- Descargas ---------- */
+let dl=null;
+const directDL={save:async({filename,data})=>{const blob=data instanceof Blob?data:new Blob([data]);const u=URL.createObjectURL(blob);const a=document.createElement("a");a.href=u;a.download=filename;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000);return{status:"saved"}}};
+(async()=>{if(PUBLICO){dl=directDL;return}try{dl=await window.claude?.use?.("downloads")}catch(e){dl=null}
+  if(!dl){["pdf","tpl"].forEach(id=>$(id).disabled=true);setStatus("pdfStatus","warn","Las descargas no están disponibles en esta vista. Abre el link en claude.ai para descargar.")}})();
+async function save(filename,data){
+  try{await dl.save({filename,data});return true}
+  catch(e){if(e&&e.code==="declined")return false;throw e}
+}
+$("pdf").addEventListener("click",async()=>{
+  if(!dl)return;const btn=$("pdf");btn.disabled=true;btn.textContent="Generando…";$("pdfStatus").hidden=true;
+  try{
+    await document.fonts.ready;
+    const pages=[...document.querySelectorAll("#stage .page")];
+    const doc=new jspdf.jsPDF({unit:"pt",format:"a4",compress:true});
+    doc.setProperties({title:"Reporte de suelo · "+[state.info.code,state.info.agricola,state.info.campo].filter(Boolean).join(" · ")});
+    document.body.classList.add("capturing");
+    for(let i=0;i<pages.length;i++){
+      const c=await html2canvas(pages[i],{scale:3,backgroundColor:"#ffffff",useCORS:true,logging:false,
+        onclone:d=>{const s=d.getElementById("stage");s.style.transform="none";d.querySelectorAll(".page").forEach(p=>p.style.boxShadow="none");const o=d.getElementById("obs");if(o)o.removeAttribute("contenteditable")}});
+      if(i)doc.addPage("a4","portrait");
+      doc.addImage(c.toDataURL("image/jpeg",0.93),"JPEG",0,0,595.28,841.89,undefined,"FAST");
+    }
+    document.body.classList.remove("capturing");
+    const ok=await save(fileName(),doc.output("blob"));
+    if(ok)setStatus("pdfStatus","ok","PDF descargado: "+esc(fileName()));
+  }catch(e){setStatus("pdfStatus","err","No se pudo generar el PDF"+(e&&e.code?` (${esc(e.code)})`:"")+". Intenta de nuevo.")}
+  finally{document.body.classList.remove("capturing");btn.disabled=false;btn.textContent="Descargar PDF"}
+});
+$("tpl").addEventListener("click",async()=>{
+  if(!dl)return;
+  try{
+    const wb=XLSX.utils.book_new();
+    const rows=[["Equipo","Sector","Bloque","Fecha","% Humedad","Profundidad (cm)","CE (dS/m)"]].concat(prepared().rows.map(r=>[r.equipo,r.sector,r.bloque,r.fecha?`${pad(r.fecha.d)}-${pad(r.fecha.m)}-${r.fecha.y} ${pad(r.fecha.H)}:${pad(r.fecha.M)}`:"",r.hum,r.depth,r.ce]));
+    const ws=XLSX.utils.aoa_to_sheet(rows);ws["!cols"]=[{wch:10},{wch:18},{wch:11},{wch:17},{wch:11},{wch:16},{wch:10}];
+    XLSX.utils.book_append_sheet(wb,ws,"Lecturas");
+    const i=state.info;
+    const wi=XLSX.utils.aoa_to_sheet([["Campo","Valor"],["Código cliente",i.code||""],["Agrícola",i.agricola||""],["Campo",i.campo||""],["Período",state.periodoAuto?"":i.periodo||""],["Humedad óptima mín (%)",i.hmin??""],["Humedad óptima máx (%)",i.hmax??""],["CE configurada mín (dS/m)",i.cemin??""],["CE configurada máx (dS/m)",i.cemax??""]]);
+    wi["!cols"]=[{wch:26},{wch:30}];XLSX.utils.book_append_sheet(wb,wi,"Info");
+    const out=XLSX.write(wb,{bookType:"xlsx",type:"array"});
+    await save("Plantilla_Reporte_Suelo.xlsx",new Uint8Array(out));
+  }catch(e){setStatus("status","err","No se pudo generar la plantilla"+(e&&e.code?` (${esc(e.code)})`:"")+".")}
+});
+
+/* ---------- Inicio ---------- */
+$("logoUi").src=LOGO;$("logoUiDark").src=LOGO;$("logoUiDark").style.filter="invert(1) hue-rotate(180deg) brightness(1.6)";
+if(PUBLICO)$("status").innerHTML='<span><span class="chip">Ejemplo</span> Datos ficticios. Sube tu export de BLUM para ver tu reporte.</span>';
+fillForm();
+(document.fonts?document.fonts.ready:Promise.resolve()).then(render);
+render();
+</script>
+
+</body>
+</html>
