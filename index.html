@@ -88,6 +88,18 @@ details.fold[open] .chev{transform:rotate(-135deg);margin:4px 4px 0 0}
 details.fold:not([open]){gap:0}
 .filters{display:flex;flex-direction:column;gap:10px}
 .filters:not(:has(label:not([hidden]))){display:none}
+.topbar{border-bottom:1px solid var(--line);background:var(--surface)}
+.topbar-in{max-width:1280px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
+  padding-block:12px 0;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.topbar .brandrow{padding-bottom:12px}
+.tabs{display:flex;gap:4px;align-self:flex-end}
+.tab{font:inherit;font-weight:700;font-size:14px;color:var(--muted);background:transparent;border:0;border-bottom:3px solid transparent;padding:10px 14px 11px;cursor:pointer}
+.tab:hover{color:var(--fg)}
+.tab[aria-selected="true"]{color:var(--teal-ink);border-bottom-color:var(--teal)}
+.tab:focus-visible{outline:2px solid var(--teal-ink);outline-offset:-2px}
+.chart svg{position:absolute;left:0;top:0;overflow:visible}
+.chart .lim{position:absolute;height:0;border-top:1pt dashed #c0532b}
+.chart .limlbl{position:absolute;font-size:6pt;line-height:7pt;color:#c0532b;text-align:right;white-space:nowrap}
 details.help{font-size:12.5px;color:var(--muted)}
 details.help summary{cursor:pointer;color:var(--teal-ink);font-weight:700}
 details.help code{font-size:11.5px;background:var(--soft);padding:0 4px;border-radius:3px;color:var(--fg)}
@@ -154,16 +166,24 @@ ul.obs[contenteditable="true"]:focus{box-shadow:0 0 0 3pt #dcefec}
 .capturing ul.obs{box-shadow:none!important}
 </style>
 
-<div class="app">
-  <aside class="panel" aria-label="Pasos">
+<header class="topbar">
+  <div class="topbar-in">
     <div class="brandrow">
       <img class="logo-light" id="logoUi" alt="">
       <img class="logo-dark" id="logoUiDark" alt="">
       <div>
-        <h1>Reporte de suelo</h1>
-        <p>% Humedad y Conductividad Eléctrica</p>
+        <h1>Reportes de campo</h1>
+        <p>Suelo y equipos de ósmosis inversa</p>
       </div>
     </div>
+    <nav class="tabs" role="tablist" aria-label="Tipo de reporte">
+      <button type="button" role="tab" class="tab" id="tabS" aria-selected="true" aria-controls="viewS">Suelo</button>
+      <button type="button" role="tab" class="tab" id="tabO" aria-selected="false" aria-controls="viewO">Ósmosis inversa</button>
+    </nav>
+  </div>
+</header>
+<div class="app" id="viewS" role="tabpanel" aria-labelledby="tabS">
+  <aside class="panel" aria-label="Pasos">
 
     <section class="step">
       <h2><span class="n">1</span>Sube la planilla</h2>
@@ -223,6 +243,47 @@ ul.obs[contenteditable="true"]:focus{box-shadow:0 0 0 3pt #dcefec}
   <main class="preview">
     <div class="preview-head"><h2>Vista previa</h2><span class="hint" id="fname"></span></div>
     <div class="stage-wrap" id="stageWrap"><div class="stage" id="stage"></div></div>
+  </main>
+</div>
+
+<div class="app" id="viewO" role="tabpanel" aria-labelledby="tabO" hidden>
+  <aside class="panel" aria-label="Pasos ósmosis">
+    <section class="step">
+      <h2><span class="n">1</span>Sube el export de ósmosis</h2>
+      <input type="file" id="fileO" accept=".xlsx,.xls,.csv" hidden>
+      <button type="button" class="drop" id="dropO">
+        <strong>Elige o arrastra el Excel</strong>
+        <span>El export «Meter» de BLUM con las mediciones de los equipos de ósmosis</span>
+      </button>
+      <div class="status ok" id="statusO"><span><span class="chip">Ejemplo</span> Datos ficticios. Sube tu export de BLUM para ver tus equipos.</span></div>
+      <div class="filters">
+        <label class="f full" id="eqWrapO" hidden>Equipo<select id="eqO"></select></label>
+        <label class="f full" id="perWrapO" hidden>Período<select id="perO"></select></label>
+      </div>
+    </section>
+    <details class="step fold">
+      <summary><h2><span class="n">2</span>Datos del reporte</h2><span class="chev" aria-hidden="true"></span></summary>
+      <p class="hint">Se completan solos desde el Excel. Cámbialos solo si algo viene mal.</p>
+      <div class="fields">
+        <label class="f">Código cliente<input id="codeO" autocomplete="off"></label>
+        <label class="f">Agrícola<input id="agricolaO" autocomplete="off"></label>
+        <label class="f full">Campo<input id="campoO" autocomplete="off"></label>
+        <label class="f full">Equipo<input id="equipoO" autocomplete="off"></label>
+      </div>
+    </details>
+    <section class="step">
+      <h2><span class="n">3</span>Descarga el PDF</h2>
+      <p class="hint">Las observaciones se escriben solas a partir de las mediciones. Haz clic sobre ellas en la vista previa para editarlas.</p>
+      <div class="row">
+        <button type="button" class="btn primary" id="pdfO">Descargar PDF</button>
+        <button type="button" class="btn ghost" id="regenO">Rehacer observaciones</button>
+      </div>
+      <div class="status" id="pdfStatusO" hidden></div>
+    </section>
+  </aside>
+  <main class="preview">
+    <div class="preview-head"><h2>Vista previa</h2><span class="hint" id="fnameO"></span></div>
+    <div class="stage-wrap" id="stageWrapO"><div class="stage" id="stageO"></div></div>
   </main>
 </div>
 
@@ -722,7 +783,7 @@ function selectCampo(i){
 async function loadFile(file){
   try{
     const buf=await file.arrayBuffer();const wb=XLSX.read(buf,{type:"array",cellDates:false});
-    const res=parseWorkbook(wb);
+    let res;try{res=parseWorkbook(wb)}catch(err){if(parseOsmo(wb).length){showTab("O");await loadOsmoWB(wb,file.name);setStatus("status","warn",`${esc(file.name)} trae mediciones de ósmosis: lo abrí en la pestaña Ósmosis inversa.`);return}throw err}
     state.isSample=false;
     if(res.long){state.campos=res.campos;selectCampo(0)}
     else{
@@ -789,12 +850,208 @@ $("tpl").addEventListener("click",async()=>{
   }catch(e){setStatus("status","err","No se pudo generar la plantilla"+(e&&e.code?` (${esc(e.code)})`:"")+".")}
 });
 
+/* =================== Ósmosis inversa =================== */
+const O={equipos:[],idx:0,per:"all",obsCustom:null,info:{},isSample:true};
+const tsOf=f=>f?Date.UTC(f.y,f.m-1,f.d,f.H||0,f.M||0):0;
+const fdate=f=>f?`${pad(f.d)}-${pad(f.m)}-${f.y}`:"–";
+const fdm=f=>f?`${pad(f.d)}-${pad(f.m)}`:"–";
+function osmoLabel(n){const m=String(n||"").match(/caseta\s*(\d+)/i);const e=String(n||"").match(/equipo[^\d]*?(\d+)\s*$/i);return m?`Caseta ${m[1]}`:String(n||"Equipo").trim().toLowerCase().replace(/^./,c=>c.toUpperCase())}
+function parseOsmo(wb){
+  for(const n of wb.SheetNames){
+    const aoa=XLSX.utils.sheet_to_json(wb.Sheets[n],{header:1,raw:true,defval:null});const hi=findLongHeader(aoa);if(hi<0)continue;
+    const hn=aoa[hi].map(norm);const col=re=>hn.findIndex(c=>re.test(c));
+    const cF=col(/^fecha/),cCli=col(/^cliente/),cCampo=col(/^campo/),cTipo=col(/tipo.*medicion|^medicion$/),cVal=hn.findIndex(c=>c==="valor"),cUni=col(/^unidad/),
+      cMin=col(/^min\.? optimo/),cMax=col(/^max\.? optimo/),cOpt=col(/^valor optimo/),cCod=col(/codigo activo|^codigo$/),cAct=col(/nombre activo/),cCom=col(/^comentario/),cEst=col(/^estado/);
+    const eqs=new Map();
+    for(let r=hi+1;r<aoa.length;r++){
+      const a=aoa[r]||[];const v=parseNum(a[cVal]);if(v==null||!a[cTipo])continue;
+      const act=cAct>=0?String(a[cAct]??""):"";const cod=cCod>=0?String(a[cCod]??""):"";
+      if(!(/osmosis/.test(norm(act))||/EQO\d+/i.test(cod)||/rechaz|permeado/.test(norm(a[cTipo]))))continue;
+      const campoRaw=cCampo>=0&&a[cCampo]?String(a[cCampo]).trim():"";
+      const km=cod.match(/^(.*?EQO\d+)/i);const key=km?km[1].toUpperCase():(campoRaw+"|"+act.trim());
+      let E=eqs.get(key);
+      if(!E){const cl=cod.match(/^([A-Z]{2})0*(\d+)-/i);
+        E={key,name:act.trim(),label:osmoLabel(act),campoRaw,info:{code:cl?cl[2].padStart(3,"0"):"",agricola:cCli>=0&&a[cCli]?cleanCliente(a[cCli]):"",campo:campoRaw?cleanCampo(campoRaw):"",equipo:"Equipo de ósmosis · "+osmoLabel(act)},types:new Map()};eqs.set(key,E)}
+      const tk=String(a[cTipo]).trim();let T=E.types.get(tk);
+      if(!T){T={key:tk,label:prettyVar(tk),unit:cUni>=0&&a[cUni]!=null?String(a[cUni]).trim():"",min:cMin>=0?parseNum(a[cMin]):null,max:cMax>=0?parseNum(a[cMax]):null,opt:cOpt>=0?parseNum(a[cOpt]):null,rd:[]};E.types.set(tk,T)}
+      T.rd.push({fecha:parseFecha(a[cF]),v,com:cCom>=0&&a[cCom]?String(a[cCom]).trim():"",est:cEst>=0&&a[cEst]?String(a[cEst]).trim():""});
+    }
+    if(!eqs.size)continue;
+    const out=[...eqs.values()].map(E=>{const types=[...E.types.values()];types.forEach(T=>T.rd.sort((x,y)=>tsOf(x.fecha)-tsOf(y.fecha)));types.sort((x,y)=>y.rd.length-x.rd.length);return{...E,types}});
+    out.sort((x,y)=>natCmp(x.info.campo+x.label,y.info.campo+y.label));
+    return out;
+  }
+  return [];
+}
+/* rango: el mínimo 0 se toma como “sin mínimo” */
+const loOf=T=>T.min!=null&&T.min>0?T.min:null,hiOf=T=>T.max!=null&&!(T.max===0&&(T.min??0)===0)?T.max:null;
+const outOf=(T,v)=>{const lo=loOf(T),hi=hiOf(T);return(lo!=null&&v<lo)||(hi!=null&&v>hi)};
+const rangoTxt=T=>{const lo=loOf(T),hi=hiOf(T),u=T.unit?" "+T.unit:"";return lo!=null&&hi!=null?`${fnum(lo)}–${fnum(hi)}${u}`:hi!=null?`máx. ${fnum(hi)}${u}`:lo!=null?`mín. ${fnum(lo)}${u}`:"sin definir"};
+const decOf=T=>{const mx=Math.max(...T.rd.map(r=>Math.abs(r.v)),0);return mx<10?2:mx<100?1:0};
+const fmtT=(T,v)=>{if(v==null)return"–";const d=decOf(T);let s=rnd(v,d).toFixed(d);if(d&&/\.0+$/.test(s)&&T.rd.every(r=>Number.isInteger(r.v)))s=String(Math.round(v));return s.replace(".",",")};
+
+function osmoSample(){
+  const vals=[[2026,7,8,31],[2026,7,22,33],[2026,8,5,32.5],[2026,8,19,34],[2026,9,2,35],[2026,9,16,36.5],[2026,9,30,35.5],[2026,10,14,38],[2026,10,28,39]];
+  return[{key:"DEMO",name:"Equipo de ósmosis caseta 1",label:"Caseta 1",info:{code:"000",agricola:"Agrícola Ejemplo",campo:"Campo 01 Demostración",equipo:"Equipo de ósmosis · Caseta 1"},
+    types:[{key:"% AGUA RECHAZADA",label:"% agua rechazada",unit:"%",min:0,max:40,opt:0,rd:vals.map(([y,m,d,v])=>({fecha:{y,m,d,H:9,M:30},v,com:"",est:"OK"}))}]}];
+}
+function osmoSelect(i){const E=O.equipos[i];O.idx=i;O.obsCustom=null;O.info={...E.info};
+  const months=[...new Set(E.types.flatMap(T=>T.rd.map(r=>r.fecha?r.fecha.y*100+r.fecha.m:0)).filter(Boolean))];O.per="all";osmoForm();osmoRender()}
+function osmoForm(){
+  const E=O.equipos[O.idx];
+  $("eqWrapO").hidden=O.equipos.length<2;
+  $("eqO").innerHTML=O.equipos.map((e,i)=>`<option value="${i}">${esc(e.info.campo)} · ${esc(e.label)}</option>`).join("");$("eqO").value=O.idx;
+  const months=[...new Set(E.types.flatMap(T=>T.rd.map(r=>r.fecha?r.fecha.y*100+r.fecha.m:0)).filter(Boolean))].sort().reverse();
+  $("perWrapO").hidden=months.length<2;
+  $("perO").innerHTML=`<option value="all">Todo el historial</option>`+months.map(m=>`<option value="${m}">${MESES[m%100-1].replace(/^./,c=>c.toUpperCase())} ${m/100|0}</option>`).join("");$("perO").value=O.per;
+  ["code","agricola","campo","equipo"].forEach(k=>$(k+"O").value=O.info[k]||"");
+}
+function osmoTypes(){const E=O.equipos[O.idx];return E.types.map(T=>({...T,rd:O.per==="all"?T.rd:T.rd.filter(r=>r.fecha&&String(r.fecha.y*100+r.fecha.m)===O.per)})).filter(T=>T.rd.length)}
+
+function lineChart(T){
+  const X0=33,W=469.8,TOP=14,H=118,yB=TOP+H+4.5;
+  const ch=el("div","chart");ch.style.height=(yB+14)+"pt";
+  const rd=T.rd;const vals=rd.map(r=>r.v);const dmin=Math.min(...vals),dmax=Math.max(...vals);
+  const lo=loOf(T),hi=hiOf(T);const sp=Math.max(dmax-dmin,Math.abs(dmax)*0.1,0.1);
+  let lo0=dmin-sp*0.35,hi0=dmax+sp*0.35;if(hi!=null&&hi>hi0&&hi<=dmax+sp*3)hi0=hi+sp*0.1;if(lo!=null&&lo<lo0&&lo>=dmin-sp*3)lo0=lo-sp*0.1;
+  const step=niceStep((hi0-lo0)/4,[0.01,0.02,0.05,0.1,0.2,0.25,0.5,1,2,2.5,5,10,20,25,50,100,200,250,500,1000]);
+  let y0=Math.floor(lo0/step+1e-9)*step,y1=Math.ceil(hi0/step-1e-9)*step;if(y0<0&&dmin>=0)y0=0;if(y1<=y0)y1=y0+step*4;
+  const y=v=>TOP+H-(v-y0)/(y1-y0)*H;
+  const t0=tsOf(rd[0].fecha),t1=tsOf(rd[rd.length-1].fecha);const pad_=14;
+  const x=t=>rd.length<2||t1===t0?X0+W/2:X0+pad_+(t-t0)/(t1-t0)*(W-2*pad_);
+  for(let v=y0;v<=y1+1e-9;v+=step){const g=el("div","gl");g.style.cssText=`left:${X0}pt;width:${W}pt;top:${y(v)}pt`;ch.append(g);
+    const l=el("div","yl",fnum(rnd(v,4)));l.style.left=(X0-24.5)+"pt";l.style.top=(y(v)-4.2)+"pt";ch.append(l)}
+  [[hi,"Máx."],[lo,"Mín."]].forEach(([v,t])=>{if(v==null||v<y0||v>y1)return;const ln=el("div","lim");ln.style.cssText=`left:${X0}pt;width:${W}pt;top:${y(v)}pt`;ch.append(ln);
+});
+  const pts=rd.map(r=>[x(tsOf(r.fecha)),y(r.v)]);
+  if(pts.length>1){const svg=document.createElementNS("http://www.w3.org/2000/svg","svg");svg.setAttribute("width","510.3pt");svg.setAttribute("height",(yB)+"pt");svg.setAttribute("viewBox",`0 0 510.3 ${yB}`);
+    const pl=document.createElementNS("http://www.w3.org/2000/svg","polyline");pl.setAttribute("points",pts.map(p=>p.join(",")).join(" "));pl.setAttribute("fill","none");pl.setAttribute("stroke","#77cfc9");pl.setAttribute("stroke-width","1.6");pl.setAttribute("stroke-linejoin","round");svg.append(pl);ch.append(svg)}
+  const showLbl=rd.length<=24;const every=Math.max(1,Math.ceil(rd.length/12));
+  const shown=[];rd.forEach((r,i)=>{const cx=pts[i][0];if(!shown.length||cx-pts[shown[shown.length-1]][0]>=26)shown.push(i);else if(i===rd.length-1)shown[shown.length-1]=i});
+  rd.forEach((r,i)=>{const[cx,cy]=pts[i];const d=el("div","dot"+(outOf(T,r.v)?" out":""));d.style.left=(cx-3.15)+"pt";d.style.top=(cy-3.15)+"pt";ch.append(d);
+    if(showLbl){const t=el("div","vl",fmtT(T,r.v));t.style.left=(cx-12)+"pt";t.style.top=(cy-11.4)+"pt";ch.append(t)}
+    if(shown.includes(i)){const xl=el("div","xl",fdm(r.fecha));xl.style.left=(cx-12)+"pt";xl.style.top=yB+"pt";ch.append(xl)}});
+  return ch;
+}
+function osmoObs(types){
+  const out=[];
+  types.forEach((T,ti)=>{const rd=T.rd;const u=T.unit?" "+T.unit:"";const last=rd[rd.length-1];const st=stat(rd.map(r=>r.v));const lo=loOf(T),hi=hiOf(T);const pre=types.length>1?T.label+": ":"";
+    // última medición
+    let t=`El ${fdate(last.fecha)} marcó ${fmtT(T,last.v)}${u}`;
+    if(hi!=null&&last.v===hi)t+=`, justo en el máximo de ${fnum(hi)}${u}`;
+    else if(hi!=null&&last.v<hi){t+=`, bajo el máximo de ${fnum(hi)}${u}`;if(hi-last.v<=Math.max(Math.abs(hi)*0.05,0.01))t+=` (a ${fnum(rnd(hi-last.v,2))} del límite)`}
+    else if(hi!=null)t+=`, sobre el máximo de ${fnum(hi)}${u}`;
+    if(lo!=null)t+=last.v<lo?`, bajo el mínimo de ${fnum(lo)}${u}`:"";
+    t+=".";
+    out.push([`${pre}última medición ${outOf(T,last.v)?"fuera del rango":lo==null&&hi==null?"registrada":"dentro del rango"}.`.replace(/^./,c=>c.toUpperCase()),t]);
+    // tendencia
+    if(rd.length>=3){const xs=rd.map(r=>tsOf(r.fecha)/864e5),ys=rd.map(r=>r.v);const mx=xs.reduce((a,b)=>a+b)/xs.length,my=st.avg;
+      let num=0,den=0;xs.forEach((xv,i)=>{num+=(xv-mx)*(ys[i]-my);den+=(xv-mx)**2});const slope=den?num/den:0;const span=xs[xs.length-1]-xs[0];const delta=slope*span;
+      const tol=Math.max((hi??st.max)*0.05,(st.max-st.min)*0.15,0.01);
+      const dir=Math.abs(delta)<tol?"estable":delta>0?"al alza":"a la baja";
+      out.push([`${pre}tendencia ${dir}.`.replace(/^./,c=>c.toUpperCase()),`Entre el ${fdate(rd[0].fecha)} y el ${fdate(last.fecha)} pasó de ${fmtT(T,rd[0].v)}${u} a ${fmtT(T,last.v)}${u}, con un promedio de ${fmtT(T,st.avg)}${u} y valores entre ${fmtT(T,st.min)} y ${fmtT(T,st.max)}${u}.`])}
+    // fuera de rango
+    const fo=rd.filter(r=>outOf(T,r.v));
+    if(fo.length)out.push([`${pre}${fo.length} ${fo.length===1?"medición":"mediciones"} fuera de rango.`.replace(/^./,c=>c.toUpperCase()),`${lista(fo.slice(0,6).map(r=>`${fdm(r.fecha)} (${fmtT(T,r.v)}${u})`))}${fo.length>6?` y ${fo.length-6} más`:""}. Rango configurado: ${rangoTxt(T)}.`]);
+    else if((lo!=null||hi!=null)&&rd.length>1)out.push([`${pre}todas las mediciones dentro del rango.`.replace(/^./,c=>c.toUpperCase()),`Las ${rd.length} mediciones del período cumplen el rango configurado (${rangoTxt(T)}).`]);
+    else if(lo==null&&hi==null)out.push([`${pre}rango sin definir.`.replace(/^./,c=>c.toUpperCase()),"Esta medición no tiene rango óptimo configurado en BLUM, por lo que no se puede evaluar si está bien o mal."]);
+    // frecuencia (solo para la medición principal)
+    if(ti===0&&rd.length>=2){const ts=rd.map(r=>tsOf(r.fecha)/864e5);let gmax=0,gi=0;for(let i=1;i<ts.length;i++){const g=ts[i]-ts[i-1];if(g>gmax){gmax=g;gi=i}}
+      const avg=(ts[ts.length-1]-ts[0])/(ts.length-1);
+      out.push(["Frecuencia de medición.",`${rd.length} mediciones entre el ${fdate(rd[0].fecha)} y el ${fdate(last.fecha)}, una cada ${Math.round(avg)} días en promedio. El mayor intervalo sin medir fue de ${Math.round(gmax)} días (${fdm(rd[gi-1].fecha)} al ${fdm(rd[gi].fecha)}).`])}
+  });
+  return out.map(([b,t])=>`<li><b>${esc(b)}</b> ${esc(t)}</li>`).join("");
+}
+function osmoFile(){const i=O.info;const types=osmoTypes();const last=types[0]?.rd.slice(-1)[0]?.fecha;
+  return (i.code?i.code+"-":"")+[compact(i.agricola),compact(i.campo),"Osmosis",compact(norm(i.equipo||"").replace(/^equipo de osmosis\s*·?\s*/,"")),last?MES_AB[last.m-1]+last.y:""].filter(Boolean).join("_")+".pdf"}
+function osmoRender(){
+  const stage=$("stageO");stage.innerHTML="";if(!O.equipos.length)return;
+  const i=O.info;const types=osmoTypes();const pages=[];
+  const all=types.flatMap(T=>T.rd);const ks=all.map(r=>tsOf(r.fecha));const f0=all[ks.indexOf(Math.min(...ks))]?.fecha,f1_=all[ks.indexOf(Math.max(...ks))]?.fecha;
+  const periodo=f0&&f1_?(fkey(f0)===fkey(f1_)?fdate(f0):`${fdm(f0)}${f0.y!==f1_.y?"-"+f0.y:""} al ${fdate(f1_)}`):"";
+  const footTxt=[[i.code,i.agricola].filter(Boolean).join(" · "),i.campo,"Reporte de ósmosis inversa"].filter(Boolean).join(" · ");
+  const sep="  ·  ";
+  let cur=pageShell();pages.push(cur);stage.append(cur.p);
+  const T=types[0];const u=T?.unit?" "+T.unit:"";const st=T?stat(T.rd.map(r=>r.v)):null;const last=T?.rd.slice(-1)[0];const fo=T?T.rd.filter(r=>outOf(T,r.v)).length:0;
+  const ts=T?T.rd.map(r=>tsOf(r.fecha)/864e5):[];const freq=ts.length>1?Math.round((ts[ts.length-1]-ts[0])/(ts.length-1)):null;
+  cur.c.innerHTML=`<img class="logo" src="${LOGO}" alt="">
+   <div class="eyebrow">REPORTE DE ÓSMOSIS INVERSA</div>
+   <h1>${esc(i.equipo||"Equipo de ósmosis")}</h1>
+   <div class="sub"><b>${esc([i.code,i.agricola].filter(Boolean).join(" · "))}</b>${i.campo?sep+esc(i.campo):""}${periodo?sep+"Período: "+esc(periodo):""}</div>
+   ${T?`<div class="kpis">
+    <div class="kpi"><div class="l">ÚLTIMA MEDICIÓN</div><div class="v">${fmtT(T,last.v)} <small>${esc(T.unit)}</small></div><div class="s">${esc(T.label)} · ${fdate(last.fecha)}</div></div>
+    <div class="kpi"><div class="l">PROMEDIO</div><div class="v">${fmtT(T,st.avg)} <small>${esc(T.unit)}</small></div><div class="s">Rango ${fmtT(T,st.min)} – ${fmtT(T,st.max)}${esc(u)}</div></div>
+    <div class="kpi"><div class="l">FUERA DE RANGO</div><div class="v">${loOf(T)==null&&hiOf(T)==null?"–":fo} ${loOf(T)==null&&hiOf(T)==null?"":`<small>de ${T.rd.length}</small>`}</div><div class="s">Rango configurado ${esc(rangoTxt(T))}</div></div>
+    <div class="kpi"><div class="l">MEDICIONES</div><div class="v">${T.rd.length}</div><div class="s">${freq!=null?`Una cada ${freq} días en promedio`:"Una sola medición"}</div></div>
+   </div>`:""}`;
+  const LIMIT=cur.c.clientHeight;
+  const flow=n=>{cur.c.append(n);if(cur.c.scrollHeight>LIMIT+1){n.remove();cur=pageShell();pages.push(cur);stage.append(cur.p);n.style.marginTop="0";cur.c.append(n)}};
+  if(types.length>1){const w=el("div");const h=el("h2","sec","Resumen por medición");h.style.marginTop="13.5pt";w.append(h);
+    const t=el("table","t");t.innerHTML=`<colgroup><col style="width:130pt"><col style="width:62pt"><col style="width:80pt"><col style="width:70pt"><col style="width:80pt"><col></colgroup>
+     <thead><tr><th>Medición</th><th class="r">Mediciones</th><th class="r">Última</th><th class="r">Promedio</th><th class="r">Rango óptimo</th><th class="r">Fuera de rango</th></tr></thead><tbody>${
+     types.map(X=>{const s2=stat(X.rd.map(r=>r.v));const l2=X.rd[X.rd.length-1];const uu=X.unit?" "+esc(X.unit):"";return`<tr><td>${esc(X.label)}</td><td class="r">${X.rd.length}</td><td class="r b">${fmtT(X,l2.v)}${uu}</td><td class="r">${fmtT(X,s2.avg)}${uu}</td><td class="r">${esc(rangoTxt(X))}</td><td class="r">${loOf(X)==null&&hiOf(X)==null?"–":X.rd.filter(r=>outOf(X,r.v)).length}</td></tr>`}).join("")}</tbody>`;
+    w.append(t);flow(w)}
+  types.forEach((X,xi)=>{const w=el("div");const h=el("h2","sec",esc(X.label.replace(/^./,c=>c.toUpperCase()))+" en el tiempo");h.style.marginTop=xi||types.length>1?"16pt":"13.5pt";w.append(h);
+    w.append(el("div","legend",`<span><i class="dot" style="border-radius:50%"></i>Medición${X.unit?" ("+esc(X.unit)+")":""}</span>${hiOf(X)!=null||loOf(X)!=null?`<span><i style="width:10pt;height:0;border-top:1pt dashed #c0532b;vertical-align:2pt"></i>Límite configurado (${esc(rangoTxt(X))})</span><span><i class="dot" style="border-radius:50%;background:#c0532b"></i>Fuera de rango</span>`:""}`));
+    const c=lineChart(X);c.style.marginTop="4pt";w.append(c);flow(w)});
+  // detalle
+  const rows=types.flatMap(X=>X.rd.map(r=>({X,r}))).sort((a,b)=>tsOf(b.r.fecha)-tsOf(a.r.fecha));
+  const hasCom=rows.some(x=>x.r.com);
+  const head=`<colgroup><col style="width:70pt"><col style="width:${hasCom?120:170}pt"><col style="width:70pt"><col style="width:90pt"><col></colgroup><thead><tr><th>Fecha</th><th>Medición</th><th class="r">Valor</th><th class="c">Estado</th>${hasCom?"<th>Comentario</th>":"<th></th>"}</tr></thead>`;
+  const newT=cont=>{const h=el("h2","sec","Mediciones"+(cont?" (continuación)":""));if(cur.c.children.length)h.style.marginTop="16pt";cur.c.append(h);const t=el("table","t",head+"<tbody></tbody>");cur.c.append(t);return t.tBodies[0]};
+  let tb=newT(false);if(cur.c.scrollHeight>LIMIT+1){tb.closest("table").previousSibling.remove();tb.closest("table").remove();cur=pageShell();pages.push(cur);stage.append(cur.p);tb=newT(false)}
+  rows.forEach(({X,r})=>{const o=outOf(X,r.v);const none=loOf(X)==null&&hiOf(X)==null;
+    const tr=el("tr",null,`<td>${fdate(r.fecha)}</td><td>${esc(X.label)}</td><td class="r b">${fmtT(X,r.v)}${X.unit?" "+esc(X.unit):""}</td><td class="c"><span class="pill ${none?"na":o?"low":""}">${none?"Sin rango":o?"Fuera de rango":"En rango"}</span></td><td>${esc(r.com)}</td>`);
+    tb.append(tr);if(cur.c.scrollHeight>LIMIT+1){tr.remove();cur=pageShell();pages.push(cur);stage.append(cur.p);tb=newT(true);tb.append(tr)}});
+  const ow=el("div");const oh=el("h2","sec","Observaciones");oh.style.marginTop="14pt";const ul=el("ul","obs",O.obsCustom??osmoObs(types));ul.contentEditable="true";ul.spellcheck=false;ul.id="obsO";
+  ul.addEventListener("input",()=>{O.obsCustom=ul.innerHTML});ow.append(oh,ul);flow(ow);
+  pages.forEach((pg,k)=>{pg.f.innerHTML=`<span>${esc(footTxt)}</span><span>Página ${k+1} de ${pages.length}</span>`});
+  $("fnameO").textContent=osmoFile();fitO();
+}
+function fitO(){const w=$("stageWrapO").clientWidth;if(!w)return;const st=$("stageO");const nat=595.28*96/72;const s=Math.min(1,w/nat);st.style.transform=s<1?`scale(${s})`:"";$("stageWrapO").style.height=(st.scrollHeight*s)+"px"}
+addEventListener("resize",fitO);
+async function loadOsmoWB(wb,name){
+  const eqs=parseOsmo(wb);
+  if(!eqs.length){setStatus("statusO","err","Este archivo no trae mediciones de equipos de ósmosis. Si son lecturas de suelo, súbelo en la pestaña Suelo.");return false}
+  O.equipos=eqs;O.isSample=false;osmoSelect(0);
+  setStatus("statusO","ok",`<b>${esc(name)}</b> · ${eqs.length>1?`${eqs.length} equipos. Elige cuál ver.`:"cargado."}`);return true;
+}
+async function loadOsmoFile(file){try{const wb=XLSX.read(await file.arrayBuffer(),{type:"array",cellDates:false});await loadOsmoWB(wb,file.name)}catch(e){setStatus("statusO","err",esc(e.message||"No pude leer el archivo."))}}
+$("dropO").addEventListener("click",()=>$("fileO").click());
+$("fileO").addEventListener("change",e=>{const f=e.target.files[0];if(f)loadOsmoFile(f);e.target.value=""});
+["dragenter","dragover"].forEach(ev=>$("dropO").addEventListener(ev,e=>{e.preventDefault();$("dropO").classList.add("over")}));
+["dragleave","drop"].forEach(ev=>$("dropO").addEventListener(ev,e=>{e.preventDefault();$("dropO").classList.remove("over")}));
+$("dropO").addEventListener("drop",e=>{const f=e.dataTransfer.files[0];if(f)loadOsmoFile(f)});
+$("eqO").addEventListener("change",()=>osmoSelect(+$("eqO").value));
+$("perO").addEventListener("change",()=>{O.per=$("perO").value;O.obsCustom=null;osmoRender()});
+["code","agricola","campo","equipo"].forEach(k=>$(k+"O").addEventListener("input",()=>{O.info[k]=$(k+"O").value;osmoRender()}));
+$("regenO").addEventListener("click",()=>{O.obsCustom=null;osmoRender()});
+async function pdfFrom(stageId,obsId,title,fname,btn,statusId){
+  if(!dl)return;btn.disabled=true;const txt=btn.textContent;btn.textContent="Generando…";$(statusId).hidden=true;
+  try{await document.fonts.ready;const pages=[...document.querySelectorAll("#"+stageId+" .page")];
+    const doc=new jspdf.jsPDF({unit:"pt",format:"a4",compress:true});doc.setProperties({title});
+    for(let k=0;k<pages.length;k++){const c=await html2canvas(pages[k],{scale:3,backgroundColor:"#ffffff",useCORS:true,logging:false,
+      onclone:d=>{const s=d.getElementById(stageId);s.style.transform="none";d.querySelectorAll(".page").forEach(p=>p.style.boxShadow="none");const o=d.getElementById(obsId);if(o)o.removeAttribute("contenteditable")}});
+      if(k)doc.addPage("a4","portrait");doc.addImage(c.toDataURL("image/jpeg",0.93),"JPEG",0,0,595.28,841.89,undefined,"FAST")}
+    const ok=await save(fname,doc.output("blob"));if(ok)setStatus(statusId,"ok","PDF descargado: "+esc(fname));
+  }catch(e){setStatus(statusId,"err","No se pudo generar el PDF"+(e&&e.code?` (${esc(e.code)})`:"")+". Intenta de nuevo.")}
+  finally{btn.disabled=false;btn.textContent=txt}
+}
+$("pdfO").addEventListener("click",()=>pdfFrom("stageO","obsO","Reporte de ósmosis inversa · "+[O.info.code,O.info.agricola,O.info.campo,O.info.equipo].filter(Boolean).join(" · "),osmoFile(),$("pdfO"),"pdfStatusO"));
+/* ---------- Pestañas ---------- */
+function showTab(t){const os=t==="O";$("viewS").hidden=os;$("viewO").hidden=!os;$("tabS").setAttribute("aria-selected",String(!os));$("tabO").setAttribute("aria-selected",String(os));
+  try{const h=os?"#osmosis":"#suelo";if(location.hash!==h)history.replaceState(null,"",h)}catch(e){}
+  if(os)osmoRender();else render()}
+$("tabS").addEventListener("click",()=>showTab("S"));$("tabO").addEventListener("click",()=>showTab("O"));
+addEventListener("hashchange",()=>showTab(location.hash==="#osmosis"?"O":"S"));
+O.equipos=osmoSample();O.info={...O.equipos[0].info};osmoForm();
+
 /* ---------- Inicio ---------- */
 $("logoUi").src=LOGO;$("logoUiDark").src=LOGO;$("logoUiDark").style.filter="invert(1) hue-rotate(180deg) brightness(1.6)";
 if(PUBLICO)$("status").innerHTML='<span><span class="chip">Ejemplo</span> Datos ficticios. Sube tu export de BLUM para ver tu reporte.</span>';
 fillForm();
-(document.fonts?document.fonts.ready:Promise.resolve()).then(render);
-render();
+(document.fonts?document.fonts.ready:Promise.resolve()).then(()=>{render();osmoRender()});
+render();if(location.hash==="#osmosis")showTab("O");
 </script>
 
 </body>
