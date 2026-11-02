@@ -140,6 +140,7 @@ table.t sup{font-size:7.2pt;font-weight:600;line-height:0;margin-left:.3pt}
 .chart .gname{position:absolute;font-size:6.8pt;line-height:8pt;font-weight:600;color:var(--ink);text-align:center;white-space:nowrap;overflow:hidden}
 .chart .dot{position:absolute;width:6.3pt;height:6.3pt;border-radius:50%;background:var(--ink)}
 .chart .dot.gold{background:var(--gold)}
+.chart .dot.out{background:#c0532b}
 .chart .bar{position:absolute;background:var(--teal)}
 .chart .bandlbl{position:absolute;font-size:6pt;color:var(--mut);line-height:7pt;text-align:right;white-space:nowrap}
 .note{font-size:8pt;color:var(--mut);line-height:11.6pt;margin-top:5pt}
@@ -252,7 +253,7 @@ if(PUBLICO){
   let n=0;SAMPLE.rows=[];demo.forEach(([sec,h,c])=>h.forEach((v,i)=>{n++;SAMPLE.rows.push({equipo:"Equipo 1",sector:sec,bloque:"Bloque "+n,fecha:{y:2026,m:10,d:15,H:9,M:4+n*3},hum:v,depth:30,ce:c[i]})}));
   SAMPLE.info={code:"000",agricola:"Agrícola Ejemplo",campo:"Campo 01 Demostración",periodo:"",hmin:36,hmax:48,cemin:0,cemax:1.2};
 }
-const state={rows:SAMPLE.rows,info:{...SAMPLE.info},periodoAuto:true,depth:30,merge:false,obsCustom:null,isSample:true,day:"all",names:"",key:null};
+const state={vars:{},rows:SAMPLE.rows,info:{...SAMPLE.info},periodoAuto:true,depth:30,merge:false,obsCustom:null,isSample:true,day:"all",names:"",key:null};
 /* Recuerdo por campo (solo en este navegador): nombre de agrícola y de sectores */
 const PRESETS={};
 function memGet(k){let m=null;try{m=JSON.parse(localStorage.getItem("suelo:"+k)||"null")}catch(e){}return m||PRESETS[k]||null}
@@ -282,16 +283,18 @@ function findLongHeader(aoa){
     if(r.some(c=>/tipo medicion|tipo de medicion|^medicion$/.test(c))&&r.some(c=>c==="valor"))return i}
   return -1;
 }
+function prettyVar(t){const s=String(t).trim().toLowerCase().replace(/\s+/g," ");if(/^ph\b/.test(s))return "pH"+s.slice(2);
+  return s.replace(/\b(n|p|k|ca|mg|na|cic|mo|no3|nh4|ce|ec)\b/g,m=>m==="no3"?"NO₃":m==="nh4"?"NH₄":m.length<=3?m.toUpperCase().replace("CA","Ca").replace("MG","Mg").replace("NA","Na").replace("MO","MO"):m).replace(/^./,c=>c.toUpperCase())}
 function cleanCliente(c0){const c=String(c0).replace(/\b(exportadora|agr[ií]cola|sociedad|comercial|inversiones)\b/ig,"").replace(/\b(s\.?\s?a\.?|spa|ltda\.?|limitada|e\.?i\.?r\.?l\.?)\s*$/i,"").replace(/\s+/g," ").replace(/[ ,.]+$/,"").trim();return c?"Ag. "+c:String(c0).trim()}
 function cleanCampo(c){const m=String(c).trim().match(/^(\d+(?:\.\d+)?)\s*-\s*(.*)$/);return m?`Campo ${m[1].split(".")[0].padStart(2,"0")+(m[1].includes(".")?"."+m[1].split(".")[1]:"")} ${m[2].trim()}`:String(c).trim()}
 function parseLong(aoa,hi,sheetName){
   const hn=aoa[hi].map(norm);const col=re=>hn.findIndex(c=>re.test(c));
   const cF=col(/^fecha/),cCli=col(/^cliente/),cCampo=col(/^campo/),cTipo=col(/tipo.*medicion|^medicion$/),cVal=hn.findIndex(c=>c==="valor"),
-        cMin=col(/^min\.? optimo/),cMax=col(/^max\.? optimo/),cCod=col(/codigo activo|^codigo$/),cEq=col(/^equipo/),cSec=col(/^sector/),cAct=col(/nombre activo/);
+        cMin=col(/^min\.? optimo/),cMax=col(/^max\.? optimo/),cCod=col(/codigo activo|^codigo$/),cEq=col(/^equipo/),cSec=col(/^sector/),cAct=col(/nombre activo/),cUni=col(/^unidad/);
   const campos=new Map();
   for(let r=hi+1;r<aoa.length;r++){
     const a=aoa[r]||[];const tipo=norm(a[cTipo]);const v=parseNum(a[cVal]);if(!tipo||v==null)continue;
-    const isH=/humedad|vwc/.test(tipo),isC=/^ce\b|conductividad/.test(tipo);if(!isH&&!isC)continue;
+    const isH=/humedad|vwc/.test(tipo),isC=/^ce\b|conductividad/.test(tipo);const isX=!isH&&!isC;
     const cod=String(a[cCod]??"");
     const se=cod.match(/SE0*(\d+)/i),bl=cod.match(/BL0*(\d+)/i),cl=cod.match(/^([A-Z]{2})0*(\d+)-/i),cp=cod.match(/^[A-Z]{2}\d+-([A-Z]\d+)/i),tr=cod.match(/TR0*(\d+)/i),eqc=cod.match(/EQ0*(\d+)/i);
     let secNum=se?+se[1]:null;
@@ -303,7 +306,7 @@ function parseLong(aoa,hi,sheetName){
     const ckey=(cl?cl[1].toUpperCase()+cl[2].padStart(3,"0"):"")+(cp?"-"+cp[1].toUpperCase():"")||campoRaw||"campo";
     const cname=campoRaw||ckey;
     let C=campos.get(cname);
-    if(!C){C={name:cname,key:ckey,info:{},rec:new Map(),ce:new Map()};campos.set(cname,C)}
+    if(!C){C={name:cname,key:ckey,info:{},rec:new Map(),ce:new Map(),vx:new Map(),vars:{}};campos.set(cname,C)}
     const I=C.info;
     if(I.code==null&&cl)I.code=cl[2].padStart(3,"0");
     if(I.agricola==null&&cCli>=0&&a[cCli])I.agricola=cleanCliente(a[cCli]);
@@ -317,6 +320,10 @@ function parseLong(aoa,hi,sheetName){
     if(isH){const dm=tipo.match(/(\d+)\s*cm/);const depth=dm?+dm[1]:null;const k=base+"|"+depth;let o=C.rec.get(k);
       if(!o){o={trN,eqN,secNum,blNum,fecha:f,hum:v,depth,ce:null,_t:t,_day:day,_base:base};C.rec.set(k,o)}
       else if(t>=o._t){o.hum=v;o.fecha=f;o._t=t}}
+    else if(isX){const vk=String(a[cTipo]).trim();
+      if(!C.vars[vk])C.vars[vk]={label:prettyVar(vk),unit:cUni>=0&&a[cUni]!=null?String(a[cUni]).trim():"",min:cMin>=0?parseNum(a[cMin]):null,max:cMax>=0?parseNum(a[cMax]):null};
+      let o=C.vx.get(base);if(!o){o={trN,eqN,secNum,blNum,f,t,day,vals:{},ts:{}};C.vx.set(base,o)}
+      if(o.ts[vk]==null||t>=o.ts[vk]){o.vals[vk]=v;o.ts[vk]=t}}
     else{const o=C.ce.get(base);if(!o||t>=o.t)C.ce.set(base,{v,t,f,trN,eqN,secNum,blNum,day})}
   }
   const out=[];
@@ -326,14 +333,17 @@ function parseLong(aoa,hi,sheetName){
     const byBase=new Map();rows.forEach(r=>{(byBase.get(r._base)||byBase.set(r._base,[]).get(r._base)).push(r)});
     for(const [b,c] of C.ce){const list=byBase.get(b);
       if(list&&list.length){list[0].ce=c.v}
-      else rows.push({trN:c.trN,eqN:c.eqN,secNum:c.secNum,blNum:c.blNum,fecha:c.f,hum:null,depth:null,ce:c.v,_day:c.day,_base:b})}
+      else{const nr={trN:c.trN,eqN:c.eqN,secNum:c.secNum,blNum:c.blNum,fecha:c.f,hum:null,depth:null,ce:c.v,_day:c.day,_base:b};rows.push(nr);byBase.set(b,[nr])}}
+    for(const [b,c] of C.vx){const list=byBase.get(b);
+      if(list&&list.length)list[0].vx=c.vals;
+      else{const nr={trN:c.trN,eqN:c.eqN,secNum:c.secNum,blNum:c.blNum,fecha:c.f,hum:null,depth:null,ce:null,vx:c.vals,_day:c.day,_base:b};rows.push(nr);byBase.set(b,[nr])}}
     if(!rows.length)continue;
     const trs=new Set(rows.map(r=>r.trN));const multiTR=trs.size>1;
     rows.forEach(r=>{r.equipo=(r.eqN!=null?"Equipo "+r.eqN:"")+(multiTR?` · TR${pad(r.trN)}`:"")});
     const ord=r=>[pad(r.trN),String(r.eqN??0).padStart(4,"0"),String(r.secNum).padStart(4,"0"),String(r.blNum).padStart(4,"0")].join("|");
     const uniq=[...new Set(rows.map(ord))].sort();
     rows.forEach(r=>{r.bloque="Bloque "+(uniq.indexOf(ord(r))+1);r.sector="Sector "+r.secNum;delete r._t;delete r._base;delete r._day});
-    out.push({name:C.name,key:C.key,info:C.info,rows,blocks:uniq.length});
+    out.push({name:C.name,key:C.key,info:C.info,rows,blocks:uniq.length,vars:C.vars});
   }
   if(!out.length)throw new Error("La hoja «"+sheetName+"» no tiene lecturas de % Humedad ni de CE con código de sector y bloque.");
   out.sort((x,y)=>natCmp(x.name,y.name));
@@ -398,6 +408,7 @@ const genericH=i=>i.hmin!=null&&i.hmax!=null&&i.hmax-i.hmin>=60;
 function prepared(){
   const dc=depthInfo();const ref=state.depth;
   let src=state.day==="all"?state.rows:state.rows.filter(r=>String(dayOf(r.fecha))===state.day);
+  const src0=src;
   if(!state.merge)src=src.flatMap(r=>(r.hum!=null&&r.depth!=null&&r.depth!==ref&&dc.major.includes(r.depth))?(r.ce!=null?[{...r,hum:null,depth:null}]:[]):[r]);
   const rows=src.slice().sort((a,b)=>natCmp(a.equipo,b.equipo)||natCmp(a.sector,b.sector)||natCmp(a.bloque,b.bloque)||fkey(a.fecha)-fkey(b.fecha));
   rows.forEach(r=>{r.other=!state.merge&&r.hum!=null&&r.depth!=null&&r.depth!==ref});
@@ -407,10 +418,19 @@ function prepared(){
   const blocks=[...map.values()].sort((a,b)=>natCmp(a.equipo,b.equipo)||natCmp(a.sector,b.sector)||natCmp(a.bloque,b.bloque));
   const allBlocks=new Set(state.rows.map(r=>r.equipo+"|"+r.sector+"|"+r.bloque)).size;
   const nDaysFile=new Set(state.rows.map(r=>dayOf(r.fecha)).filter(Boolean)).size;
-  return{rows,blocks,ref,multi:blocks.length<rows.length,allBlocks,nDaysFile};
+  // otras mediciones: humedad a otras profundidades y cualquier otro tipo de medición del Excel
+  const series=[];const info=state.info;
+  const mkSeries=(meta,get)=>{const mp=new Map();src0.forEach(r=>{const v=get(r);if(v==null)return;const k=r.equipo+"|"+r.sector+"|"+r.bloque;const p=mp.get(k);if(!p||fkey(r.fecha)>=fkey(p.fecha))mp.set(k,{equipo:r.equipo,sector:r.sector,bloque:r.bloque,fecha:r.fecha,v})});
+    const bs=[...mp.values()].sort((a,b)=>natCmp(a.equipo,b.equipo)||natCmp(a.sector,b.sector)||natCmp(a.bloque,b.bloque));if(bs.length)series.push({...meta,blocks:bs})};
+  if(!state.merge)dc.major.filter(d=>d!==ref).forEach(d=>mkSeries({label:`% Humedad ${fnum(d)} cm`,unit:"%",min:info.hmin,max:info.hmax,hum:true},r=>r.hum!=null&&r.depth===d?r.hum:null));
+  Object.entries(state.vars||{}).forEach(([k,m])=>mkSeries({...m},r=>r.vx&&r.vx[k]!=null?r.vx[k]:null));
+  series.forEach(se=>{const vals=se.blocks.map(b=>b.v);const mx=Math.max(...vals.map(Math.abs));se.dec=mx<10?2:mx<100?1:0;se.fmt=v=>v==null?"–":rnd(v,se.dec).toFixed(se.dec).replace(".",",");
+    se.band=se.min!=null&&se.max!=null&&!(se.hum&&genericH(info))});
+  return{rows,blocks,ref,multi:blocks.length<rows.length,allBlocks,nDaysFile,series};
 }
 const stat=a=>{const v=a.filter(x=>x!=null&&!isNaN(x));if(!v.length)return null;return{avg:v.reduce((s,x)=>s+x,0)/v.length,min:Math.min(...v),max:Math.max(...v),n:v.length}};
 function estado(h,hmin,hmax){if(h==null)return["Sin dato","na"];if(hmin!=null&&h<hmin)return["Bajo rango","low"];if(hmax!=null&&h>hmax)return["Sobre rango","high"];return["En rango",""]}
+const eqTxt=e=>!e?"–":e.length>10?e.replace(/^Equipo\s*/,"Eq. "):e;
 const blabel=b=>{const n=natNum(b);return n!=null?"B"+n:String(b).slice(0,4)};
 const bnum=b=>{const n=natNum(b);return n!=null?String(n):String(b)};
 
@@ -434,26 +454,30 @@ function axisGroups(ch,blocks,s,x0,yB){
     const ln=el("div","gline");ln.style.left=a+"pt";ln.style.width=(b-a)+"pt";ln.style.top=(yB+10.6)+"pt";ch.append(ln);
     const wpt=b-a+12;const nm=el("div","gname",esc(wpt>=gr.name.length*3.6?gr.name:gr.short));if(wpt<gr.short.length*3.6)nm.style.fontSize=Math.max(4.6,wpt/gr.short.length/0.56)+"pt";nm.style.left=(a-6)+"pt";nm.style.width=(b-a+12)+"pt";nm.style.top=(yB+12.8)+"pt";ch.append(nm)});
 }
-function humChart(blocks,info){
+function humChart(blocks,info,opt){
+  opt=opt||{get:b=>b.hum,min:info.hmin,max:info.hmax,fmt:f1,unit:"%",hum:true,band:!genericH(info)};
+  const G=opt.get;
   const X0=33,W=469.8,TOP=18.6,H=99.5,yB=TOP+H+4.7;
   const ch=el("div","chart");ch.style.height=(yB+22)+"pt";
-  const vals=blocks.map(b=>b.hum).filter(v=>v!=null);
+  const vals=blocks.map(G).filter(v=>v!=null);
   const dmin=vals.length?Math.min(...vals):30,dmax=vals.length?Math.max(...vals):40;
-  const hmin=info.hmin,hmax=info.hmax;
-  let lo0=Math.max(Math.min(dmin-2,hmin!=null?hmin:dmin-2),dmin-8),hi0=Math.min(Math.max(dmax+2,hmax!=null?hmax:dmax+2),dmax+8);
-  const step=niceStep((hi0-lo0)/4,[0.5,1,2,4,5,10,20,25]);
-  let lo=Math.floor(lo0/step)*step,hi=Math.ceil(hi0/step)*step;if(lo<0)lo=0;if(hi<=lo)hi=lo+step*4;
+  const hmin=opt.min,hmax=opt.max;let lo0,hi0;
+  if(opt.hum){lo0=Math.max(Math.min(dmin-2,hmin!=null?hmin:dmin-2),dmin-8);hi0=Math.min(Math.max(dmax+2,hmax!=null?hmax:dmax+2),dmax+8)}
+  else{const sp=Math.max(dmax-dmin,Math.abs(dmax)*0.1,0.1);lo0=dmin-sp*0.3;hi0=dmax+sp*0.3;
+    if(opt.band&&hmin!=null&&hmin<lo0&&hmin>dmin-sp*1.5)lo0=hmin;if(opt.band&&hmax!=null&&hmax>hi0&&hmax<dmax+sp*1.5)hi0=hmax}
+  const step=niceStep((hi0-lo0)/4,[0.01,0.02,0.05,0.1,0.2,0.25,0.5,1,2,4,5,10,20,25,50,100,200,250,500,1000,2000,5000]);
+  let lo=Math.floor(lo0/step+1e-9)*step,hi=Math.ceil(hi0/step-1e-9)*step;if(lo<0&&dmin>=0)lo=0;if(hi<=lo)hi=lo+step*4;
   const y=v=>TOP+H-(v-lo)/(hi-lo)*H;
   // banda
-  if(hmin!=null&&hmax!=null&&!genericH(info)){const a=Math.max(hmin,lo),b=Math.min(hmax,hi);if(b>a){
+  if(hmin!=null&&hmax!=null&&opt.band){const a=Math.max(hmin,lo),b=Math.min(hmax,hi);if(b>a){
     const band=el("div","ab");band.style.cssText=`left:${X0}pt;width:${W}pt;top:${y(b)}pt;height:${y(a)-y(b)}pt;background:var(--band)`;ch.append(band);
-    const bl=el("div","bandlbl",`Rango óptimo ${fnum(hmin)}–${fnum(hmax)} %`);bl.style.right=(510.3-X0-W+3.4)+"pt";bl.style.top=(y(b)-8.6)+"pt";ch.append(bl)}}
+    const bl=el("div","bandlbl",`Rango óptimo ${fnum(hmin)}–${fnum(hmax)} ${esc(opt.unit||"")}`);bl.style.right=(510.3-X0-W+3.4)+"pt";bl.style.top=(y(b)-8.6)+"pt";ch.append(bl)}}
   for(let v=lo;v<=hi+1e-9;v+=step){const g=el("div","gl");g.style.cssText=`left:${X0}pt;width:${W}pt;top:${y(v)}pt`;ch.append(g);
-    const l=el("div","yl",fnum(v));l.style.left=(X0-24.5)+"pt";l.style.top=(y(v)-4.2)+"pt";ch.append(l)}
+    const l=el("div","yl",fnum(rnd(v,4)));l.style.left=(X0-24.5)+"pt";l.style.top=(y(v)-4.2)+"pt";ch.append(l)}
   const s=slots(blocks,W);
-  blocks.forEach((b,i)=>{if(b.hum==null)return;const cx=X0+s.xs[i],cy=y(Math.min(Math.max(b.hum,lo),hi));
-    const d=el("div","dot"+(b.other?" gold":""));d.style.left=(cx-3.15)+"pt";d.style.top=(cy-3.15)+"pt";ch.append(d);
-    const t=el("div","vl",f1(b.hum));if(s.sw<24)t.style.fontSize=(6*Math.max(s.sw/24,.7))+"pt";t.style.left=(cx-12)+"pt";t.style.top=(cy-11.4)+"pt";ch.append(t)});
+  blocks.forEach((b,i)=>{const gv=G(b);if(gv==null)return;const cx=X0+s.xs[i],cy=y(Math.min(Math.max(gv,lo),hi));
+    const d=el("div","dot"+(opt.hum&&b.other?" gold":"")+(!opt.hum&&opt.band&&hmin!=null&&hmax!=null&&(gv<hmin||gv>hmax)?" out":""));d.style.left=(cx-3.15)+"pt";d.style.top=(cy-3.15)+"pt";ch.append(d);
+    const t=el("div","vl",opt.fmt(gv));if(s.sw<24)t.style.fontSize=(6*Math.max(s.sw/24,.7))+"pt";t.style.left=(cx-12)+"pt";t.style.top=(cy-11.4)+"pt";ch.append(t)});
   axisGroups(ch,blocks,s,X0,yB);
   return ch;
 }
@@ -517,6 +541,15 @@ function observaciones(P,info){
     if(over.length&&over.length<top.st.n)t+=over.length===1?`; el bloque ${bnum(over[0].bloque)} supera el ${T} %.`:`; los bloques ${lista(over.map(b=>bnum(b.bloque)))} superan el ${T} %.`;else t+=".";
     out.push([`${top.name} con la mayor humedad.`,t]);
   }
+  (P.series||[]).forEach(se=>{const st=stat(se.blocks.map(b=>b.v));if(!st)return;const u=se.unit?" "+se.unit:"";
+    let t=`${se.blocks.length===1?"El bloque marca":`Los ${se.blocks.length} bloques medidos van de`} ${se.blocks.length===1?se.fmt(st.min):`${se.fmt(st.min)} a ${se.fmt(st.max)}`}${u} (promedio ${se.fmt(st.avg)}${u}).`;let title=`${se.label}.`;
+    if(se.band){const lo=se.blocks.filter(b=>b.v<se.min),hi=se.blocks.filter(b=>b.v>se.max);const L=x=>lista(x.slice(0,8).map(b=>bnum(b.bloque)))+(x.length>8?` y ${x.length-8} más`:"");
+      if(!lo.length&&!hi.length){title=`${se.label} dentro del rango.`;t+=` Todos están dentro del rango óptimo (${fnum(se.min)}–${fnum(se.max)}${u}).`}
+      else{title=`${se.label}: ${lo.length+hi.length} ${lo.length+hi.length===1?"bloque":"bloques"} fuera de rango.`;
+        if(lo.length)t+=` Bajo ${fnum(se.min)}${u}: ${lo.length===1?"bloque":"bloques"} ${L(lo)}.`;if(hi.length)t+=` Sobre ${fnum(se.max)}${u}: ${hi.length===1?"bloque":"bloques"} ${L(hi)}.`}}
+    else if(se.hum&&genericH(info))t+=" El rango óptimo de humedad está sin definir.";
+    else t+=" No tiene rango óptimo configurado en BLUM.";
+    out.push([title,t])});
   const C=B.filter(b=>b.ce!=null);const cs=stat(C.map(b=>b.ce));
   if(cs){
     const nivel=cs.max<0.75?"baja":cs.max<2?"moderada":"alta";const homo=(cs.max-cs.min)<=Math.max(0.2,cs.avg*0.6)?"homogénea":"variable";
@@ -577,7 +610,7 @@ function render(){
   const t1=el("table","t");t1.innerHTML=(hasCE?`<colgroup><col style="width:56pt"><col style="width:80pt"><col style="width:47pt"><col style="width:120pt"><col style="width:63pt"><col style="width:81pt"><col></colgroup>`:`<colgroup><col style="width:90pt"><col style="width:110pt"><col style="width:70pt"><col style="width:140pt"><col></colgroup>`)+`
    <thead><tr><th>Equipo</th><th>Sector</th><th class="r">Bloques</th><th class="r">% Humedad prom. ${P.ref} cm</th><th class="r">Mín – Máx</th>${hasCE?`<th class="r">CE prom. (dS/m)</th><th class="r">Mín – Máx</th>`:""}</tr></thead><tbody>${
    g.map(gr=>{const bs=B.slice(gr.start,gr.start+gr.n);const h=stat(bs.filter(b=>!b.other).map(b=>b.hum));const c=stat(bs.map(b=>b.ce));
-     return`<tr><td>${esc(bs[0].equipo||"–")}</td><td>${esc(bs[0].sector||"–")}</td><td class="r">${gr.n}</td><td class="r b">${f1(h?.avg)}</td><td class="r">${h?f1(h.min)+" – "+f1(h.max):"–"}</td>${hasCE?`<td class="r b">${f2(c?.avg)}</td><td class="r">${c?f2(c.min)+" – "+f2(c.max):"–"}</td>`:""}</tr>`}).join("")}</tbody>`;
+     return`<tr><td>${esc(eqTxt(bs[0].equipo))}</td><td>${esc(bs[0].sector||"–")}</td><td class="r">${gr.n}</td><td class="r b">${f1(h?.avg)}</td><td class="r">${h?f1(h.min)+" – "+f1(h.max):"–"}</td>${hasCE?`<td class="r b">${f2(c?.avg)}</td><td class="r">${c?f2(c.min)+" – "+f2(c.max):"–"}</td>`:""}</tr>`}).join("")}</tbody>`;
   p1.c.append(t1);
   const chartNodes=[];const add=n=>{chartNodes.push(n);p1.c.append(n)};
   add(el("h2","sec","% Humedad de suelo por bloque"));
@@ -598,12 +631,25 @@ function render(){
   }else{cur=pageShell();pages.push(cur);stage.append(cur.p)}
   const head=hasCE?`<colgroup><col style="width:56pt"><col style="width:93pt"><col style="width:71pt"><col style="width:69pt"><col style="width:70pt"><col style="width:93pt"><col></colgroup><thead><tr><th>Equipo</th><th>Sector</th><th>Bloque</th><th class="r">Fecha</th><th class="r">% Humedad</th><th class="c">Estado humedad</th><th class="r">CE (dS/m)</th></tr></thead>`
    :`<colgroup><col style="width:90pt"><col style="width:93pt"><col style="width:80pt"><col style="width:80pt"><col style="width:70pt"><col></colgroup><thead><tr><th>Equipo</th><th>Sector</th><th>Bloque</th><th class="r">Fecha</th><th class="r">% Humedad</th><th class="c">Estado humedad</th></tr></thead>`;
-  const newTable=(cont)=>{const h=el("h2","sec","Detalle por bloque"+(cont?" (continuación)":""));cur.c.append(h);const t=el("table","t",head+"<tbody></tbody>");cur.c.append(t);return t.tBodies[0]};
+  const newTable=(cont)=>{const h=el("h2","sec","Detalle por bloque"+(cont?" (continuación)":""));if(cur.c.children.length)h.style.marginTop="14pt";cur.c.append(h);const t=el("table","t",head+"<tbody></tbody>");cur.c.append(t);return t.tBodies[0]};
+  const flow=n=>{cur.c.append(n);if(cur.c.scrollHeight>LIMIT+1){n.remove();cur=pageShell();pages.push(cur);stage.append(cur.p);n.style.marginTop="0";cur.c.append(n)}};
+  if(P.series.length){
+    const wrap=el("div");wrap.append(el("h2","sec","Otras mediciones"));
+    const t=el("table","t");t.innerHTML=`<colgroup><col style="width:130pt"><col style="width:55pt"><col style="width:70pt"><col style="width:85pt"><col style="width:90pt"><col></colgroup>
+      <thead><tr><th>Medición</th><th class="r">Bloques</th><th class="r">Promedio</th><th class="r">Mín – Máx</th><th class="r">Rango óptimo</th><th class="r">Fuera de rango</th></tr></thead><tbody>${
+      P.series.map(se=>{const st=stat(se.blocks.map(b=>b.v));const out=se.band?se.blocks.filter(b=>b.v<se.min||b.v>se.max).length:null;const u=se.unit?" "+esc(se.unit):"";
+        return`<tr><td>${esc(se.label)}</td><td class="r">${se.blocks.length}</td><td class="r b">${se.fmt(st.avg)}${u}</td><td class="r">${se.fmt(st.min)} – ${se.fmt(st.max)}</td><td class="r">${se.band?`${fnum(se.min)}–${fnum(se.max)}`:"sin definir"}</td><td class="r ${out?"b":""}">${out==null?"–":out}</td></tr>`}).join("")}</tbody>`;
+    wrap.append(t);flow(wrap);
+    P.series.forEach(se=>{const w=el("div");const h=el("h2","sec",esc(se.label)+" por bloque");h.style.marginTop="16pt";w.append(h);
+      w.append(el("div","legend",`<span><i class="dot" style="border-radius:50%"></i>${esc(se.label)}${se.unit&&!se.hum?" ("+esc(se.unit)+")":""}</span>${se.band?`<span><i class="band"></i>Rango óptimo</span>`:""}${se.band&&!se.hum?`<span><i class="dot" style="border-radius:50%;background:#c0532b"></i>Fuera de rango</span>`:""}`));
+      const c=humChart(se.blocks,info,{get:b=>b.v,min:se.min,max:se.max,fmt:se.fmt,unit:se.unit,hum:!!se.hum,band:se.band});c.style.marginTop="2pt";w.append(c);flow(w)});
+    const sp=el("div");sp.style.height="6pt";flow(sp);
+  }
   let tb=newTable(false);
   P.rows.forEach(r=>{
     const[txt,cls]=estado(r.other?null:r.hum,info.hmin,info.hmax);const est=r.other&&r.hum!=null?[`A ${fnum(r.depth)} cm`,"na"]:gen&&r.hum!=null?["Sin rango","na"]:[txt,cls];
     const f=r.fecha?`${pad(r.fecha.d)}-${pad(r.fecha.m)} ${pad(r.fecha.H)}:${pad(r.fecha.M)}`:"–";
-    const tr=el("tr",null,`<td>${esc(r.equipo||"–")}</td><td>${esc(r.sector||"–")}</td><td>${esc(r.bloque||"–")}</td><td class="r">${f}</td><td class="r b">${f1(r.hum)}${r.other?"<sup>*</sup>":""}</td><td class="c"><span class="pill ${est[1]}">${esc(est[0])}</span></td>${hasCE?`<td class="r b">${f2(r.ce)}</td>`:""}`);
+    const tr=el("tr",null,`<td>${esc(eqTxt(r.equipo))}</td><td>${esc(r.sector||"–")}</td><td>${esc(r.bloque||"–")}</td><td class="r">${f}</td><td class="r b">${f1(r.hum)}${r.other?"<sup>*</sup>":""}</td><td class="c"><span class="pill ${est[1]}">${esc(est[0])}</span></td>${hasCE?`<td class="r b">${f2(r.ce)}</td>`:""}`);
     tb.append(tr);
     if(cur.c.scrollHeight>LIMIT+1){tr.remove();cur=pageShell();pages.push(cur);stage.append(cur.p);tb=newTable(true);tb.append(tr)}
   });
@@ -659,7 +705,7 @@ function setStatus(id,cls,html){const s=$(id);s.hidden=false;s.className="status
 /* ---------- Carga de archivo ---------- */
 function selectCampo(i){
   const C=state.campos[i];state.campoIdx=i;
-  state.rows=C.rows;state.key=C.key;state.obsCustom=null;state.merge=false;
+  state.rows=C.rows;state.key=C.key;state.obsCustom=null;state.merge=false;state.vars=C.vars||{};
   const mem=memGet(C.key);
   state.info={code:"",agricola:"",campo:"",periodo:"",hmin:null,hmax:null,cemin:null,cemax:null,...C.info};
   if(mem?.agricola)state.info.agricola=mem.agricola;if(mem?.campo)state.info.campo=mem.campo;
@@ -681,7 +727,7 @@ async function loadFile(file){
     if(res.long){state.campos=res.campos;selectCampo(0)}
     else{
       const {rows,info}=res;state.campos=null;
-      state.rows=rows;state.obsCustom=null;state.merge=false;state.key=null;
+      state.rows=rows;state.obsCustom=null;state.merge=false;state.key=null;state.vars={};
       Object.assign(state.info,info);state.names="";state.periodoAuto=!info.periodo;state.day="all";
       const cnt={};rows.forEach(r=>{if(r.hum!=null){const d=r.depth??30;cnt[d]=(cnt[d]||0)+1}});
       state.depth=+(Object.entries(cnt).sort((a,b)=>b[1]-a[1])[0]?.[0]??30);
