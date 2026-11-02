@@ -59,7 +59,7 @@ body{background:var(--bg);color:var(--fg);font-family:var(--f-ui);font-size:14px
 .fields{display:grid;grid-template-columns:1fr 1fr;gap:10px 10px;align-items:end}
 .fields .full{grid-column:1/-1}
 label.f{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted);min-width:0}
-label.f input,label.f select{font:inherit;font-size:13.5px;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:7px 9px;width:100%;min-width:0}
+label.f input,label.f select,.filters select{font:inherit;font-size:13.5px;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:7px 9px;width:100%;min-width:0}
 .check{display:flex;gap:8px;align-items:flex-start;font-size:12.5px;color:var(--fg)}
 .check input{margin-top:3px;accent-color:var(--teal-ink)}
 .btn{font:inherit;font-weight:700;font-size:14px;border-radius:8px;padding:10px 14px;cursor:pointer;border:1px solid transparent}
@@ -86,6 +86,8 @@ details.fold summary::-webkit-details-marker{display:none}
 details.fold .chev{width:8px;height:8px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg);margin:0 4px 4px 0;transition:transform .15s}
 details.fold[open] .chev{transform:rotate(-135deg);margin:4px 4px 0 0}
 details.fold:not([open]){gap:0}
+.filters{display:flex;flex-direction:column;gap:10px}
+.filters:not(:has(label:not([hidden]))){display:none}
 details.help{font-size:12.5px;color:var(--muted)}
 details.help summary{cursor:pointer;color:var(--teal-ink);font-weight:700}
 details.help code{font-size:11.5px;background:var(--soft);padding:0 4px;border-radius:3px;color:var(--fg)}
@@ -170,6 +172,11 @@ ul.obs[contenteditable="true"]:focus{box-shadow:0 0 0 3pt #dcefec}
         <span>El export «Meter» de BLUM o una planilla con una fila por bloque</span>
       </button>
       <div class="status ok" id="status"><span><span class="chip">Ejemplo</span> Datos ficticios. Sube tu export de BLUM para ver tu reporte.</span></div>
+      <div class="filters">
+        <label class="f full" id="campoWrap" hidden>Campo<select id="campoSel"></select></label>
+        <label class="f full" id="dayWrap" hidden>Fecha de medición<select id="day"></select></label>
+        <label class="f full" id="depthWrap" hidden>Profundidad<select id="depthVis"></select></label>
+      </div>
       <div class="row"><button type="button" class="btn ghost" id="tpl">Descargar plantilla Excel</button></div>
       <details class="help">
         <summary>¿Qué columnas lee?</summary>
@@ -186,7 +193,6 @@ ul.obs[contenteditable="true"]:focus{box-shadow:0 0 0 3pt #dcefec}
     <details class="step fold" id="headStep">
       <summary><h2><span class="n">2</span>Datos del reporte</h2><span class="chev" aria-hidden="true"></span></summary>
       <p class="hint">Se completan solos desde el Excel. Cámbialos solo si algo viene mal.</p>
-      <label class="f full" id="dayWrap" hidden>Ronda de medición<select id="day"></select></label>
       <div class="fields">
         <label class="f">Código cliente<input id="code" autocomplete="off"></label>
         <label class="f">Agrícola<input id="agricola" autocomplete="off"></label>
@@ -197,7 +203,7 @@ ul.obs[contenteditable="true"]:focus{box-shadow:0 0 0 3pt #dcefec}
         <label class="f">CE configurada mín. (dS/m)<input id="cemin" inputmode="decimal" placeholder="sin definir"></label>
         <label class="f">CE configurada máx. (dS/m)<input id="cemax" inputmode="decimal" placeholder="sin definir"></label>
         <label class="f full">Nombres de sectores<input id="names" autocomplete="off" placeholder="1 Fiesta, 2 Grande, 3 Crunch"></label>
-        <label class="f full">Profundidad del reporte<select id="depth"></select></label>
+        <label class="f full" id="depthWrap2">Profundidad del reporte<select id="depth"></select></label>
       </div>
       <label class="check" id="mergeWrap" hidden><input type="checkbox" id="merge"><span id="mergeTxt">Contar todas las lecturas como 30 cm</span></label>
     </details>
@@ -276,45 +282,62 @@ function findLongHeader(aoa){
     if(r.some(c=>/tipo medicion|tipo de medicion|^medicion$/.test(c))&&r.some(c=>c==="valor"))return i}
   return -1;
 }
+function cleanCliente(c0){const c=String(c0).replace(/\b(exportadora|agr[ií]cola|sociedad|comercial|inversiones)\b/ig,"").replace(/\b(s\.?\s?a\.?|spa|ltda\.?|limitada|e\.?i\.?r\.?l\.?)\s*$/i,"").replace(/\s+/g," ").replace(/[ ,.]+$/,"").trim();return c?"Ag. "+c:String(c0).trim()}
+function cleanCampo(c){const m=String(c).trim().match(/^(\d+(?:\.\d+)?)\s*-\s*(.*)$/);return m?`Campo ${m[1].split(".")[0].padStart(2,"0")+(m[1].includes(".")?"."+m[1].split(".")[1]:"")} ${m[2].trim()}`:String(c).trim()}
 function parseLong(aoa,hi,sheetName){
   const hn=aoa[hi].map(norm);const col=re=>hn.findIndex(c=>re.test(c));
   const cF=col(/^fecha/),cCli=col(/^cliente/),cCampo=col(/^campo/),cTipo=col(/tipo.*medicion|^medicion$/),cVal=hn.findIndex(c=>c==="valor"),
         cMin=col(/^min\.? optimo/),cMax=col(/^max\.? optimo/),cCod=col(/codigo activo|^codigo$/),cEq=col(/^equipo/),cSec=col(/^sector/),cAct=col(/nombre activo/);
-  const rec=new Map();const info={};let key=null;
+  const campos=new Map();
   for(let r=hi+1;r<aoa.length;r++){
     const a=aoa[r]||[];const tipo=norm(a[cTipo]);const v=parseNum(a[cVal]);if(!tipo||v==null)continue;
     const isH=/humedad|vwc/.test(tipo),isC=/^ce\b|conductividad/.test(tipo);if(!isH&&!isC)continue;
-    const cod=String(a[cCod]??"");const se=cod.match(/SE0*(\d+)/i),bl=cod.match(/BL0*(\d+)/i),ca=cod.match(/CA0*(\d+)/i),cp=cod.match(/CA\d+-([A-Z]\d+)/i);
+    const cod=String(a[cCod]??"");
+    const se=cod.match(/SE0*(\d+)/i),bl=cod.match(/BL0*(\d+)/i),cl=cod.match(/^([A-Z]{2})0*(\d+)-/i),cp=cod.match(/^[A-Z]{2}\d+-([A-Z]\d+)/i),tr=cod.match(/TR0*(\d+)/i),eqc=cod.match(/EQ0*(\d+)/i);
     let secNum=se?+se[1]:null;
     if(secNum==null&&cSec>=0&&a[cSec]!=null){const m=String(a[cSec]).match(/\d+/);if(m)secNum=+m[0]}
     let blNum=bl?+bl[1]:null;
     if(blNum==null&&cAct>=0){const m=String(a[cAct]??"").match(/(\d+)\s*$/);if(m&&isC)blNum=+m[1]}
     if(secNum==null||blNum==null)continue;
-    if(!key&&ca)key="CA"+ca[1].padStart(3,"0")+(cp?"-"+cp[1].toUpperCase():"");
-    if(info.code==null&&ca)info.code=ca[1].padStart(3,"0");
-    if(info.cliente==null&&cCli>=0&&a[cCli])info.cliente=String(a[cCli]).trim();
-    if(info.campoRaw==null&&cCampo>=0&&a[cCampo])info.campoRaw=String(a[cCampo]).trim();
-    if(isH&&info.hmin==null&&cMin>=0){info.hmin=parseNum(a[cMin]);info.hmax=parseNum(a[cMax])}
-    if(isC&&info.cemin==null&&cMin>=0){info.cemin=parseNum(a[cMin]);info.cemax=parseNum(a[cMax])}
+    const campoRaw=cCampo>=0&&a[cCampo]?String(a[cCampo]).trim():"";
+    const ckey=(cl?cl[1].toUpperCase()+cl[2].padStart(3,"0"):"")+(cp?"-"+cp[1].toUpperCase():"")||campoRaw||"campo";
+    const cname=campoRaw||ckey;
+    let C=campos.get(cname);
+    if(!C){C={name:cname,key:ckey,info:{},rec:new Map(),ce:new Map()};campos.set(cname,C)}
+    const I=C.info;
+    if(I.code==null&&cl)I.code=cl[2].padStart(3,"0");
+    if(I.agricola==null&&cCli>=0&&a[cCli])I.agricola=cleanCliente(a[cCli]);
+    if(I.campo==null&&campoRaw)I.campo=cleanCampo(campoRaw);
+    if(isH&&I.hmin==null&&cMin>=0){I.hmin=parseNum(a[cMin]);I.hmax=parseNum(a[cMax])}
+    if(isC&&I.cemin==null&&cMin>=0){I.cemin=parseNum(a[cMin]);I.cemax=parseNum(a[cMax])}
     const f=parseFecha(a[cF]);const day=f?f.y*1e4+f.m*100+f.d:0;
-    let eq="";if(cEq>=0&&a[cEq]){const m=String(a[cEq]).match(/equipo\s*(\d+)/i);eq=m?"Equipo "+m[1]:String(a[cEq]).trim()}
-    const k=day+"|"+eq+"|"+secNum+"|"+blNum;let o=rec.get(k);
-    if(!o){o={equipo:eq,secNum,blNum,sector:"Sector "+secNum,fecha:null,hum:null,depth:null,ce:null,_th:-1,_tc:-1};rec.set(k,o)}
-    const t=fkey(f);
-    if(isH&&t>=o._th){o.hum=v;o._th=t;const dm=tipo.match(/(\d+)\s*cm/);o.depth=dm?+dm[1]:null;o.fecha=f}
-    if(isC&&t>=o._tc){o.ce=v;o._tc=t;if(o._th<0)o.fecha=f}
+    let eqN=eqc?+eqc[1]:null;if(eqN==null&&cEq>=0&&a[cEq]){const m=String(a[cEq]).match(/equipo\s*(\d+)/i);if(m)eqN=+m[1]}
+    const trN=tr?+tr[1]:0;
+    const base=day+"|"+trN+"|"+eqN+"|"+secNum+"|"+blNum;const t=fkey(f);
+    if(isH){const dm=tipo.match(/(\d+)\s*cm/);const depth=dm?+dm[1]:null;const k=base+"|"+depth;let o=C.rec.get(k);
+      if(!o){o={trN,eqN,secNum,blNum,fecha:f,hum:v,depth,ce:null,_t:t,_day:day,_base:base};C.rec.set(k,o)}
+      else if(t>=o._t){o.hum=v;o.fecha=f;o._t=t}}
+    else{const o=C.ce.get(base);if(!o||t>=o.t)C.ce.set(base,{v,t,f,trN,eqN,secNum,blNum,day})}
   }
-  const rows=[...rec.values()];
-  if(!rows.length)throw new Error("La hoja «"+sheetName+"» no tiene lecturas de % Humedad ni de CE con código de sector y bloque.");
-  // numeración correlativa de bloques en el campo (Sector 1: 1–4, Sector 2: 5–8, …)
-  const uniq=[...new Set(rows.map(r=>r.equipo+"|"+String(r.secNum).padStart(4,"0")+"|"+String(r.blNum).padStart(4,"0")))].sort(natCmp);
-  rows.forEach(r=>{r.bloque="Bloque "+(uniq.indexOf(r.equipo+"|"+String(r.secNum).padStart(4,"0")+"|"+String(r.blNum).padStart(4,"0"))+1);delete r._th;delete r._tc});
-  const out={};
-  if(info.code)out.code=info.code;
-  if(info.cliente){const c=info.cliente.replace(/\b(exportadora|agr[ií]cola|sociedad|comercial|inversiones)\b/ig,"").replace(/\b(s\.?\s?a\.?|spa|ltda\.?|limitada|e\.?i\.?r\.?l\.?)\s*$/i,"").replace(/\s+/g," ").replace(/[ ,.]+$/,"").trim();out.agricola=c?"Ag. "+c:info.cliente}
-  if(info.campoRaw){const m=info.campoRaw.match(/^(\d+)\s*-\s*(.*)$/);out.campo=m?`Campo ${m[1].padStart(2,"0")} ${m[2].trim()}`:info.campoRaw}
-  ["hmin","hmax","cemin","cemax"].forEach(k=>{if(info[k]!=null)out[k]=info[k]});
-  return{rows,info:out,sheetName,key,long:true};
+  const out=[];
+  for(const C of campos.values()){
+    const rows=[...C.rec.values()];
+    // la CE se une a la lectura de humedad del mismo bloque y día (la profundidad más común)
+    const byBase=new Map();rows.forEach(r=>{(byBase.get(r._base)||byBase.set(r._base,[]).get(r._base)).push(r)});
+    for(const [b,c] of C.ce){const list=byBase.get(b);
+      if(list&&list.length){list[0].ce=c.v}
+      else rows.push({trN:c.trN,eqN:c.eqN,secNum:c.secNum,blNum:c.blNum,fecha:c.f,hum:null,depth:null,ce:c.v,_day:c.day,_base:b})}
+    if(!rows.length)continue;
+    const trs=new Set(rows.map(r=>r.trN));const multiTR=trs.size>1;
+    rows.forEach(r=>{r.equipo=(r.eqN!=null?"Equipo "+r.eqN:"")+(multiTR?` · TR${pad(r.trN)}`:"")});
+    const ord=r=>[pad(r.trN),String(r.eqN??0).padStart(4,"0"),String(r.secNum).padStart(4,"0"),String(r.blNum).padStart(4,"0")].join("|");
+    const uniq=[...new Set(rows.map(ord))].sort();
+    rows.forEach(r=>{r.bloque="Bloque "+(uniq.indexOf(ord(r))+1);r.sector="Sector "+r.secNum;delete r._t;delete r._base;delete r._day});
+    out.push({name:C.name,key:C.key,info:C.info,rows,blocks:uniq.length});
+  }
+  if(!out.length)throw new Error("La hoja «"+sheetName+"» no tiene lecturas de % Humedad ni de CE con código de sector y bloque.");
+  out.sort((x,y)=>natCmp(x.name,y.name));
+  return{campos:out,sheetName,long:true};
 }
 function parseWorkbook(wb){
   for(const n of wb.SheetNames){const aoa=XLSX.utils.sheet_to_json(wb.Sheets[n],{header:1,raw:true,defval:null});const h=findLongHeader(aoa);if(h>=0)return parseLong(aoa,h,n)}
@@ -366,14 +389,21 @@ function parseWorkbook(wb){
 /* ---------- Cálculos ---------- */
 const fkey=f=>f?f.y*1e8+f.m*1e6+f.d*1e4+f.H*100+f.M:0;
 const dayOf=f=>f?f.y*1e4+f.m*100+f.d:0;
+/* profundidades: las que tienen al menos 25 % de las lecturas son profundidades propias (se elige una);
+   las demás se tratan como lecturas sueltas y se marcan con asterisco */
+function depthInfo(){const cnt={};let n=0;state.rows.forEach(r=>{if(r.hum!=null&&r.depth!=null){cnt[r.depth]=(cnt[r.depth]||0)+1;n++}});
+  const all=Object.keys(cnt).map(Number).sort((a,b)=>a-b);const major=all.filter(d=>cnt[d]>=n*0.25);
+  return{all,major,minor:all.filter(d=>!major.includes(d)),cnt}}
+const genericH=i=>i.hmin!=null&&i.hmax!=null&&i.hmax-i.hmin>=60;
 function prepared(){
-  const src=state.day==="all"?state.rows:state.rows.filter(r=>String(dayOf(r.fecha))===state.day);
+  const dc=depthInfo();const ref=state.depth;
+  let src=state.day==="all"?state.rows:state.rows.filter(r=>String(dayOf(r.fecha))===state.day);
+  if(!state.merge)src=src.flatMap(r=>(r.hum!=null&&r.depth!=null&&r.depth!==ref&&dc.major.includes(r.depth))?(r.ce!=null?[{...r,hum:null,depth:null}]:[]):[r]);
   const rows=src.slice().sort((a,b)=>natCmp(a.equipo,b.equipo)||natCmp(a.sector,b.sector)||natCmp(a.bloque,b.bloque)||fkey(a.fecha)-fkey(b.fecha));
-  const ref=state.depth;
   rows.forEach(r=>{r.other=!state.merge&&r.hum!=null&&r.depth!=null&&r.depth!==ref});
   // última lectura por bloque para gráficos y resumen
   const map=new Map();
-  rows.forEach(r=>{const k=r.equipo+"|"+r.sector+"|"+r.bloque;const p=map.get(k);if(!p||fkey(r.fecha)>=fkey(p.fecha))map.set(k,r)});
+  rows.forEach(r=>{const k=r.equipo+"|"+r.sector+"|"+r.bloque;const p=map.get(k);if(!p||(p.other&&!r.other)||(p.other===r.other&&fkey(r.fecha)>=fkey(p.fecha)))map.set(k,r)});
   const blocks=[...map.values()].sort((a,b)=>natCmp(a.equipo,b.equipo)||natCmp(a.sector,b.sector)||natCmp(a.bloque,b.bloque));
   const allBlocks=new Set(state.rows.map(r=>r.equipo+"|"+r.sector+"|"+r.bloque)).size;
   const nDaysFile=new Set(state.rows.map(r=>dayOf(r.fecha)).filter(Boolean)).size;
@@ -390,7 +420,7 @@ function niceStep(raw,list){for(const s of list)if(s>=raw-1e-9)return s;return l
 function el(tag,cls,html){const e=document.createElement(tag);if(cls)e.className=cls;if(html!=null)e.innerHTML=html;return e}
 function pageShell(){const p=el("div","page");const c=el("div","content");const f=el("div","foot");p.append(c,f);return{p,c,f}}
 
-function groupsOf(blocks){const g=[];blocks.forEach((b,i)=>{const k=b.equipo+"|"+b.sector;if(!g.length||g[g.length-1].k!==k)g.push({k,name:b.sector||b.equipo,start:i,n:0});g[g.length-1].n++});return g}
+function groupsOf(blocks){const multi=new Set(blocks.map(b=>b.equipo)).size>1;const g=[];blocks.forEach((b,i)=>{const k=b.equipo+"|"+b.sector;if(!g.length||g[g.length-1].k!==k)g.push({k,name:multi?`${(b.equipo||"").replace(/^Equipo /,"Eq. ")} · ${b.sector}`:(b.sector||b.equipo),short:(multi?(b.equipo||"").replace(/^Equipo\s*/,"E").replace(/\s*·\s*TR0*/,"-T")+"·":"")+"S"+(natNum(b.sector)??""),start:i,n:0});g[g.length-1].n++});return g}
 function slots(blocks,W){
   const g=groupsOf(blocks);const gap=g.length>1?10.5:0;const n=blocks.length;
   const sw=(W-gap*(g.length-1))/Math.max(n,1);const xs=[];
@@ -402,7 +432,7 @@ function axisGroups(ch,blocks,s,x0,yB){
   blocks.forEach((b,i)=>{const t=el("div","xl",esc(blabel(b.bloque)));if(k<1)t.style.fontSize=(6.8*Math.max(k,.62))+"pt";t.style.left=(x0+s.xs[i]-12)+"pt";t.style.top=yB+"pt";ch.append(t)});
   s.g.forEach(gr=>{const a=x0+s.xs[gr.start]-s.sw/2+2.3,b=x0+s.xs[gr.start+gr.n-1]+s.sw/2-2.3;
     const ln=el("div","gline");ln.style.left=a+"pt";ln.style.width=(b-a)+"pt";ln.style.top=(yB+10.6)+"pt";ch.append(ln);
-    const nm=el("div","gname",esc(gr.name));nm.style.left=(a-6)+"pt";nm.style.width=(b-a+12)+"pt";nm.style.top=(yB+12.8)+"pt";ch.append(nm)});
+    const wpt=b-a+12;const nm=el("div","gname",esc(wpt>=gr.name.length*3.6?gr.name:gr.short));if(wpt<gr.short.length*3.6)nm.style.fontSize=Math.max(4.6,wpt/gr.short.length/0.56)+"pt";nm.style.left=(a-6)+"pt";nm.style.width=(b-a+12)+"pt";nm.style.top=(yB+12.8)+"pt";ch.append(nm)});
 }
 function humChart(blocks,info){
   const X0=33,W=469.8,TOP=18.6,H=99.5,yB=TOP+H+4.7;
@@ -415,7 +445,7 @@ function humChart(blocks,info){
   let lo=Math.floor(lo0/step)*step,hi=Math.ceil(hi0/step)*step;if(lo<0)lo=0;if(hi<=lo)hi=lo+step*4;
   const y=v=>TOP+H-(v-lo)/(hi-lo)*H;
   // banda
-  if(hmin!=null&&hmax!=null){const a=Math.max(hmin,lo),b=Math.min(hmax,hi);if(b>a){
+  if(hmin!=null&&hmax!=null&&!genericH(info)){const a=Math.max(hmin,lo),b=Math.min(hmax,hi);if(b>a){
     const band=el("div","ab");band.style.cssText=`left:${X0}pt;width:${W}pt;top:${y(b)}pt;height:${y(a)-y(b)}pt;background:var(--band)`;ch.append(band);
     const bl=el("div","bandlbl",`Rango óptimo ${fnum(hmin)}–${fnum(hmax)} %`);bl.style.right=(510.3-X0-W+3.4)+"pt";bl.style.top=(y(b)-8.6)+"pt";ch.append(bl)}}
   for(let v=lo;v<=hi+1e-9;v+=step){const g=el("div","gl");g.style.cssText=`left:${X0}pt;width:${W}pt;top:${y(v)}pt`;ch.append(g);
@@ -457,7 +487,12 @@ function observaciones(P,info){
       out.push([`${days.length} días con mediciones.`,`Las lecturas se registraron entre el ${fd(days[0])} y el ${fd(days[days.length-1])}.${P.multi?" En los gráficos y el resumen se usa la última lectura de cada bloque.":""}`])}
   }
   const H=B.filter(b=>b.hum!=null&&!b.other);const hs=stat(H.map(b=>b.hum));
-  if(hs&&info.hmin!=null&&info.hmax!=null){
+  if(hs&&genericH(info)){
+    const lowB=H.filter(b=>b.hum<=hs.min+(hs.max-hs.min)*0.2);
+    let t=`La humedad tiene configurado el rango genérico ${fnum(info.hmin)}–${fnum(info.hmax)} %, por lo que no se puede evaluar si los bloques están en el óptimo. ${H.length===1?"El bloque marca":`Los ${H.length} bloques marcan entre`} ${H.length===1?f1(hs.min):`${f1(hs.min)} y ${f1(hs.max)}`} % (promedio ${f1(hs.avg)} %).`;
+    if(hs.max>hs.min&&lowB.length&&lowB.length<=Math.max(1,H.length/3))t+=` Los valores más bajos están en ${lowB.length===1?"el bloque":"los bloques"} ${lista(lowB.map(b=>bnum(b.bloque)))}.`;
+    out.push(["Rango óptimo de humedad sin definir.",t+" Conviene definir el rango agronómico con el cliente."]);
+  }else if(hs&&info.hmin!=null&&info.hmax!=null){
     const low=H.filter(b=>b.hum<info.hmin),high=H.filter(b=>b.hum>info.hmax);const rng=`${fnum(info.hmin)}–${fnum(info.hmax)} %`;
     if(!low.length&&!high.length){
       const p=(hs.avg-info.hmin)/(info.hmax-info.hmin);const zona=p<0.34?"baja":p>0.66?"alta":"media";
@@ -507,7 +542,7 @@ function defaultPeriodo(rows){
   return`${pad(a.d)} de ${MESES[a.m-1]}${a.y!==b.y?" "+a.y:""} al ${pad(b.d)} de ${MESES[b.m-1]} ${b.y}`;
 }
 function reportMonth(rows){const f=rows.map(r=>r.fecha).filter(Boolean);if(!f.length)return null;const ks=f.map(fkey);return f[ks.indexOf(Math.max(...ks))]}
-function compact(s){return norm(s).replace(/^(ag\.?|agricola|soc\.?|sociedad)\s+/,"").replace(/^campo\s*\d*\s*/,"").replace(/[^a-z0-9 ]/g," ").split(/\s+/).filter(Boolean).map(w=>w[0].toUpperCase()+w.slice(1)).join("")}
+function compact(s){return norm(s).replace(/^(ag\.?|agricola|soc\.?|sociedad)\s+/,"").replace(/^campo\s*[\d.]*\s*/,"").replace(/[^a-z0-9 ]/g," ").split(/\s+/).filter(Boolean).map(w=>w[0].toUpperCase()+w.slice(1)).join("")}
 function fileName(){const i=state.info;const m=reportMonth(state.rows);const parts=[compact(i.agricola),compact(i.campo),"Suelo"];if(m)parts.push(MES_AB[m.m-1]+m.y);
   return (i.code?String(i.code).trim()+"-":"")+parts.filter(Boolean).join("_")+".pdf"}
 
@@ -523,43 +558,52 @@ function render(){
   const nEq=new Set(B.map(b=>b.equipo).filter(Boolean)).size;const nSec=new Set(B.map(b=>b.equipo+"|"+b.sector)).size;
   const measured=B.filter(b=>b.hum!=null||b.ce!=null).length;
   const inR=H.filter(b=>(info.hmin==null||b.hum>=info.hmin)&&(info.hmax==null||b.hum<=info.hmax)).length;
+  const hasCE=state.rows.some(r=>r.ce!=null);const gen=genericH(info);
+  const days=[...new Set(P.rows.map(r=>dayOf(r.fecha)).filter(Boolean))].sort();const fd=k=>pad(k%100)+"-"+pad((k/100|0)%100);
   const sep="  ·  ";
   p1.c.innerHTML=`<img class="logo" src="${LOGO}" alt="">
   <div class="eyebrow">REPORTE DE SUELO</div>
-  <h1>% Humedad y Conductividad Eléctrica</h1>
+  <h1>${hasCE?"% Humedad y Conductividad Eléctrica":"% Humedad de suelo"}</h1>
   <div class="sub"><b>${esc([info.code,info.agricola].filter(Boolean).join(" · "))}</b>${info.campo?sep+esc(info.campo):""}${periodo?sep+"Período: "+esc(periodo):""}</div>
   <div class="kpis">
    <div class="kpi"><div class="l">BLOQUES MEDIDOS</div><div class="v">${measured} <small>de ${P.allBlocks}</small></div><div class="s">${nEq?`${nEq} ${nEq===1?"equipo":"equipos"} · `:""}${nSec} ${nSec===1?"sector":"sectores"}</div></div>
    <div class="kpi"><div class="l">HUMEDAD PROM. ${P.ref} CM</div><div class="v">${f1(hs?.avg)} <small>%</small></div><div class="s">${hs?`Rango ${f1(hs.min)} – ${f1(hs.max)} %`:"Sin lecturas"}</div></div>
-   <div class="kpi"><div class="l">EN RANGO ÓPTIMO</div><div class="v">${inR} <small>de ${H.length}</small></div><div class="s">${info.hmin!=null&&info.hmax!=null?`Óptimo configurado ${fnum(info.hmin)}–${fnum(info.hmax)} %`:"Óptimo sin configurar"}</div></div>
-   <div class="kpi"><div class="l">CE PROMEDIO</div><div class="v">${f2(cs?.avg)} <small>dS/m</small></div><div class="s">${cs?`Rango ${f2(cs.min)} – ${f2(cs.max)} dS/m`:"Sin lecturas"}</div></div>
+   <div class="kpi"><div class="l">EN RANGO ÓPTIMO</div><div class="v">${gen?"–":inR} ${gen?"":`<small>de ${H.length}</small>`}</div><div class="s">${gen?`Rango genérico ${fnum(info.hmin)}–${fnum(info.hmax)} %`:info.hmin!=null&&info.hmax!=null?`Óptimo configurado ${fnum(info.hmin)}–${fnum(info.hmax)} %`:"Óptimo sin configurar"}</div></div>
+   ${hasCE?`<div class="kpi"><div class="l">CE PROMEDIO</div><div class="v">${f2(cs?.avg)} <small>dS/m</small></div><div class="s">${cs?`Rango ${f2(cs.min)} – ${f2(cs.max)} dS/m`:"Sin lecturas"}</div></div>`:
+   `<div class="kpi"><div class="l">FECHAS CON MEDICIÓN</div><div class="v">${days.length}</div><div class="s">${days.length>1?`Del ${fd(days[0])} al ${fd(days[days.length-1])}`:days.length?`El ${fd(days[0])}`:"Sin fecha"}</div></div>`}
   </div>
   <h2 class="sec">Resumen por equipo y sector</h2>`;
   const g=groupsOf(B);
-  const t1=el("table","t");t1.innerHTML=`<colgroup><col style="width:56pt"><col style="width:80pt"><col style="width:47pt"><col style="width:120pt"><col style="width:63pt"><col style="width:81pt"><col></colgroup>
-   <thead><tr><th>Equipo</th><th>Sector</th><th class="r">Bloques</th><th class="r">% Humedad prom. ${P.ref} cm</th><th class="r">Mín – Máx</th><th class="r">CE prom. (dS/m)</th><th class="r">Mín – Máx</th></tr></thead><tbody>${
+  const t1=el("table","t");t1.innerHTML=(hasCE?`<colgroup><col style="width:56pt"><col style="width:80pt"><col style="width:47pt"><col style="width:120pt"><col style="width:63pt"><col style="width:81pt"><col></colgroup>`:`<colgroup><col style="width:90pt"><col style="width:110pt"><col style="width:70pt"><col style="width:140pt"><col></colgroup>`)+`
+   <thead><tr><th>Equipo</th><th>Sector</th><th class="r">Bloques</th><th class="r">% Humedad prom. ${P.ref} cm</th><th class="r">Mín – Máx</th>${hasCE?`<th class="r">CE prom. (dS/m)</th><th class="r">Mín – Máx</th>`:""}</tr></thead><tbody>${
    g.map(gr=>{const bs=B.slice(gr.start,gr.start+gr.n);const h=stat(bs.filter(b=>!b.other).map(b=>b.hum));const c=stat(bs.map(b=>b.ce));
-     return`<tr><td>${esc(bs[0].equipo||"–")}</td><td>${esc(bs[0].sector||"–")}</td><td class="r">${gr.n}</td><td class="r b">${f1(h?.avg)}</td><td class="r">${h?f1(h.min)+" – "+f1(h.max):"–"}</td><td class="r b">${f2(c?.avg)}</td><td class="r">${c?f2(c.min)+" – "+f2(c.max):"–"}</td></tr>`}).join("")}</tbody>`;
+     return`<tr><td>${esc(bs[0].equipo||"–")}</td><td>${esc(bs[0].sector||"–")}</td><td class="r">${gr.n}</td><td class="r b">${f1(h?.avg)}</td><td class="r">${h?f1(h.min)+" – "+f1(h.max):"–"}</td>${hasCE?`<td class="r b">${f2(c?.avg)}</td><td class="r">${c?f2(c.min)+" – "+f2(c.max):"–"}</td>`:""}</tr>`}).join("")}</tbody>`;
   p1.c.append(t1);
-  p1.c.append(el("h2","sec","% Humedad de suelo por bloque"));
+  const chartNodes=[];const add=n=>{chartNodes.push(n);p1.c.append(n)};
+  add(el("h2","sec","% Humedad de suelo por bloque"));
   const others=[...new Set(B.filter(b=>b.other).map(b=>b.depth))];
-  p1.c.append(el("div","legend",`<span><i class="dot" style="border-radius:50%"></i>Sensor ${P.ref} cm</span>${others.map(d=>`<span><i class="gold"></i>Registrado como ${fnum(d)} cm</span>`).join("")}${info.hmin!=null&&info.hmax!=null?`<span><i class="band"></i>Rango óptimo</span>`:""}`));
-  const hc=humChart(B,info);hc.style.marginTop="2pt";p1.c.append(hc);
-  const ce=el("h2","sec","Conductividad eléctrica (CE) por bloque");ce.style.marginTop="23pt";p1.c.append(ce);
-  const cc=ceChart(B);cc.style.marginTop="6pt";p1.c.append(cc);
-  {const nt=el("div","note","Valores en dS/m.");nt.style.marginTop="14pt";p1.c.append(nt)}
+  add(el("div","legend",`<span><i class="dot" style="border-radius:50%"></i>Sensor ${P.ref} cm</span>${others.map(d=>`<span><i class="gold"></i>Registrado como ${fnum(d)} cm</span>`).join("")}${info.hmin!=null&&info.hmax!=null&&!gen?`<span><i class="band"></i>Rango óptimo</span>`:""}`));
+  const hc=humChart(B,info);hc.style.marginTop="2pt";add(hc);
+  if(hasCE){const ce=el("h2","sec","Conductividad eléctrica (CE) por bloque");ce.style.marginTop="23pt";add(ce);
+  const cc=ceChart(B);cc.style.marginTop="6pt";add(cc);
+  const nt=el("div","note","Valores en dS/m.");nt.style.marginTop="14pt";add(nt)}
 
   // ---- Páginas de detalle + observaciones
   stage.append(p1.p);
   const LIMIT=p1.c.clientHeight;
-  let cur=pageShell();pages.push(cur);stage.append(cur.p);
-  const head=`<colgroup><col style="width:56pt"><col style="width:93pt"><col style="width:71pt"><col style="width:69pt"><col style="width:70pt"><col style="width:93pt"><col></colgroup><thead><tr><th>Equipo</th><th>Sector</th><th>Bloque</th><th class="r">Fecha</th><th class="r">% Humedad</th><th class="c">Estado humedad</th><th class="r">CE (dS/m)</th></tr></thead>`;
+  let cur;
+  if(p1.c.scrollHeight>LIMIT+1){ // el resumen es largo: los gráficos pasan a la página siguiente
+    cur=pageShell();pages.push(cur);stage.append(cur.p);chartNodes.forEach(n=>cur.c.append(n));chartNodes[0].style.marginTop="0";
+    cur=pageShell();pages.push(cur);stage.append(cur.p);
+  }else{cur=pageShell();pages.push(cur);stage.append(cur.p)}
+  const head=hasCE?`<colgroup><col style="width:56pt"><col style="width:93pt"><col style="width:71pt"><col style="width:69pt"><col style="width:70pt"><col style="width:93pt"><col></colgroup><thead><tr><th>Equipo</th><th>Sector</th><th>Bloque</th><th class="r">Fecha</th><th class="r">% Humedad</th><th class="c">Estado humedad</th><th class="r">CE (dS/m)</th></tr></thead>`
+   :`<colgroup><col style="width:90pt"><col style="width:93pt"><col style="width:80pt"><col style="width:80pt"><col style="width:70pt"><col></colgroup><thead><tr><th>Equipo</th><th>Sector</th><th>Bloque</th><th class="r">Fecha</th><th class="r">% Humedad</th><th class="c">Estado humedad</th></tr></thead>`;
   const newTable=(cont)=>{const h=el("h2","sec","Detalle por bloque"+(cont?" (continuación)":""));cur.c.append(h);const t=el("table","t",head+"<tbody></tbody>");cur.c.append(t);return t.tBodies[0]};
   let tb=newTable(false);
   P.rows.forEach(r=>{
-    const[txt,cls]=estado(r.other?null:r.hum,info.hmin,info.hmax);const est=r.other&&r.hum!=null?[`A ${fnum(r.depth)} cm`,"na"]:[txt,cls];
+    const[txt,cls]=estado(r.other?null:r.hum,info.hmin,info.hmax);const est=r.other&&r.hum!=null?[`A ${fnum(r.depth)} cm`,"na"]:gen&&r.hum!=null?["Sin rango","na"]:[txt,cls];
     const f=r.fecha?`${pad(r.fecha.d)}-${pad(r.fecha.m)} ${pad(r.fecha.H)}:${pad(r.fecha.M)}`:"–";
-    const tr=el("tr",null,`<td>${esc(r.equipo||"–")}</td><td>${esc(r.sector||"–")}</td><td>${esc(r.bloque||"–")}</td><td class="r">${f}</td><td class="r b">${f1(r.hum)}${r.other?"<sup>*</sup>":""}</td><td class="c"><span class="pill ${est[1]}">${esc(est[0])}</span></td><td class="r b">${f2(r.ce)}</td>`);
+    const tr=el("tr",null,`<td>${esc(r.equipo||"–")}</td><td>${esc(r.sector||"–")}</td><td>${esc(r.bloque||"–")}</td><td class="r">${f}</td><td class="r b">${f1(r.hum)}${r.other?"<sup>*</sup>":""}</td><td class="c"><span class="pill ${est[1]}">${esc(est[0])}</span></td>${hasCE?`<td class="r b">${f2(r.ce)}</td>`:""}`);
     tb.append(tr);
     if(cur.c.scrollHeight>LIMIT+1){tr.remove();cur=pageShell();pages.push(cur);stage.append(cur.p);tb=newTable(true);tb.append(tr)}
   });
@@ -583,19 +627,26 @@ addEventListener("resize",fit);
 /* ---------- Formulario ---------- */
 const FIELDS=["code","agricola","campo","periodo","hmin","hmax","cemin","cemax"];
 function fillForm(){const i=state.info;FIELDS.forEach(k=>{const v=k==="periodo"?(state.periodoAuto?defaultPeriodo(state.rows):i.periodo):i[k];$(k).value=typeof v==="number"?fnum(v):(v??"")});
-  const ds=[...new Set(state.rows.filter(r=>r.hum!=null).map(r=>r.depth??30))].sort((a,b)=>a-b);if(!ds.includes(state.depth))ds.push(state.depth);
+  const di=depthInfo();const ds=di.major.length?di.major.slice():[state.depth];if(!ds.includes(state.depth))ds.push(state.depth);
   $("depth").innerHTML=ds.map(d=>`<option value="${d}">${fnum(d)} cm</option>`).join("");$("depth").value=state.depth;
-  $("mergeWrap").hidden=ds.length<2;
+  $("depthWrap").hidden=ds.length<2;$("depthWrap2").hidden=ds.length>1;
+  $("mergeWrap").hidden=!di.minor.length;
+  const cs=state.campos;$("campoWrap").hidden=!(cs&&cs.length>1);
+  if(cs)$("campoSel").innerHTML=cs.map((c,i)=>`<option value="${i}">${esc(cleanCampo(c.name))} · ${c.blocks} ${c.blocks===1?"bloque":"bloques"}</option>`).join("");
+  if(cs)$("campoSel").value=state.campoIdx;
   const days=[...new Set(state.rows.map(r=>dayOf(r.fecha)).filter(Boolean))].sort().reverse();
   $("dayWrap").hidden=days.length<2;
   $("day").innerHTML=days.map(d=>{const n=new Set(state.rows.filter(r=>dayOf(r.fecha)===d).map(r=>r.equipo+"|"+r.sector+"|"+r.bloque)).size;return`<option value="${d}">${pad(d%100)}-${pad((d/100|0)%100)}-${d/1e4|0} · ${n} ${n===1?"bloque":"bloques"}</option>`}).join("")+`<option value="all">Todas las fechas (última lectura por bloque)</option>`;
   $("day").value=state.day;
+  $("depthVis").innerHTML=$("depth").innerHTML;$("depthVis").value=state.depth;
   $("names").value=state.names;
   $("names").closest("label").hidden=!state.rows.some(r=>r.secNum!=null);$("mergeTxt").textContent=`Contar todas las lecturas como ${fnum(state.depth)} cm`;$("merge").checked=state.merge}
 FIELDS.forEach(k=>$(k).addEventListener("input",()=>{const v=$(k).value;
   if(k==="periodo"){state.periodoAuto=v.trim()==="";state.info.periodo=v}
   else if(/min|max/.test(k))state.info[k]=parseNum(v);else state.info[k]=v;
   if(/min|max/.test(k))state.obsCustom=null;render()}));
+$("campoSel").addEventListener("change",()=>selectCampo(+$("campoSel").value));
+$("depthVis").addEventListener("change",()=>{$("depth").value=$("depthVis").value;$("depth").dispatchEvent(new Event("change"))});
 $("day").addEventListener("change",()=>{state.day=$("day").value;state.obsCustom=null;render()});
 $("names").addEventListener("input",()=>{state.names=$("names").value;memSet(state.key,{names:state.names});applyNames();state.obsCustom=null;render()});
 ["agricola","campo"].forEach(k=>$(k).addEventListener("change",()=>memSet(state.key,{[k]:$(k).value})));
@@ -606,23 +657,40 @@ $("regen").addEventListener("click",()=>{state.obsCustom=null;render()});
 function setStatus(id,cls,html){const s=$(id);s.hidden=false;s.className="status "+cls;s.innerHTML=`<span>${html}</span>`}
 
 /* ---------- Carga de archivo ---------- */
+function selectCampo(i){
+  const C=state.campos[i];state.campoIdx=i;
+  state.rows=C.rows;state.key=C.key;state.obsCustom=null;state.merge=false;
+  const mem=memGet(C.key);
+  state.info={code:"",agricola:"",campo:"",periodo:"",hmin:null,hmax:null,cemin:null,cemax:null,...C.info};
+  if(mem?.agricola)state.info.agricola=mem.agricola;if(mem?.campo)state.info.campo=mem.campo;
+  state.names=mem?.names||"";applyNames();state.periodoAuto=true;
+  const cnt={};state.rows.forEach(r=>{if(r.hum!=null&&r.depth!=null)cnt[r.depth]=(cnt[r.depth]||0)+1});
+  state.depth=+(Object.entries(cnt).sort((a,b)=>b[1]-a[1])[0]?.[0]??30);
+  // ronda por defecto: el día más reciente que cubre al menos la mitad de los bloques; si no, todas las fechas
+  const days=[...new Set(state.rows.map(r=>dayOf(r.fecha)).filter(Boolean))].sort().reverse();
+  const nb=new Set(state.rows.map(r=>r.equipo+"|"+r.sector+"|"+r.bloque)).size;
+  const good=days.find(d=>new Set(state.rows.filter(r=>dayOf(r.fecha)===d).map(r=>r.equipo+"|"+r.sector+"|"+r.bloque)).size>=nb/2);
+  state.day=days.length<2?"all":good?String(good):"all";
+  fillForm();render();
+}
 async function loadFile(file){
   try{
     const buf=await file.arrayBuffer();const wb=XLSX.read(buf,{type:"array",cellDates:false});
-    const {rows,info,sheetName,key,long}=parseWorkbook(wb);
-    state.rows=rows;state.isSample=false;state.obsCustom=null;state.merge=false;state.key=key||null;
-    const mem=key?memGet(key):null;
-    if(long){state.info={code:"",agricola:"",campo:"",periodo:"",hmin:null,hmax:null,cemin:null,cemax:null}}
-    Object.assign(state.info,info);if(mem?.agricola)state.info.agricola=mem.agricola;if(mem?.campo)state.info.campo=mem.campo;
-    state.names=mem?.names||"";applyNames();state.periodoAuto=!info.periodo;
-    const ds=[...new Set(rows.map(r=>dayOf(r.fecha)).filter(Boolean))].sort();state.day=ds.length>1?String(ds[ds.length-1]):"all";
-    const cnt={};rows.forEach(r=>{if(r.hum!=null){const d=r.depth??30;cnt[d]=(cnt[d]||0)+1}});
-    state.depth=+(Object.entries(cnt).sort((a,b)=>b[1]-a[1])[0]?.[0]??30);
-    rows.forEach(r=>{if(r.depth==null)r.depth=state.depth});
-    if(!long)state.day="all";
-    fillForm();render();
-    const nSec=new Set(rows.map(r=>r.sector)).size;const noF=rows.filter(r=>!r.fecha).length;const nDays=new Set(rows.map(r=>dayOf(r.fecha)).filter(Boolean)).size;
-    setStatus("status",noF?"warn":"ok",`<b>${esc(file.name)}</b> · ${nDays>1?`${nDays} fechas de medición`:"cargado"}.${noF?` ${noF} sin fecha reconocible.`:""}`);
+    const res=parseWorkbook(wb);
+    state.isSample=false;
+    if(res.long){state.campos=res.campos;selectCampo(0)}
+    else{
+      const {rows,info}=res;state.campos=null;
+      state.rows=rows;state.obsCustom=null;state.merge=false;state.key=null;
+      Object.assign(state.info,info);state.names="";state.periodoAuto=!info.periodo;state.day="all";
+      const cnt={};rows.forEach(r=>{if(r.hum!=null){const d=r.depth??30;cnt[d]=(cnt[d]||0)+1}});
+      state.depth=+(Object.entries(cnt).sort((a,b)=>b[1]-a[1])[0]?.[0]??30);
+      rows.forEach(r=>{if(r.hum!=null&&r.depth==null)r.depth=state.depth});
+      fillForm();render();
+    }
+    const all=res.long?res.campos.flatMap(c=>c.rows):res.rows;
+    const noF=all.filter(r=>!r.fecha).length;const nC=res.long?res.campos.length:1;
+    setStatus("status",noF?"warn":"ok",`<b>${esc(file.name)}</b> · ${nC>1?`${nC} campos. Elige cuál ver.`:"cargado."}${noF?` ${noF} lecturas sin fecha reconocible.`:""}`);
   }catch(e){setStatus("status","err",esc(e.message||"No pude leer el archivo. Revisa que sea un Excel o CSV."))}
 }
 $("drop").addEventListener("click",()=>$("file").click());
