@@ -221,8 +221,8 @@ ul.obs[contenteditable="true"]:focus{box-shadow:0 0 0 3pt #dcefec}
         <label class="f full">Período<input id="periodo" autocomplete="off"></label>
         <label class="f">Humedad óptima mín. (%)<input id="hmin" inputmode="decimal"></label>
         <label class="f">Humedad óptima máx. (%)<input id="hmax" inputmode="decimal"></label>
-        <label class="f">CE configurada mín. (dS/m)<input id="cemin" inputmode="decimal" placeholder="sin definir"></label>
-        <label class="f">CE configurada máx. (dS/m)<input id="cemax" inputmode="decimal" placeholder="sin definir"></label>
+        <label class="f">CE óptima mín. (dS/m)<input id="cemin" inputmode="decimal" placeholder="0"></label>
+        <label class="f">CE óptima máx. (dS/m)<input id="cemax" inputmode="decimal" placeholder="1,2"></label>
         <label class="f full">Nombres de sectores<input id="names" autocomplete="off" placeholder="1 Fiesta, 2 Grande, 3 Crunch"></label>
         <label class="f full" id="depthWrap2">Profundidad del reporte<select id="depth"></select></label>
       </div>
@@ -314,7 +314,7 @@ if(PUBLICO){
   let n=0;SAMPLE.rows=[];demo.forEach(([sec,h,c])=>h.forEach((v,i)=>{n++;SAMPLE.rows.push({equipo:"Equipo 1",sector:sec,bloque:"Bloque "+n,fecha:{y:2026,m:10,d:15,H:9,M:4+n*3},hum:v,depth:30,ce:c[i]})}));
   SAMPLE.info={code:"000",agricola:"Agrícola Ejemplo",campo:"Campo 01 Demostración",periodo:"",hmin:36,hmax:48,cemin:0,cemax:1.2};
 }
-const state={vars:{},rows:SAMPLE.rows,info:{...SAMPLE.info},periodoAuto:true,depth:30,merge:false,obsCustom:null,isSample:true,day:"all",names:"",key:null};
+const state={vars:{},rows:SAMPLE.rows,info:ceDefault({...SAMPLE.info}),periodoAuto:true,depth:30,merge:false,obsCustom:null,isSample:true,day:"all",names:"",key:null};
 /* Recuerdo por campo (solo en este navegador): nombre de agrícola y de sectores */
 const PRESETS={};
 function memGet(k){let m=null;try{m=JSON.parse(localStorage.getItem("suelo:"+k)||"null")}catch(e){}return m||PRESETS[k]||null}
@@ -465,6 +465,7 @@ const dayOf=f=>f?f.y*1e4+f.m*100+f.d:0;
 function depthInfo(){const cnt={};let n=0;state.rows.forEach(r=>{if(r.hum!=null&&r.depth!=null){cnt[r.depth]=(cnt[r.depth]||0)+1;n++}});
   const all=Object.keys(cnt).map(Number).sort((a,b)=>a-b);const major=all.filter(d=>cnt[d]>=n*0.25);
   return{all,major,minor:all.filter(d=>!major.includes(d)),cnt}}
+function ceDefault(i){if(i&&(i.cemax==null||i.cemax-(i.cemin??0)>=50)){i.cemin=0;i.cemax=1.2}return i}
 const genericH=i=>i.hmin!=null&&i.hmax!=null&&i.hmax-i.hmin>=60;
 function prepared(){
   const dc=depthInfo();const ref=state.depth;
@@ -542,18 +543,20 @@ function humChart(blocks,info,opt){
   axisGroups(ch,blocks,s,X0,yB);
   return ch;
 }
-function ceChart(blocks){
+function ceChart(blocks,info){const cmax=info&&info.cemax!=null&&info.cemax-(info.cemin??0)<50?info.cemax:null;
   const X0=33,W=469.8,TOP=10.6,H=112.6,yB=TOP+H+3.7;
   const ch=el("div","chart");ch.style.height=(yB+22)+"pt";
   const vals=blocks.map(b=>b.ce).filter(v=>v!=null);const mx=vals.length?Math.max(...vals):0.3;
   const list=[0.01,0.02,0.025,0.05,0.1,0.2,0.25,0.5,1,2,2.5,5,10,20,25,50];
   let step=niceStep(Math.max(mx,0.01)/3,list);let hi=Math.ceil(mx/step-1e-9)*step;if(hi<=0)hi=step;if(mx/hi>0.92)hi+=step;
+  if(cmax!=null&&cmax>hi&&cmax<=mx*1.35){while(hi<cmax)hi+=step;if(cmax/hi>0.92)hi+=step}
   const y=v=>TOP+H-v/hi*H;
   for(let v=0;v<=hi+1e-9;v+=step){const g=el("div","gl");g.style.cssText=`left:${X0}pt;width:${W}pt;top:${y(v)}pt`;ch.append(g);
     const l=el("div","yl",f2(v));l.style.left=(X0-24.5)+"pt";l.style.top=(y(v)-4.2)+"pt";ch.append(l)}
+  if(cmax!=null&&cmax<=hi){const ln=el("div","lim");ln.style.cssText=`left:${X0}pt;width:${W}pt;top:${y(cmax)}pt`;ch.append(ln)}
   const s=slots(blocks,W);const bw=Math.min(s.sw*0.56,22);
   blocks.forEach((b,i)=>{if(b.ce==null)return;const cx=X0+s.xs[i];const top=y(Math.min(b.ce,hi));
-    const r=el("div","bar");r.style.cssText=`left:${cx-bw/2}pt;width:${bw}pt;top:${top}pt;height:${TOP+H-top+0.3}pt`;ch.append(r);
+    const r=el("div","bar");r.style.cssText=`left:${cx-bw/2}pt;width:${bw}pt;top:${top}pt;height:${TOP+H-top+0.3}pt`+(cmax!=null&&b.ce>cmax?";background:#e2876a":"");ch.append(r);
     const t=el("div","vl",f2(b.ce));if(s.sw<24)t.style.fontSize=(6*Math.max(s.sw/24,.7))+"pt";t.style.left=(cx-12)+"pt";t.style.top=(top-9.6)+"pt";ch.append(t)});
   axisGroups(ch,blocks,s,X0,yB);
   return ch;
@@ -623,7 +626,9 @@ function observaciones(P,info){
     if(a==null&&b==null)out.push(["Rango óptimo de CE sin definir.","La CE no tiene un rango óptimo configurado, por lo que la plataforma no genera alertas. Conviene definir el rango agronómico con el cliente."]);
     else if(a!=null&&b!=null&&b-a>=50)out.push(["Rango óptimo de CE sin definir.",`La CE tiene configurado el rango genérico ${fnum(a)}–${fnum(b)} dS/m, por lo que la plataforma no genera alertas útiles. Conviene definir el rango agronómico con el cliente.`]);
     else{const fuera=C.filter(x=>(a!=null&&x.ce<a)||(b!=null&&x.ce>b));
-      out.push(fuera.length?[`CE fuera del rango en ${fuera.length} ${fuera.length===1?"bloque":"bloques"}.`,`${fuera.length===1?"El bloque":"Los bloques"} ${lista(fuera.map(x=>bnum(x.bloque)))} ${fuera.length===1?"queda":"quedan"} fuera del rango configurado (${a!=null?fnum(a):"–"}–${b!=null?fnum(b):"–"} dS/m).`]:["CE dentro del rango configurado.",`Todos los bloques están dentro de ${a!=null?fnum(a):"–"}–${b!=null?fnum(b):"–"} dS/m.`]);
+      const onlyMax=!a;const sobre=C.filter(x=>b!=null&&x.ce>b);
+      out.push(fuera.length?[`CE sobre el óptimo en ${fuera.length} ${fuera.length===1?"bloque":"bloques"}.`.replace("sobre el óptimo",onlyMax||sobre.length===fuera.length?"sobre el óptimo":"fuera del óptimo"),`${fuera.length===1?"El bloque":"Los bloques"} ${lista(fuera.map(x=>bnum(x.bloque)+" ("+f2(x.ce)+")"))} ${fuera.length===1?"queda":"quedan"} ${onlyMax?`sobre el máximo óptimo de ${fnum(b)} dS/m`:`fuera del rango óptimo (${fnum(a)}–${fnum(b)} dS/m)`}.`]
+        :[onlyMax?"CE bajo el máximo óptimo.":"CE dentro del rango óptimo.",onlyMax?`Todos los bloques están bajo el máximo óptimo de ${fnum(b)} dS/m; el valor más alto es ${f2(Math.max(...C.map(x=>x.ce)))} dS/m.`:`Todos los bloques están dentro de ${fnum(a)}–${fnum(b)} dS/m.`]);
     }
   }
   return out.map(([b,t])=>`<li><b>${esc(b)}</b> ${esc(t)}</li>`).join("");
@@ -679,8 +684,8 @@ function render(){
   add(el("div","legend",`<span><i class="dot" style="border-radius:50%"></i>Sensor ${P.ref} cm</span>${others.map(d=>`<span><i class="gold"></i>Registrado como ${fnum(d)} cm</span>`).join("")}${info.hmin!=null&&info.hmax!=null&&!gen?`<span><i class="band"></i>Rango óptimo</span>`:""}`));
   const hc=humChart(B,info);hc.style.marginTop="2pt";add(hc);
   if(hasCE){const ce=el("h2","sec","Conductividad eléctrica (CE) por bloque");ce.style.marginTop="23pt";add(ce);
-  const cc=ceChart(B);cc.style.marginTop="6pt";add(cc);
-  const nt=el("div","note","Valores en dS/m.");nt.style.marginTop="14pt";add(nt)}
+  const cc=ceChart(B,info);cc.style.marginTop="6pt";add(cc);
+  const nt=el("div","note",`Valores en dS/m.${info.cemax!=null&&info.cemax-(info.cemin??0)<50?` Óptimo máximo: ${fnum(info.cemax)} dS/m${B.some(b=>b.ce!=null&&b.ce>info.cemax)?"; las barras en naranjo lo superan":""}.`:""}`);nt.style.marginTop="14pt";add(nt)}
 
   // ---- Páginas de detalle + observaciones
   stage.append(p1.p);
@@ -768,7 +773,7 @@ function selectCampo(i){
   const C=state.campos[i];state.campoIdx=i;
   state.rows=C.rows;state.key=C.key;state.obsCustom=null;state.merge=false;state.vars=C.vars||{};
   const mem=memGet(C.key);
-  state.info={code:"",agricola:"",campo:"",periodo:"",hmin:null,hmax:null,cemin:null,cemax:null,...C.info};
+  state.info=ceDefault({code:"",agricola:"",campo:"",periodo:"",hmin:null,hmax:null,cemin:null,cemax:null,...C.info});
   if(mem?.agricola)state.info.agricola=mem.agricola;if(mem?.campo)state.info.campo=mem.campo;
   state.names=mem?.names||"";applyNames();state.periodoAuto=true;
   const cnt={};state.rows.forEach(r=>{if(r.hum!=null&&r.depth!=null)cnt[r.depth]=(cnt[r.depth]||0)+1});
@@ -789,7 +794,7 @@ async function loadFile(file){
     else{
       const {rows,info}=res;state.campos=null;
       state.rows=rows;state.obsCustom=null;state.merge=false;state.key=null;state.vars={};
-      Object.assign(state.info,info);state.names="";state.periodoAuto=!info.periodo;state.day="all";
+      Object.assign(state.info,info);ceDefault(state.info);state.names="";state.periodoAuto=!info.periodo;state.day="all";
       const cnt={};rows.forEach(r=>{if(r.hum!=null){const d=r.depth??30;cnt[d]=(cnt[d]||0)+1}});
       state.depth=+(Object.entries(cnt).sort((a,b)=>b[1]-a[1])[0]?.[0]??30);
       rows.forEach(r=>{if(r.hum!=null&&r.depth==null)r.depth=state.depth});
