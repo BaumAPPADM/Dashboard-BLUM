@@ -17,18 +17,18 @@
 :root{
   --bg:#f3f7f6; --surface:#ffffff; --line:#d9e8e5; --fg:#10221f; --muted:#5d716e;
   --brand:#002e2b; --brand-ink:#ffffff; --teal:#77cfc9; --teal-ink:#2e8c85; --soft:#e6f5f3;
-  --warn:#9a5b00; --err:#a3302a; --shadow:0 1px 2px rgba(0,46,43,.06),0 8px 28px rgba(0,46,43,.08);
+  --dot:#2f6fdf; --warn:#9a5b00; --err:#a3302a; --shadow:0 1px 2px rgba(0,46,43,.06),0 8px 28px rgba(0,46,43,.08);
   --f-ui:"Nunito",system-ui,-apple-system,"Segoe UI",sans-serif;
   --f-head:"Figtree","Nunito",system-ui,sans-serif;
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
   --bg:#0b1716; --surface:#12211f; --line:#24403c; --fg:#e4efed; --muted:#93aaa6;
   --brand:#77cfc9; --brand-ink:#04201d; --teal:#77cfc9; --teal-ink:#86d8d2; --soft:#173532;
-  --warn:#e8b45a; --err:#f08c84; --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 28px rgba(0,0,0,.35); color-scheme:dark}}
+  --dot:#8db4ff; --warn:#e8b45a; --err:#f08c84; --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 28px rgba(0,0,0,.35); color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#0b1716; --surface:#12211f; --line:#24403c; --fg:#e4efed; --muted:#93aaa6;
   --brand:#77cfc9; --brand-ink:#04201d; --teal:#77cfc9; --teal-ink:#86d8d2; --soft:#173532;
-  --warn:#e8b45a; --err:#f08c84; --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 28px rgba(0,0,0,.35); color-scheme:dark}
+  --dot:#8db4ff; --warn:#e8b45a; --err:#f08c84; --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 28px rgba(0,0,0,.35); color-scheme:dark}
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--fg);font-family:var(--f-ui);font-size:14px;line-height:1.45}
 .app{display:grid;grid-template-columns:minmax(0,340px) minmax(0,1fr);gap:28px;max-width:1280px;margin:0 auto;
@@ -100,6 +100,23 @@ details.fold:not([open]){gap:0}
 .chart svg{position:absolute;left:0;top:0;overflow:visible}
 .chart .lim{position:absolute;height:0;border-top:1pt dashed #c0532b}
 .chart .limlbl{position:absolute;font-size:6pt;line-height:7pt;color:#c0532b;text-align:right;white-space:nowrap}
+div.f{display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--muted)}
+.cal{display:flex;flex-direction:column;gap:12px;max-height:360px;overflow:auto;padding:2px}
+.cal-all{align-self:flex-start;font:inherit;font-size:12.5px;font-weight:700;color:var(--teal-ink);background:transparent;border:1px solid var(--line);border-radius:999px;padding:4px 12px;cursor:pointer}
+.cal-all[aria-pressed="true"]{background:var(--brand);color:var(--brand-ink);border-color:var(--brand)}
+.cal-m{border:1px solid var(--line);border-radius:8px;padding:8px 8px 6px;background:var(--bg)}
+.cal-m.on{border-color:var(--teal)}
+.cal-t{font-size:12.5px;font-weight:700;color:var(--fg);margin:0 2px 6px;display:flex;justify-content:space-between}
+.cal-t small{font-weight:400;color:var(--muted)}
+.cal-g{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center}
+.cal-w{font-size:10.5px;color:var(--muted);padding-bottom:2px}
+.cal-d{font:inherit;font-size:12px;color:var(--muted);opacity:.55;background:transparent;border:0;border-radius:6px;height:30px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:0}
+.cal-d.has{opacity:1;color:var(--fg);font-weight:700;cursor:pointer}
+.cal-d.has::after{content:"";width:5px;height:5px;border-radius:50%;background:var(--dot)}
+.cal-d.has:hover{background:var(--soft)}
+.cal-d.sel{background:var(--brand);color:var(--brand-ink)}
+.cal-d.sel::after{background:var(--brand-ink)}
+.cal-d:focus-visible{outline:2px solid var(--teal-ink);outline-offset:1px}
 details.help{font-size:12.5px;color:var(--muted)}
 details.help summary{cursor:pointer;color:var(--teal-ink);font-weight:700}
 details.help code{font-size:11.5px;background:var(--soft);padding:0 4px;border-radius:3px;color:var(--fg)}
@@ -195,6 +212,7 @@ ul.obs[contenteditable="true"]:focus{box-shadow:0 0 0 3pt #dcefec}
       <div class="status ok" id="status"><span><span class="chip">Ejemplo</span> Datos ficticios. Sube tu export de BLUM para ver tu reporte.</span></div>
       <div class="filters">
         <label class="f full" id="campoWrap" hidden>Campo<select id="campoSel"></select></label>
+        <div class="f full" id="calWrapS" hidden><span>Fecha de medición</span><div class="cal" id="calS"></div></div>
         <label class="f full" id="dayWrap" hidden>Fecha de medición<select id="day"></select></label>
         <label class="f full" id="depthWrap" hidden>Profundidad<select id="depthVis"></select></label>
       </div>
@@ -258,6 +276,7 @@ ul.obs[contenteditable="true"]:focus{box-shadow:0 0 0 3pt #dcefec}
       <div class="status ok" id="statusO"><span><span class="chip">Ejemplo</span> Datos ficticios. Sube tu export de BLUM para ver tus equipos.</span></div>
       <div class="filters">
         <label class="f full" id="eqWrapO" hidden>Equipo<select id="eqO"></select></label>
+        <div class="f full" id="calWrapO" hidden><span>Período</span><div class="cal" id="calO"></div></div>
         <label class="f full" id="perWrapO" hidden>Período<select id="perO"></select></label>
       </div>
     </section>
@@ -320,7 +339,7 @@ const PRESETS={};
 function memGet(k){let m=null;try{m=JSON.parse(localStorage.getItem("suelo:"+k)||"null")}catch(e){}return m||PRESETS[k]||null}
 function memSet(k,v){if(!k)return;try{localStorage.setItem("suelo:"+k,JSON.stringify({...(memGet(k)||{}),...v}))}catch(e){}}
 function parseNames(t){const m={};String(t||"").split(/[;,\n]+/).forEach(x=>{const r=x.trim().match(/^(\d+)\s*[-:=.]?\s*(.*)$/);if(r)m[+r[1]]=r[2].trim()});return m}
-function applyNames(){const m=parseNames(state.names);state.rows.forEach(r=>{if(r.secNum!=null)r.sector=("Sector "+r.secNum+(m[r.secNum]?" "+m[r.secNum]:""))})}
+function applyNames(){const m=parseNames(state.names);[state.rows,state.raw||[]].forEach(L=>L.forEach(r=>{if(r.secNum!=null)r.sector=("Sector "+r.secNum+(m[r.secNum]?" "+m[r.secNum]:""))}))}
 
 /* ---------- Lectura del Excel ---------- */
 function parseFecha(v){
@@ -351,7 +370,7 @@ function cleanCampo(c){const m=String(c).trim().match(/^(\d+(?:\.\d+)?)\s*-\s*(.
 function parseLong(aoa,hi,sheetName){
   const hn=aoa[hi].map(norm);const col=re=>hn.findIndex(c=>re.test(c));
   const cF=col(/^fecha/),cCli=col(/^cliente/),cCampo=col(/^campo/),cTipo=col(/tipo.*medicion|^medicion$/),cVal=hn.findIndex(c=>c==="valor"),
-        cMin=col(/^min\.? optimo/),cMax=col(/^max\.? optimo/),cCod=col(/codigo activo|^codigo$/),cEq=col(/^equipo/),cSec=col(/^sector/),cAct=col(/nombre activo/),cUni=col(/^unidad/);
+        cMin=col(/^min\.? optimo/),cMax=col(/^max\.? optimo/),cCod=col(/codigo activo|^codigo$/),cEq=col(/^equipo/),cSec=col(/^sector/),cAct=col(/nombre activo/),cUni=col(/^unidad/),cOpt=col(/^valor optimo/);
   const campos=new Map();
   for(let r=hi+1;r<aoa.length;r++){
     const a=aoa[r]||[];const tipo=norm(a[cTipo]);const v=parseNum(a[cVal]);if(!tipo||v==null)continue;
@@ -367,7 +386,7 @@ function parseLong(aoa,hi,sheetName){
     const ckey=(cl?cl[1].toUpperCase()+cl[2].padStart(3,"0"):"")+(cp?"-"+cp[1].toUpperCase():"")||campoRaw||"campo";
     const cname=campoRaw||ckey;
     let C=campos.get(cname);
-    if(!C){C={name:cname,key:ckey,info:{},rec:new Map(),ce:new Map(),vx:new Map(),vars:{}};campos.set(cname,C)}
+    if(!C){C={name:cname,key:ckey,info:{},rec:new Map(),ce:new Map(),vx:new Map(),vars:{},raw:[]};campos.set(cname,C)}
     const I=C.info;
     if(I.code==null&&cl)I.code=cl[2].padStart(3,"0");
     if(I.agricola==null&&cCli>=0&&a[cCli])I.agricola=cleanCliente(a[cCli]);
@@ -381,6 +400,8 @@ function parseLong(aoa,hi,sheetName){
     if(isH){const dm=tipo.match(/(\d+)\s*cm/);const depth=dm?+dm[1]:null;const k=base+"|"+depth;let o=C.rec.get(k);
       if(!o){o={trN,eqN,secNum,blNum,fecha:f,hum:v,depth,ce:null,_t:t,_day:day,_base:base};C.rec.set(k,o)}
       else if(t>=o._t){o.hum=v;o.fecha=f;o._t=t}}
+    else if(isX&&(isAforo(a[cTipo])||isPres(a[cTipo]))){
+      C.raw.push({vk:String(a[cTipo]).trim(),trN,eqN,secNum,blNum,v,fecha:f,day,min:cMin>=0?parseNum(a[cMin]):null,max:cMax>=0?parseNum(a[cMax]):null,opt:cOpt>=0?parseNum(a[cOpt]):null})}
     else if(isX){const vk=String(a[cTipo]).trim();
       if(!C.vars[vk])C.vars[vk]={label:prettyVar(vk),unit:cUni>=0&&a[cUni]!=null?String(a[cUni]).trim():"",min:cMin>=0?parseNum(a[cMin]):null,max:cMax>=0?parseNum(a[cMax]):null};
       let o=C.vx.get(base);if(!o){o={trN,eqN,secNum,blNum,f,t,day,vals:{},ts:{}};C.vx.set(base,o)}
@@ -398,13 +419,14 @@ function parseLong(aoa,hi,sheetName){
     for(const [b,c] of C.vx){const list=byBase.get(b);
       if(list&&list.length)list[0].vx=c.vals;
       else{const nr={trN:c.trN,eqN:c.eqN,secNum:c.secNum,blNum:c.blNum,fecha:c.f,hum:null,depth:null,ce:null,vx:c.vals,_day:c.day,_base:b};rows.push(nr);byBase.set(b,[nr])}}
-    if(!rows.length)continue;
-    const trs=new Set(rows.map(r=>r.trN));const multiTR=trs.size>1;
+    if(!rows.length&&!C.raw.length)continue;
+    const trs=new Set(rows.map(r=>r.trN).concat(C.raw.map(r=>r.trN)));const multiTR=trs.size>1;
     rows.forEach(r=>{r.equipo=(r.eqN!=null?"Equipo "+r.eqN:"")+(multiTR?` · TR${pad(r.trN)}`:"")});
+    C.raw.forEach(r=>{r.equipo=(r.eqN!=null?"Equipo "+r.eqN:"")+(multiTR?` · TR${pad(r.trN)}`:"");r.sector="Sector "+r.secNum});
     const ord=r=>[pad(r.trN),String(r.eqN??0).padStart(4,"0"),String(r.secNum).padStart(4,"0"),String(r.blNum).padStart(4,"0")].join("|");
     const uniq=[...new Set(rows.map(ord))].sort();
     rows.forEach(r=>{r.bloque="Bloque "+(uniq.indexOf(ord(r))+1);r.sector="Sector "+r.secNum;delete r._t;delete r._base;delete r._day});
-    out.push({name:C.name,key:C.key,info:C.info,rows,blocks:uniq.length,vars:C.vars});
+    out.push({name:C.name,key:C.key,info:C.info,rows,blocks:uniq.length,vars:C.vars,raw:C.raw});
   }
   if(!out.length)throw new Error("La hoja «"+sheetName+"» no tiene lecturas de % Humedad ni de CE con código de sector y bloque.");
   out.sort((x,y)=>natCmp(x.name,y.name));
@@ -466,6 +488,59 @@ function depthInfo(){const cnt={};let n=0;state.rows.forEach(r=>{if(r.hum!=null&
   const all=Object.keys(cnt).map(Number).sort((a,b)=>a-b);const major=all.filter(d=>cnt[d]>=n*0.25);
   return{all,major,minor:all.filter(d=>!major.includes(d)),cnt}}
 function ceDefault(i){if(i&&(i.cemax==null||i.cemax-(i.cemin??0)>=50)){i.cemin=0;i.cemax=1.2}return i}
+const isAforo=k=>/aforo|emisor|gotero|caudal emisor/.test(norm(k));
+const isPres=k=>/presion/.test(norm(k));
+const median=a=>{if(!a.length)return null;const b=a.slice().sort((x,y)=>x-y);const m=b.length>>1;return b.length%2?b[m]:(b[m-1]+b[m])/2};
+/* Bloques de riego (válvula = sector): presión de válvula y aforos de emisores */
+function riegoData(){
+  const raw=(state.raw||[]).filter(r=>isAforo(r.vk)||isPres(r.vk));if(!raw.some(r=>isAforo(r.vk)))return null;
+  const months=[...new Set(raw.map(r=>r.day/100|0))].sort();
+  let mon=state.day==="all"?null:(+state.day/100|0);if(mon!=null&&!months.includes(mon))mon=months[months.length-1];
+  const L=mon==null?raw:raw.filter(r=>(r.day/100|0)===mon);
+  const G=new Map();
+  L.forEach(r=>{const k=r.equipo+"|"+r.sector;let g=G.get(k);if(!g){g={equipo:r.equipo,sector:r.sector,secNum:r.secNum,A:[],P:[]};G.set(k,g)}(isAforo(r.vk)?g.A:g.P).push(r)});
+  const multi=new Set([...G.values()].map(g=>g.equipo)).size>1;
+  const blocks=[...G.values()].sort((a,b)=>natCmp(a.equipo,b.equipo)||natCmp(a.sector,b.sector)).map(g=>{
+    const av=g.A.map(r=>r.v);const nom=g.A.map(r=>r.opt!=null&&r.opt>0?r.opt:(r.min!=null&&r.max!=null?(r.min+r.max)/2:null)).filter(v=>v!=null);
+    const am=av.length?av.reduce((a,b)=>a+b,0)/av.length:null;const nm=nom.length?nom.reduce((a,b)=>a+b,0)/nom.length:null;
+    let du=null;if(av.length>=4){const srt=av.slice().sort((a,b)=>a-b);const q=srt.slice(0,Math.max(1,Math.round(srt.length/4)));du=q.reduce((a,b)=>a+b,0)/q.length/am*100}
+    const pv=g.P.map(r=>r.v);const pm=pv.length?pv.reduce((a,b)=>a+b,0)/pv.length:null;
+    const po=g.P.map(r=>r.opt!=null&&r.opt>0?r.opt:(r.min!=null&&r.max!=null?(r.min+r.max)/2:null)).filter(v=>v!=null);const pom=po.length?po.reduce((a,b)=>a+b,0)/po.length:null;
+    const pmin=g.P.find(r=>r.min!=null)?.min??null,pmax=g.P.find(r=>r.max!=null)?.max??null;
+    const bajo=g.A.filter(r=>r.min!=null&&r.v<r.min).length,sobre=g.A.filter(r=>r.max!=null&&r.v>r.max).length;
+    const label=(multi?(g.equipo||"").replace(/^Equipo\s*/,"E").replace(/\s*·\s*TR0*/,"-T")+"·":"")+"S"+(g.secNum??"");
+    const full=(multi?(g.equipo||"")+" · ":"")+g.sector;
+    const apct=am!=null&&nm?am/nm*100:null,ppct=pm!=null&&pom?pm/pom*100:null;
+    const flags=[];if(du!=null&&Math.round(du)<90)flags.push("DU bajo 90 %");if(apct!=null&&(apct<90||apct>110))flags.push(apct<90?"Caudal bajo":"Caudal alto");if(pm!=null&&((pmin!=null&&pm<pmin)||(pmax!=null&&pm>pmax)))flags.push(pmin!=null&&pm<pmin?"Presión baja":"Presión alta");
+    return{label,full,nA:av.length,am,nm,du,pm,pom,pmin,pmax,apct,ppct,bajo,sobre,flags,unitA:"l/h",unitP:"bar"}});
+  const allA=L.filter(r=>isAforo(r.vk));
+  const fe=L.map(r=>r.fecha).filter(Boolean);const ks=fe.map(fkey);
+  return{blocks,nA:allA.length,bajo:allA.filter(r=>r.min!=null&&r.v<r.min).length,sobre:allA.filter(r=>r.max!=null&&r.v>r.max).length,
+    am:allA.length?allA.reduce((a,r)=>a+r.v,0)/allA.length:null,
+    nm:(()=>{const n=allA.map(r=>r.opt!=null&&r.opt>0?r.opt:(r.min!=null&&r.max!=null?(r.min+r.max)/2:null)).filter(v=>v!=null);return n.length?n.reduce((a,b)=>a+b,0)/n.length:null})(),
+    duMed:median(blocks.map(b=>b.du).filter(v=>v!=null)),duLow:blocks.filter(b=>b.du!=null&&Math.round(b.du)<90).length,
+    f0:fe[ks.indexOf(Math.min(...ks))],f1:fe[ks.indexOf(Math.max(...ks))],mon,hasP:L.some(r=>isPres(r.vk))};
+}
+function scatterChart(RB){
+  const pts=RB.blocks.filter(b=>b.apct!=null&&b.ppct!=null);
+  const X0=38,W=462,TOP=8,H=190;const ch=el("div","chart");ch.style.height=(TOP+H+30)+"pt";
+  const xs=pts.map(b=>b.ppct),ys=pts.map(b=>b.apct);
+  const nice=(a,b,st)=>[Math.floor(a/st)*st,Math.ceil(b/st)*st];
+  let [x0,x1]=nice(Math.min(100,...xs)-5,Math.max(100,...xs)+5,10),[y0,y1]=nice(Math.min(100,...ys)-2,Math.max(100,...ys)+2,5);
+  const xst=niceStep((x1-x0)/8,[5,10,20,25,50,100]),yst=niceStep((y1-y0)/5,[1,2,5,10,20,25,50]);[x0,x1]=nice(x0,x1,xst);[y0,y1]=nice(y0,y1,yst);
+  const X=v=>X0+(v-x0)/(x1-x0)*W,Y=v=>TOP+H-(v-y0)/(y1-y0)*H;
+  for(let v=y0;v<=y1+1e-9;v+=yst){const g=el("div","gl");g.style.cssText=`left:${X0}pt;width:${W}pt;top:${Y(v)}pt`;ch.append(g);const l=el("div","yl",fnum(v)+" %");l.style.left=(X0-26)+"pt";l.style.top=(Y(v)-4.2)+"pt";l.style.width="23pt";ch.append(l)}
+  for(let v=x0;v<=x1+1e-9;v+=xst){const l=el("div","xl",fnum(v)+" %");l.style.left=(X(v)-12)+"pt";l.style.top=(TOP+H+3)+"pt";ch.append(l)}
+  const hl=el("div","ab");hl.style.cssText=`left:${X0}pt;width:${W}pt;top:${Y(100)}pt;border-top:.8pt dashed #8a9a98;height:0`;ch.append(hl);
+  const vl=el("div","ab");vl.style.cssText=`left:${X(100)}pt;top:${TOP}pt;height:${H}pt;border-left:.8pt dashed #8a9a98;width:0`;ch.append(vl);
+  const ax=el("div","ab");ax.style.cssText=`left:${X0}pt;width:${W}pt;top:${TOP+H}pt;border-top:.75pt solid #b9c6c4;height:0`;ch.append(ax);
+  const t1=el("div","bandlbl","Aforo, % del nominal");t1.style.left=(X0+4)+"pt";t1.style.top=(TOP+1)+"pt";t1.style.textAlign="left";ch.append(t1);
+  const t2=el("div","bandlbl","Presión de válvula, % de su óptimo");t2.style.right=(510.3-X0-W)+"pt";t2.style.top=(TOP+H+13)+"pt";ch.append(t2);
+  pts.forEach(b=>{const cx=X(b.ppct),cy=Y(b.apct);const d=el("div","ab");d.style.cssText=`left:${cx-3.6}pt;top:${cy-3.6}pt;width:7.2pt;height:7.2pt;border-radius:50%;background:${b.flags.length?"#e2876a":"#77cfc9"};border:.9pt solid #002e2b`;ch.append(d);
+    const t=el("div","vl",esc(b.label));t.style.width="40pt";t.style.textAlign="left";t.style.left=(cx+5)+"pt";t.style.top=(cy-3.5)+"pt";t.style.fontSize="5.4pt";t.style.color="#6b7c7a";ch.append(t)});
+  return{ch,n:pts.length};
+}
+function pearson(a,b){const n=a.length;if(n<3)return null;const ma=a.reduce((x,y)=>x+y)/n,mb=b.reduce((x,y)=>x+y)/n;let s=0,sa=0,sb=0;for(let i=0;i<n;i++){s+=(a[i]-ma)*(b[i]-mb);sa+=(a[i]-ma)**2;sb+=(b[i]-mb)**2}return sa&&sb?s/Math.sqrt(sa*sb):null}
 const genericH=i=>i.hmin!=null&&i.hmax!=null&&i.hmax-i.hmin>=60;
 function prepared(){
   const dc=depthInfo();const ref=state.depth;
@@ -485,10 +560,10 @@ function prepared(){
   const mkSeries=(meta,get)=>{const mp=new Map();src0.forEach(r=>{const v=get(r);if(v==null)return;const k=r.equipo+"|"+r.sector+"|"+r.bloque;const p=mp.get(k);if(!p||fkey(r.fecha)>=fkey(p.fecha))mp.set(k,{equipo:r.equipo,sector:r.sector,bloque:r.bloque,fecha:r.fecha,v})});
     const bs=[...mp.values()].sort((a,b)=>natCmp(a.equipo,b.equipo)||natCmp(a.sector,b.sector)||natCmp(a.bloque,b.bloque));if(bs.length)series.push({...meta,blocks:bs})};
   if(!state.merge)dc.major.filter(d=>d!==ref).forEach(d=>mkSeries({label:`% Humedad ${fnum(d)} cm`,unit:"%",min:info.hmin,max:info.hmax,hum:true},r=>r.hum!=null&&r.depth===d?r.hum:null));
-  Object.entries(state.vars||{}).forEach(([k,m])=>mkSeries({...m},r=>r.vx&&r.vx[k]!=null?r.vx[k]:null));
+  Object.entries(state.vars||{}).filter(([k])=>!isAforo(k)&&!isPres(k)).forEach(([k,m])=>mkSeries({...m},r=>r.vx&&r.vx[k]!=null?r.vx[k]:null));
   series.forEach(se=>{const vals=se.blocks.map(b=>b.v);const mx=Math.max(...vals.map(Math.abs));se.dec=mx<10?2:mx<100?1:0;se.fmt=v=>v==null?"–":rnd(v,se.dec).toFixed(se.dec).replace(".",",");
     se.band=se.min!=null&&se.max!=null&&!(se.hum&&genericH(info))});
-  return{rows,blocks,ref,multi:blocks.length<rows.length,allBlocks,nDaysFile,series};
+  return{rows,blocks,ref,multi:blocks.length<rows.length,allBlocks,nDaysFile,series,riego:riegoData()};
 }
 const stat=a=>{const v=a.filter(x=>x!=null&&!isNaN(x));if(!v.length)return null;return{avg:v.reduce((s,x)=>s+x,0)/v.length,min:Math.min(...v),max:Math.max(...v),n:v.length}};
 function estado(h,hmin,hmax){if(h==null)return["Sin dato","na"];if(hmin!=null&&h<hmin)return["Bajo rango","low"];if(hmax!=null&&h>hmax)return["Sobre rango","high"];return["En rango",""]}
@@ -605,6 +680,14 @@ function observaciones(P,info){
     if(over.length&&over.length<top.st.n)t+=over.length===1?`; el bloque ${bnum(over[0].bloque)} supera el ${T} %.`:`; los bloques ${lista(over.map(b=>bnum(b.bloque)))} superan el ${T} %.`;else t+=".";
     out.push([`${top.name} con la mayor humedad.`,t]);
   }
+  if(P.riego){const RB=P.riego;const bs=RB.blocks;
+    const low=bs.filter(b=>b.du!=null&&Math.round(b.du)<90);
+    if(RB.duMed!=null)out.push([low.length?`${low.length} ${low.length===1?"bloque de riego":"bloques de riego"} con DU bajo 90 %.`:"Uniformidad de riego sobre 90 %.",low.length?`${lista(low.slice(0,8).map(b=>b.full+" ("+Math.round(b.du)+" %)"))}${low.length>8?` y ${low.length-8} más`:""}. La mediana de DU entre bloques es ${Math.round(RB.duMed)} %.`:`Todos los bloques con al menos 4 aforos tienen DU de 90 % o más (mediana ${Math.round(RB.duMed)} %).`]);
+    if(RB.nA)out.push([`Aforos: ${Math.round((RB.bajo+RB.sobre)/RB.nA*100)} % fuera de rango.`,`De ${RB.nA} aforos, ${RB.bajo} quedan bajo el mínimo y ${RB.sobre} sobre el máximo configurado. El aforo promedio es ${f2(RB.am)} l/h${RB.nm!=null?` frente a un nominal de ${f2(RB.nm)} l/h`:""}.`]);
+    const pp=bs.filter(b=>b.apct!=null&&b.ppct!=null);const r=pearson(pp.map(b=>b.ppct),pp.map(b=>b.apct));
+    if(r!=null)out.push([Math.abs(r)<0.3?"La presión de válvula no explica el caudal.":r>=0.6?"La presión de válvula explica buena parte del caudal.":"Relación débil entre presión y caudal.",`En ${pp.length} bloques con ambas mediciones la correlación es ${f2(r)}. ${Math.abs(r)<0.3?"Bloques con presión parecida entregan caudales distintos.":r>=0.6?"Los bloques con más presión entregan más caudal.":"Hay algo de relación, pero con varias excepciones."}`]);
+    const pb=bs.filter(b=>b.flags.some(f=>/Presión/.test(f)));if(pb.length)out.push([`${pb.length} ${pb.length===1?"válvula":"válvulas"} fuera de su rango de presión.`,lista(pb.slice(0,8).map(b=>`${b.full} (${f2(b.pm)} bar)`))+"."]);
+  }
   (P.series||[]).forEach(se=>{const st=stat(se.blocks.map(b=>b.v));if(!st)return;const u=se.unit?" "+se.unit:"";
     let t=`${se.blocks.length===1?"El bloque marca":`Los ${se.blocks.length} bloques medidos van de`} ${se.blocks.length===1?se.fmt(st.min):`${se.fmt(st.min)} a ${se.fmt(st.max)}`}${u} (promedio ${se.fmt(st.avg)}${u}).`;let title=`${se.label}.`;
     if(se.band){const lo=se.blocks.filter(b=>b.v<se.min),hi=se.blocks.filter(b=>b.v>se.max);const L=x=>lista(x.slice(0,8).map(b=>bnum(b.bloque)))+(x.length>8?` y ${x.length-8} más`:"");
@@ -699,6 +782,25 @@ function render(){
    :`<colgroup><col style="width:90pt"><col style="width:93pt"><col style="width:80pt"><col style="width:80pt"><col style="width:70pt"><col></colgroup><thead><tr><th>Equipo</th><th>Sector</th><th>Bloque</th><th class="r">Fecha</th><th class="r">% Humedad</th><th class="c">Estado humedad</th></tr></thead>`;
   const newTable=(cont)=>{const h=el("h2","sec","Detalle por bloque"+(cont?" (continuación)":""));if(cur.c.children.length)h.style.marginTop="14pt";cur.c.append(h);const t=el("table","t",head+"<tbody></tbody>");cur.c.append(t);return t.tBodies[0]};
   const flow=n=>{cur.c.append(n);if(cur.c.scrollHeight>LIMIT+1){n.remove();cur=pageShell();pages.push(cur);stage.append(cur.p);n.style.marginTop="0";cur.c.append(n)}};
+  if(P.riego){const RB=P.riego;const pct=(a,b)=>b?Math.round(a/b*100):0;
+    const w1=el("div");const h=el("h2","sec","Bloques de riego: presión de válvula y aforos");w1.append(h);
+    w1.append(el("div","note",`Cada bloque de riego es una válvula (sector). ${RB.f0&&fkey(RB.f0)===fkey(RB.f1)?`Mediciones del ${fdate(RB.f0)}`:`Mediciones del ${fdm(RB.f0)} al ${fdate(RB.f1)}`}.`));
+    const k=el("div","kpis");k.style.marginTop="8pt";
+    k.innerHTML=`<div class="kpi"><div class="l">AFORO PROMEDIO</div><div class="v">${f2(RB.am)} <small>l/h</small></div><div class="s">${RB.nm!=null?`Nominal promedio ${f2(RB.nm)} l/h`:"Sin caudal nominal"}</div></div>
+     <div class="kpi"${pct(RB.bajo+RB.sobre,RB.nA)>=10?' style="border-color:#e2876a;background:#fdf3ef"':""}><div class="l">FUERA DE RANGO</div><div class="v"${pct(RB.bajo+RB.sobre,RB.nA)>=10?' style="color:#c0532b"':""}>${pct(RB.bajo,RB.nA)}<small>% bajo el mín.</small></div><div class="s">${pct(RB.sobre,RB.nA)} % sobre el máx. · ${RB.nA} aforos</div></div>
+     <div class="kpi"><div class="l">DU MEDIANA</div><div class="v">${RB.duMed!=null?Math.round(RB.duMed):"–"}<small>%</small></div><div class="s">${RB.duMed!=null?`${RB.duLow} ${RB.duLow===1?"bloque":"bloques"} bajo 90 %`:"Faltan aforos (mín. 4 por bloque)"}</div></div>
+     <div class="kpi"><div class="l">AFOROS POR BLOQUE</div><div class="v">${RB.blocks.length?Math.round(RB.nA/RB.blocks.filter(b=>b.nA).length||0):"–"}</div><div class="s">Promedio en ${RB.blocks.filter(b=>b.nA).length} bloques</div></div>`;
+    w1.append(k);flow(w1);
+    if(RB.hasP){const sc=scatterChart(RB);if(sc.n>=2){const w2=el("div");const h2=el("h2","sec","¿La presión de la válvula explica el caudal del bloque?");h2.style.marginTop="16pt";w2.append(h2);
+      w2.append(el("div","note","Cada punto es un bloque con presión de válvula y aforos medidos. Hacia la derecha la válvula trabaja sobre su presión óptima; hacia arriba los emisores entregan más que su caudal nominal. Si la presión mandara el caudal, los puntos formarían una diagonal que sube hacia la derecha. En naranjo, los bloques a revisar."));
+      sc.ch.style.marginTop="8pt";w2.append(sc.ch);flow(w2)}}
+    const w3=el("div");const h3=el("h2","sec","Detalle por bloque de riego");h3.style.marginTop="16pt";w3.append(h3);flow(w3);
+    const t=el("table","t");t.innerHTML=`<colgroup><col style="width:128pt"><col style="width:44pt"><col style="width:66pt"><col style="width:54pt"><col style="width:62pt"><col style="width:40pt"><col></colgroup><thead><tr><th>Bloque de riego</th><th class="r">Aforos</th><th class="r">Aforo prom.</th><th class="r">% nominal</th><th class="r">Presión</th><th class="r">DU</th><th class="c">Estado</th></tr></thead><tbody></tbody>`;
+    flow(t);let tbR=t.tBodies[0];const headR=t.innerHTML.replace(/<tbody>[\s\S]*<\/tbody>/,"<tbody></tbody>");
+    RB.blocks.forEach(b=>{const tr=el("tr",null,`<td>${esc(b.full.replace(/^Equipo\s*/,"Eq. "))}</td><td class="r">${b.nA||"–"}</td><td class="r b">${b.am!=null?f2(b.am)+" l/h":"–"}</td><td class="r">${b.apct!=null?Math.round(b.apct)+" %":"–"}</td><td class="r">${b.pm!=null?f2(b.pm)+" bar":"–"}</td><td class="r">${b.du!=null?Math.round(b.du)+" %":"–"}</td><td class="c"><span class="pill ${b.flags.length?"low":""}">${b.flags.length?esc(b.flags[0]):"OK"}</span></td>`);
+      tbR.append(tr);if(cur.c.scrollHeight>LIMIT+1){tr.remove();cur=pageShell();pages.push(cur);stage.append(cur.p);const t2=el("table","t",headR);cur.c.append(t2);tbR=t2.tBodies[0];tbR.append(tr)}});
+    const sp=el("div");sp.style.height="6pt";flow(sp);
+  }
   if(P.series.length){
     const wrap=el("div");wrap.append(el("h2","sec","Otras mediciones"));
     const t=el("table","t");t.innerHTML=`<colgroup><col style="width:130pt"><col style="width:55pt"><col style="width:70pt"><col style="width:85pt"><col style="width:90pt"><col></colgroup>
@@ -738,6 +840,20 @@ addEventListener("resize",fit);
 
 /* ---------- Formulario ---------- */
 const FIELDS=["code","agricola","campo","periodo","hmin","hmax","cemin","cemax"];
+function calendar(host,days,sel,onPick,opt={}){
+  const H=$(host);if(!H)return;const ds=[...days].sort();
+  const months=[...new Set(ds.map(d=>d/100|0))].sort().reverse();
+  let h=`<button type="button" class="cal-all" aria-pressed="${sel==="all"}" data-v="all">${opt.allLabel||"Todas las fechas"}</button>`;
+  months.forEach(m=>{const y=m/100|0,mo=m%100;const first=new Date(y,mo-1,1).getDay();const off=(first+6)%7;const nd=new Date(y,mo,0).getDate();
+    const cnt=ds.filter(d=>(d/100|0)===m).length;const on=opt.selMonth!=null?String(m)===String(opt.selMonth):String(sel).slice(0,6)===String(m);
+    h+=`<div class="cal-m${on?" on":""}"><div class="cal-t">${MESES[mo-1].replace(/^./,c=>c.toUpperCase())} ${y}<small>${cnt} ${cnt===1?"día":"días"} con datos</small></div><div class="cal-g">${["L","M","M","J","V","S","D"].map(w=>`<span class="cal-w">${w}</span>`).join("")}${"<span></span>".repeat(off)}`;
+    for(let d=1;d<=nd;d++){const k=m*100+d;const has=days.has(k);const isSel=String(sel)===String(k);
+      h+=has?`<button type="button" class="cal-d has${isSel?" sel":""}" data-v="${k}" aria-label="${d} de ${MESES[mo-1]}${isSel?" (seleccionado)":""}" aria-pressed="${isSel}">${d}</button>`:`<span class="cal-d">${d}</span>`}
+    h+=`</div></div>`});
+  H.innerHTML=h;H.querySelectorAll("button[data-v]").forEach(b=>b.addEventListener("click",()=>onPick(b.dataset.v)));
+}
+function drawCalS(){const days=new Set(state.rows.map(r=>dayOf(r.fecha)).filter(Boolean));$("calWrapS").hidden=days.size<2;
+  calendar("calS",days,state.day,v=>{state.day=v;state.obsCustom=null;$("day").value=v;drawCalS();render()},{allLabel:"Todas las fechas"})}
 function fillForm(){const i=state.info;FIELDS.forEach(k=>{const v=k==="periodo"?(state.periodoAuto?defaultPeriodo(state.rows):i.periodo):i[k];$(k).value=typeof v==="number"?fnum(v):(v??"")});
   const di=depthInfo();const ds=di.major.length?di.major.slice():[state.depth];if(!ds.includes(state.depth))ds.push(state.depth);
   $("depth").innerHTML=ds.map(d=>`<option value="${d}">${fnum(d)} cm</option>`).join("");$("depth").value=state.depth;
@@ -749,7 +865,7 @@ function fillForm(){const i=state.info;FIELDS.forEach(k=>{const v=k==="periodo"?
   const days=[...new Set(state.rows.map(r=>dayOf(r.fecha)).filter(Boolean))].sort().reverse();
   $("dayWrap").hidden=days.length<2;
   $("day").innerHTML=days.map(d=>{const n=new Set(state.rows.filter(r=>dayOf(r.fecha)===d).map(r=>r.equipo+"|"+r.sector+"|"+r.bloque)).size;return`<option value="${d}">${pad(d%100)}-${pad((d/100|0)%100)}-${d/1e4|0} · ${n} ${n===1?"bloque":"bloques"}</option>`}).join("")+`<option value="all">Todas las fechas (última lectura por bloque)</option>`;
-  $("day").value=state.day;
+  $("day").value=state.day;$("dayWrap").hidden=true;drawCalS();
   $("depthVis").innerHTML=$("depth").innerHTML;$("depthVis").value=state.depth;
   $("names").value=state.names;
   $("names").closest("label").hidden=!state.rows.some(r=>r.secNum!=null);$("mergeTxt").textContent=`Contar todas las lecturas como ${fnum(state.depth)} cm`;$("merge").checked=state.merge}
@@ -771,7 +887,7 @@ function setStatus(id,cls,html){const s=$(id);s.hidden=false;s.className="status
 /* ---------- Carga de archivo ---------- */
 function selectCampo(i){
   const C=state.campos[i];state.campoIdx=i;
-  state.rows=C.rows;state.key=C.key;state.obsCustom=null;state.merge=false;state.vars=C.vars||{};
+  state.rows=C.rows;state.key=C.key;state.obsCustom=null;state.merge=false;state.vars=C.vars||{};state.raw=C.raw||[];
   const mem=memGet(C.key);
   state.info=ceDefault({code:"",agricola:"",campo:"",periodo:"",hmin:null,hmax:null,cemin:null,cemax:null,...C.info});
   if(mem?.agricola)state.info.agricola=mem.agricola;if(mem?.campo)state.info.campo=mem.campo;
@@ -793,7 +909,7 @@ async function loadFile(file){
     if(res.long){state.campos=res.campos;selectCampo(0)}
     else{
       const {rows,info}=res;state.campos=null;
-      state.rows=rows;state.obsCustom=null;state.merge=false;state.key=null;state.vars={};
+      state.rows=rows;state.obsCustom=null;state.merge=false;state.key=null;state.vars={};state.raw=[];
       Object.assign(state.info,info);ceDefault(state.info);state.names="";state.periodoAuto=!info.periodo;state.day="all";
       const cnt={};rows.forEach(r=>{if(r.hum!=null){const d=r.depth??30;cnt[d]=(cnt[d]||0)+1}});
       state.depth=+(Object.entries(cnt).sort((a,b)=>b[1]-a[1])[0]?.[0]??30);
@@ -907,10 +1023,12 @@ function osmoForm(){
   $("eqWrapO").hidden=O.equipos.length<2;
   $("eqO").innerHTML=O.equipos.map((e,i)=>`<option value="${i}">${esc(e.info.campo)} · ${esc(e.label)}</option>`).join("");$("eqO").value=O.idx;
   const months=[...new Set(E.types.flatMap(T=>T.rd.map(r=>r.fecha?r.fecha.y*100+r.fecha.m:0)).filter(Boolean))].sort().reverse();
-  $("perWrapO").hidden=months.length<2;
+  $("perWrapO").hidden=true;drawCalO();
   $("perO").innerHTML=`<option value="all">Todo el historial</option>`+months.map(m=>`<option value="${m}">${MESES[m%100-1].replace(/^./,c=>c.toUpperCase())} ${m/100|0}</option>`).join("");$("perO").value=O.per;
   ["code","agricola","campo","equipo"].forEach(k=>$(k+"O").value=O.info[k]||"");
 }
+function drawCalO(){const E=O.equipos[O.idx];if(!E)return;const days=new Set(E.types.flatMap(T=>T.rd.map(r=>r.fecha?dayOf(r.fecha):0)).filter(Boolean));
+  $("calWrapO").hidden=days.size<1;calendar("calO",days,O.per,v=>{O.per=v==="all"?"all":String(v).slice(0,6);O.obsCustom=null;$("perO").value=O.per;drawCalO();osmoRender()},{allLabel:"Todo el historial",selMonth:O.per==="all"?null:O.per})}
 function osmoTypes(){const E=O.equipos[O.idx];return E.types.map(T=>({...T,rd:O.per==="all"?T.rd:T.rd.filter(r=>r.fecha&&String(r.fecha.y*100+r.fecha.m)===O.per)})).filter(T=>T.rd.length)}
 
 function lineChart(T){
