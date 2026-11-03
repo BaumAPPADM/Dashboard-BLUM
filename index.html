@@ -292,6 +292,7 @@ ul.obs[contenteditable="true"]:focus{box-shadow:0 0 0 3pt #dcefec}
       <div class="status ok" id="statusC"><span><span class="chip">Ejemplo</span> Datos ficticios. Sube tu export de BLUM para ver tus casetas.</span></div>
       <div class="filters">
         <label class="f full" id="eqWrapC" hidden>Caseta<select id="eqC"></select></label>
+        <label class="f full" id="haWrapC" hidden>Hectáreas regadas por esta caseta<input id="haC" inputmode="decimal" placeholder="Ej.: 42,5" autocomplete="off"></label>
         <div class="f full" id="calWrapC" hidden><span>Período</span><div class="cal" id="calC"></div></div>
         <label class="f full" id="perWrapC" hidden>Período<select id="perC"></select></label>
       </div>
@@ -1170,7 +1171,8 @@ function osmoSampleOld(){
 function osmoSelect(i){const E=O.equipos[i];O.idx=i;O.obsCustom=null;O.info={...E.info};
   const months=[...new Set(E.types.flatMap(T=>T.rd.map(r=>r.fecha?r.fecha.y*100+r.fecha.m:0)).filter(Boolean))];O.per="all";osmoForm();osmoRender()}
 function osmoForm(){
-  const E=O.equipos[O.idx];if(!E){$("eqWrap"+SUF).hidden=true;$("calWrap"+SUF).hidden=true;return}
+  const E=O.equipos[O.idx];const HW=$("haWrap"+SUF);if(!E){$("eqWrap"+SUF).hidden=true;$("calWrap"+SUF).hidden=true;if(HW)HW.hidden=true;return}
+  if(HW){HW.hidden=!E.types.some(isCounter);if(O.info.ha==null){const m=memGet("ha:"+E.key);O.info.ha=m?.ha??null}$("ha"+SUF).value=O.info.ha!=null?fnum(O.info.ha):""}
   $("eqWrap"+SUF).hidden=O.equipos.length<2;
   $("eq"+SUF).innerHTML=O.equipos.map((e,i)=>`<option value="${i}">${esc(e.info.campo)} · ${esc(e.label)}</option>`).join("");$("eq"+SUF).value=O.idx;
   const months=[...new Set(E.types.flatMap(T=>T.rd.map(r=>r.fecha?r.fecha.y*100+r.fecha.m:0)).filter(Boolean))].sort().reverse();
@@ -1182,6 +1184,9 @@ function drawCalO(){const E=O.equipos[O.idx];if(!E)return;const days=new Set(E.t
   $("calWrap"+SUF).hidden=days.size<1;calendar("cal"+SUF,days,O.per,v=>{O.per=String(v);O.obsCustom=null;drawCalO();osmoRender()},{allLabel:"Todo el historial"})}
 function osmoTypes(){const E=O.equipos[O.idx];return E.types.map(T=>({...T,rd:T.rd.filter(r=>inTime(r.fecha)&&selMatch(O.per,r.fecha))})).filter(T=>T.rd.length)}
 
+function consumo(T){const rd=T.rd;if(rd.length<2)return null;for(let k=1;k<rd.length;k++)if(rd[k].v<rd[k-1].v)return null;
+  const d=(tsOf(rd[rd.length-1].fecha)-tsOf(rd[0].fecha))/864e5;return{m3:rd[rd.length-1].v-rd[0].v,dias:d,f0:rd[0].fecha,f1:rd[rd.length-1].fecha}}
+const isCounter=T=>/acumulad|totaliz/.test(norm(T.label));
 function osmoObs(types){
   const out=[];
   types.forEach((T,ti)=>{const rd=T.rd;const u=T.unit?" "+T.unit:"";const last=rd[rd.length-1];const st=stat(rd.map(r=>r.v));const lo=loOf(T),hi=hiOf(T);const pre=types.length>1?T.label+": ":"";
@@ -1208,7 +1213,8 @@ function osmoObs(types){
     if(/acumulad|totaliz/.test(norm(T.label))){const bajas=[];for(let k=1;k<rd.length;k++)if(rd[k].v<rd[k-1].v)bajas.push(k);
       if(bajas.length){const k=bajas[0];out.push([`${pre}el acumulado baja entre mediciones.`.replace(/^./,c=>c.toUpperCase()),`Pasa de ${fmtT(T,rd[k-1].v)}${u} (${fdm(rd[k-1].fecha)}) a ${fmtT(T,rd[k].v)}${u} (${fdm(rd[k].fecha)})${bajas.length>1?` y vuelve a bajar ${bajas.length-1} ${bajas.length-1===1?"vez":"veces"} más`:""}. Un contador acumulado no debería bajar: puede haber dos caudalímetros registrados con el mismo nombre o un error de digitación.`])}
       else if(rd.length>1){const dd=(tsOf(last.fecha)-tsOf(rd[0].fecha))/864e5;const cons=last.v-rd[0].v;
-        out.push([`${pre}consumo del período.`.replace(/^./,c=>c.toUpperCase()),`Entre el ${fdate(rd[0].fecha)} y el ${fdate(last.fecha)} el contador avanzó ${fmtT(T,cons)}${u}${dd>=1?`, unos ${fmtT(T,cons/dd)}${u} por día`:""}.`])}}
+        const ha=O.info.ha;const haTxt=ha>0?` Para ${fnum(ha)} ha regadas son ${fnum(rnd(cons/ha,1))} m³/ha${dd>=1?` (${fnum(rnd(cons/ha/dd,1))} m³/ha por día)`:""}.`:" Ingresa las hectáreas regadas de la caseta para ver los m³/ha.";
+        out.push([`${pre}consumo del período.`.replace(/^./,c=>c.toUpperCase()),`Entre el ${fdate(rd[0].fecha)} y el ${fdate(last.fecha)} el contador avanzó ${fmtT(T,cons)}${u}${dd>=1?`, unos ${fmtT(T,cons/dd)}${u} por día`:""}.${haTxt}`])}}
     {const ref=hi??(T.opt||null);const raros=ref?rd.filter(r=>Math.abs(r.v)>Math.abs(ref)*100):[];
       if(raros.length)out.push([`${pre}${raros.length===1?"valor":"valores"} fuera de escala.`.replace(/^./,c=>c.toUpperCase()),`${lista(raros.slice(0,5).map(r=>`${fdm(r.fecha)} (${fmtT(T,r.v)}${u})`))} ${raros.length===1?"es":"son"} más de 100 veces el rango configurado (${rangoTxt(T)}). Probablemente es un error de digitación o un valor cargado en la medición equivocada.`])}
     // frecuencia (solo para la medición principal)
@@ -1244,6 +1250,13 @@ function osmoRender(){
    </div>`:""}`;
   const LIMIT=cur.c.clientHeight;
   const flow=n=>{cur.c.append(n);if(cur.c.scrollHeight>LIMIT+1){n.remove();cur=pageShell();pages.push(cur);stage.append(cur.p);n.style.marginTop="0";cur.c.append(n)}};
+  {const CT=types.find(X=>isCounter(X));const c=CT?consumo(CT):null;
+    if(c){const ha=i.ha;const k=el("div","kpis");k.style.marginTop="6pt";
+      k.innerHTML=`<div class="kpi"><div class="l">CONSUMO</div><div class="v">${fmtT(CT,c.m3)} <small>m³</small></div><div class="s">${fdm(c.f0)} al ${fdate(c.f1)}</div></div>
+       <div class="kpi"><div class="l">CONSUMO POR DÍA</div><div class="v">${c.dias>=1?fmtT(CT,c.m3/c.dias):"–"} <small>m³/día</small></div><div class="s">${Math.round(c.dias)} días medidos</div></div>
+       <div class="kpi"><div class="l">M³ POR HECTÁREA</div><div class="v">${ha>0?fnum(rnd(c.m3/ha,1)):"–"} <small>m³/ha</small></div><div class="s">${ha>0?`${fnum(ha)} ha regadas`:"Faltan las hectáreas"}</div></div>
+       <div class="kpi"><div class="l">M³/HA POR DÍA</div><div class="v">${ha>0&&c.dias>=1?fnum(rnd(c.m3/ha/c.dias,1)):"–"} <small>m³/ha/día</small></div><div class="s">${ha>0?"Promedio del período":"Ingresa las hectáreas"}</div></div>`;
+      cur.c.append(k)}}
   if(types.length>1){const w=el("div");const h=el("h2","sec","Resumen por medición");h.style.marginTop="13.5pt";w.append(h);
     const t=el("table","t");t.innerHTML=`<colgroup><col style="width:130pt"><col style="width:62pt"><col style="width:80pt"><col style="width:70pt"><col style="width:80pt"><col></colgroup>
      <thead><tr><th>Medición</th><th class="r">Mediciones</th><th class="r">Última</th><th class="r">Promedio</th><th class="r">Rango óptimo</th><th class="r">Fuera de rango</th></tr></thead><tbody>${
@@ -1281,6 +1294,7 @@ $("file"+SUF).addEventListener("change",e=>{const f=e.target.files[0];if(f)loadO
 ["dragleave","drop"].forEach(ev=>$("drop"+SUF).addEventListener(ev,e=>{e.preventDefault();$("drop"+SUF).classList.remove("over")}));
 $("drop"+SUF).addEventListener("drop",e=>{const f=e.dataTransfer.files[0];if(f)loadOsmoFile(f)});
 $("eq"+SUF).addEventListener("change",()=>osmoSelect(+$("eq"+SUF).value));
+if($("ha"+SUF))$("ha"+SUF).addEventListener("input",()=>{const v=parseNum($("ha"+SUF).value);O.info.ha=v;const E=O.equipos[O.idx];if(E)memSet("ha:"+E.key,{ha:v});O.obsCustom=null;osmoRender()});
 $("per"+SUF).addEventListener("change",()=>{O.per=$("per"+SUF).value;O.obsCustom=null;osmoRender()});
 ["code","agricola","campo","equipo"].forEach(k=>$(k+SUF).addEventListener("input",()=>{O.info[k]=$(k+SUF).value;osmoRender()}));
 $("regen"+SUF).addEventListener("click",()=>{O.obsCustom=null;osmoRender()});
@@ -1302,8 +1316,8 @@ function casetaSample(){
   const d=[[9,2],[9,16],[9,30],[10,7],[10,14],[10,21],[10,28]];
   const pe=[2.6,2.7,2.8,2.9,3.1,3.3,3.6],ps=[2.4,2.45,2.5,2.5,2.55,2.6,2.6],q=[48,47,46,46,44,42,40];
   const mk=v=>d.map(([m,dd],i)=>({fecha:{y:2026,m,d:dd,H:8,M:15},v:v[i],com:"",est:"OK"}));
-  return[{key:"AG000-A01-CS01",name:"Caseta 1",label:"Caseta 1",info:{code:"000",agricola:"Agrícola Ejemplo",campo:"Campo 01 Demostración",equipo:"Caseta 1"},
-    types:[{key:"p1",label:"Presión entrada filtro",unit:"bar",min:2,max:3.5,opt:2.8,rd:mk(pe)},{key:"p2",label:"Presión salida filtro",unit:"bar",min:2,max:3.2,opt:2.6,rd:mk(ps)},{key:"q",label:"Caudal caseta",unit:"m³/h",min:40,max:55,opt:48,rd:mk(q)}]}];
+  return[{key:"AG000-A01-CS01",name:"Caseta 1",label:"Caseta 1",info:{code:"000",agricola:"Agrícola Ejemplo",campo:"Campo 01 Demostración",equipo:"Caseta 1",ha:40},
+    types:[{key:"p1",label:"Presión entrada filtro",unit:"bar",min:2,max:3.5,opt:2.8,rd:mk(pe)},{key:"p2",label:"Presión salida filtro",unit:"bar",min:2,max:3.2,opt:2.6,rd:mk(ps)},{key:"q",label:"Caudal caseta",unit:"m³/h",min:40,max:55,opt:48,rd:mk(q)},{key:"acc",label:"Caudal acumulado · Caudalímetro 1",unit:"m³",min:null,max:null,opt:null,rd:mk([120400,127150,133900,137200,140610,143950,147320])}]}];
 }
 const OS=makeTS("O",{match:isOsmoRow,
   key:(cod,campo,act)=>{const k=String(cod).match(/^(.*?EQO\d+)/i);return k?k[1].toUpperCase():campo+"|"+String(act).trim()},
