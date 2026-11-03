@@ -121,6 +121,11 @@ div.f{display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--mute
 .hbox{display:flex;align-items:center;gap:6px;flex-wrap:wrap;color:var(--muted)}
 .hbox input{font:inherit;font-size:13.5px;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:6px 8px;min-width:0;width:9.2em}
 .hbox .cal-all{margin-left:auto}
+.empty{width:min(595.28pt,100%);min-height:320px;border:1.5px dashed var(--line);border-radius:12px;background:var(--surface);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:40px 24px;text-align:center}
+.empty strong{font-family:var(--f-head);font-size:20px;letter-spacing:.06em;color:var(--fg)}
+.empty p{margin:0;color:var(--muted);max-width:44ch}
+.app.isEmpty .filters,.app.isEmpty details.fold{display:none}
+.tcount.none{background:transparent;color:var(--muted);border:1px solid var(--line)}
 details.help{font-size:12.5px;color:var(--muted)}
 details.help summary{cursor:pointer;color:var(--teal-ink);font-weight:700}
 details.help code{font-size:11.5px;background:var(--soft);padding:0 4px;border-radius:3px;color:var(--fg)}
@@ -823,7 +828,17 @@ function compact(s){return norm(s).replace(/^(ag\.?|agricola|soc\.?|sociedad)\s+
 function fileName(){const i=state.info;const m=reportMonth(state.rows);const parts=[compact(i.agricola),compact(i.campo),"Suelo"];if(m)parts.push(MES_AB[m.m-1]+m.y);
   return (i.code?String(i.code).trim()+"-":"")+parts.filter(Boolean).join("_")+".pdf"}
 
+/* Vacío: el Excel cargado no trae datos para esta pestaña */
+const EMPTY={S:false,B:false};
+function emptyView(t,what,file){
+  const sid=t==="S"?"stage":"stage"+t,fid=t==="S"?"fname":"fname"+t,wid=t==="S"?"stageWrap":"stageWrap"+t;
+  const st=$(sid);st.style.transform="";st.innerHTML=`<div class="empty"><strong>SIN DATOS PARA ANALIZAR</strong><p>${esc(file?file+" no trae "+what+".":"El archivo no trae "+what+".")}</p><p class="hint">Sube un export de BLUM que incluya estas mediciones, o revisa las otras pestañas.</p></div>`;
+  $(fid).textContent="";$(wid).style.height="";markEmpty(t,true)}
+function markEmpty(t,on){const v=$("view"+t);if(v)v.classList.toggle("isEmpty",!!on);
+  const ids=t==="S"?["pdf","regen"]:["pdf"+t,"regen"+t];ids.forEach(i=>{const b=$(i);if(b)b.disabled=!!on})}
+let lastFile="";
 function render(){
+  if(EMPTY.S){emptyView("S","lecturas de suelo (humedad, CE u otras mediciones por bloque)",lastFile);return}markEmpty("S",false);
   const info=state.info;const P=prepared();const stage=$("stage");stage.innerHTML="";
   const m=reportMonth(P.rows);
   const periodo=state.periodoAuto?defaultPeriodo(P.rows):info.periodo;
@@ -1132,7 +1147,7 @@ function osmoSampleOld(){
 function osmoSelect(i){const E=O.equipos[i];O.idx=i;O.obsCustom=null;O.info={...E.info};
   const months=[...new Set(E.types.flatMap(T=>T.rd.map(r=>r.fecha?r.fecha.y*100+r.fecha.m:0)).filter(Boolean))];O.per="all";osmoForm();osmoRender()}
 function osmoForm(){
-  const E=O.equipos[O.idx];
+  const E=O.equipos[O.idx];if(!E){$("eqWrap"+SUF).hidden=true;$("calWrap"+SUF).hidden=true;return}
   $("eqWrap"+SUF).hidden=O.equipos.length<2;
   $("eq"+SUF).innerHTML=O.equipos.map((e,i)=>`<option value="${i}">${esc(e.info.campo)} · ${esc(e.label)}</option>`).join("");$("eq"+SUF).value=O.idx;
   const months=[...new Set(E.types.flatMap(T=>T.rd.map(r=>r.fecha?r.fecha.y*100+r.fecha.m:0)).filter(Boolean))].sort().reverse();
@@ -1177,6 +1192,7 @@ function osmoObs(types){
 function osmoFile(){const i=O.info;const types=osmoTypes();const last=types[0]?.rd.slice(-1)[0]?.fecha;
   return (i.code?i.code+"-":"")+[compact(i.agricola),compact(i.campo),cfg.fileTag,compact(O.equipos[O.idx]?.label||""),last?MES_AB[last.m-1]+last.y:""].filter(Boolean).join("_")+".pdf"}
 function osmoRender(){
+  if(O.empty){emptyView(SUF,cfg.emptyWhat,lastFile);return}markEmpty(SUF,false);
   const stage=$("stage"+SUF);stage.innerHTML="";if(!O.equipos.length)return;
   const i=O.info;const types=osmoTypes();const pages=[];
   const all=types.flatMap(T=>T.rd);const ks=all.map(r=>tsOf(r.fecha));const f0=all[ks.indexOf(Math.min(...ks))]?.fecha,f1_=all[ks.indexOf(Math.max(...ks))]?.fecha;
@@ -1224,8 +1240,8 @@ function fitO(){const w=$("stageWrap"+SUF).clientWidth;if(!w)return;const st=$("
 addEventListener("resize",fitO);
 async function loadOsmoWB(wb,name){
   const eqs=parseOsmo(wb);
-  if(!eqs.length){setStatus("status"+SUF,"warn",esc(name)+": "+cfg.emptyMsg);return false}
-  O.equipos=eqs;O.isSample=false;osmoSelect(0);
+  if(!eqs.length){O.empty=true;O.equipos=[];O.isSample=false;$("eqWrap"+SUF).hidden=true;$("calWrap"+SUF).hidden=true;setStatus("status"+SUF,"warn",esc(name)+": "+cfg.emptyMsg);osmoRender();return false}
+  O.empty=false;O.equipos=eqs;O.isSample=false;osmoSelect(0);
   setStatus("status"+SUF,"ok",`<b>${esc(name)}</b> · ${eqs.length>1?`${eqs.length} ${cfg.plural}. Elige cuál ver.`:`1 ${cfg.singular}.`}`);return true;
 }
 const loadOsmoFile=f=>loadAll(f,SUF);
@@ -1264,13 +1280,13 @@ const OS=makeTS("O",{match:isOsmoRow,
   label:(act,cod)=>{const m=String(act).match(/caseta\s*(\d+)/i);const c=casetaNum(cod);return m?`Caseta ${m[1]}`:c!=null?`Caseta ${c}`:titleCase(act)},
   title:(act,cod)=>{const m=String(act).match(/caseta\s*(\d+)/i);const c=casetaNum(cod);return "Equipo de ósmosis · "+(m?`Caseta ${m[1]}`:c!=null?`Caseta ${c}`:titleCase(act))},
   typeKey:t=>t,typeLabel:t=>prettyVar(t),eyebrow:"REPORTE DE ÓSMOSIS INVERSA",h1:"Equipo de ósmosis",foot:"Reporte de ósmosis inversa",fileTag:"Osmosis",
-  singular:"equipo",plural:"equipos",emptyMsg:"no trae mediciones de equipos de ósmosis.",sample:osmoSample});
+  singular:"equipo",plural:"equipos",emptyMsg:"no trae mediciones de equipos de ósmosis.",emptyWhat:"mediciones de equipos de ósmosis inversa",sample:osmoSample});
 const CS=makeTS("C",{match:(act,cod,tipo)=>!isOsmoRow(act,cod,tipo)&&/(^|-)CS\d+/i.test(cod)&&!/SE\d+/i.test(cod),
   key:(cod,campo)=>{const k=String(cod).match(/^(.*?CS\d+)/i);return k?k[1].toUpperCase():campo+"|caseta"},
   label:(act,cod)=>{const c=casetaNum(cod);return c!=null?`Caseta ${c}`:"Caseta"},
   title:(act,cod)=>{const c=casetaNum(cod);return c!=null?`Caseta ${c}`:"Caseta"},
   typeKey:(t,act)=>t+"|"+String(act||"").trim(),typeLabel:(t,act)=>prettyVar(t)+(String(act||"").trim()&&!norm(t).includes(norm(act))?" · "+titleCase(act):""),
-  eyebrow:"REPORTE DE CASETA",h1:"Caseta",foot:"Reporte de caseta",fileTag:"Caseta",singular:"caseta",plural:"casetas",
+  eyebrow:"REPORTE DE CASETA",h1:"Caseta",foot:"Reporte de caseta",fileTag:"Caseta",singular:"caseta",plural:"casetas",emptyWhat:"mediciones de caseta (filtros, bombas, presiones o caudales)",
   emptyMsg:"no trae mediciones de casetas (filtros, bombas, presiones o caudales de caseta).",sample:casetaSample,cross:(E,types)=>crossCaseta(E,types)});
 
 /* =================== Terreno: bloques de riego =================== */
@@ -1333,7 +1349,7 @@ function riegoObs(RB,C){const out=[];const P={riego:RB};
   out.push(...crossTerreno(RB,C));
   return out.map(([b,t])=>`<li><b>${esc(b)}</b> ${esc(t)}</li>`).join("")}
 function blDays(){const C=BL.campos[BL.idx];return new Set((C?.raw||[]).filter(r=>(isAforo(r.vk)||isPres(r.vk))&&inTime(r.fecha)).map(r=>r.day).filter(Boolean))}
-function blForm(){
+function blForm(){if(!BL.campos.length){$("campoWrapB").hidden=true;$("calWrapB").hidden=true;return}
   $("campoWrapB").hidden=BL.campos.length<2;
   $("campoSelB").innerHTML=BL.campos.map((c,i)=>`<option value="${i}">${esc(c.info.campo||c.name)}</option>`).join("");$("campoSelB").value=BL.idx;
   const days=blDays();$("calWrapB").hidden=days.size<1;
@@ -1344,6 +1360,7 @@ function blSelect(i){BL.idx=i;BL.obsCustom=null;const C=BL.campos[i];BL.info={..
   const ms=[...new Set([...blDays()].map(d=>d/100|0))].sort();BL.sel=ms.length?String(ms[ms.length-1]):"all";blForm();blRender()}
 function blFile(RB){const i=BL.info;const f=RB?.f1;return (i.code?i.code+"-":"")+[compact(i.agricola),compact(i.campo),"Terreno",f?MES_AB[f.m-1]+f.y:""].filter(Boolean).join("_")+".pdf"}
 function blRender(){
+  if(EMPTY.B){emptyView("B","aforos ni presiones de válvula de terreno",lastFile);return}markEmpty("B",false);
   const stage=$("stageB");stage.innerHTML="";const C=BL.campos[BL.idx];if(!C)return;
   const RB=riegoData(C.raw,BL.sel);const info=BL.info;const pages=[];const sep="  ·  ";
   const periodo=RB&&RB.f0?(fkey(RB.f0)===fkey(RB.f1)?fdate(RB.f0):`${fdm(RB.f0)} al ${fdate(RB.f1)}`):"";
@@ -1405,10 +1422,10 @@ function applySoil(res,name){
 }
 const TABS=[["C","Caseta","#caseta"],["B","Terreno","#terreno"],["S","Suelo","#suelo"],["O","Ósmosis inversa","#osmosis"]];
 const SID=t=>t==="S"?"status":"status"+t;
-function setBadge(t,n){const b=$("tab"+t);let c=b.querySelector(".tcount");if(!n){if(c)c.remove();return}if(!c){c=document.createElement("span");c.className="tcount";b.append(c)}c.textContent=n}
+function setBadge(t,n){const b=$("tab"+t);let c=b.querySelector(".tcount");if(!c){c=document.createElement("span");c.className="tcount";b.append(c)}c.textContent=n||"–";c.classList.toggle("none",!n);c.title=n?"":"Sin datos para analizar"}
 async function loadAll(file,from){
   let wb;try{wb=XLSX.read(await file.arrayBuffer(),{type:"array",cellDates:false})}catch(e){setStatus(SID(from),"err","No pude leer el archivo. Revisa que sea un Excel o CSV.");return}
-  const name=file.name;const got={S:0,B:0,O:0,C:0};let soilErr=null;
+  const name=file.name;lastFile=name;const got={S:0,B:0,O:0,C:0};let soilErr=null;
   try{const res=parseWorkbook(wb);
     if(res.long){const sc=res.campos.filter(c=>c.rows.length),bc=res.campos.filter(c=>(c.raw||[]).some(r=>isAforo(r.vk)));
       if(sc.length){applySoil({...res,campos:sc},name);got.S=sc.length}
@@ -1418,8 +1435,8 @@ async function loadAll(file,from){
   if(await OS.loadWB(wb,name))got.O=OS.count();
   if(await CS.loadWB(wb,name))got.C=CS.count();
   const tot=got.S+got.B+got.O+got.C;
-  if(!got.S)setStatus("status","warn",`${esc(name)}: no trae lecturas de suelo.`);
-  if(!got.B)setStatus("statusB","warn",`${esc(name)}: no trae aforos ni presiones de válvula.`);
+  if(!got.S){EMPTY.S=true;state.campos=null;["campoWrap","calWrapS","depthWrap"].forEach(i=>$(i).hidden=true);setStatus("status","warn",`${esc(name)}: no trae lecturas de suelo.`)}else EMPTY.S=false;
+  if(!got.B){EMPTY.B=true;BL.campos=[];BL.isSample=false;["campoWrapB","calWrapB"].forEach(i=>$(i).hidden=true);setStatus("statusB","warn",`${esc(name)}: no trae aforos ni presiones de válvula.`)}else EMPTY.B=false;
   TABS.forEach(([t])=>setBadge(t,got[t]));BL.obsCustom=null;CS.refresh();blRender();
   if(!tot){setStatus(SID(from),"err",esc(soilErr?.message||"No encontré mediciones que pueda leer en este archivo."));return}
   const dest=got[from]?from:TABS.map(x=>x[0]).find(t=>got[t]);
