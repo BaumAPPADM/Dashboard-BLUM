@@ -1171,6 +1171,7 @@ function osmoObs(types){
       const avg=(ts[ts.length-1]-ts[0])/(ts.length-1);
       out.push(["Frecuencia de medición.",`${rd.length} mediciones entre el ${fdate(rd[0].fecha)} y el ${fdate(last.fecha)}, una cada ${Math.round(avg)} días en promedio. El mayor intervalo sin medir fue de ${Math.round(gmax)} días (${fdm(rd[gi-1].fecha)} al ${fdm(rd[gi].fecha)}).`])}
   });
+  if(cfg.cross&&O.equipos[O.idx])out.push(...cfg.cross(O.equipos[O.idx],types));
   return out.map(([b,t])=>`<li><b>${esc(b)}</b> ${esc(t)}</li>`).join("");
 }
 function osmoFile(){const i=O.info;const types=osmoTypes();const last=types[0]?.rd.slice(-1)[0]?.fecha;
@@ -1239,7 +1240,7 @@ $("per"+SUF).addEventListener("change",()=>{O.per=$("per"+SUF).value;O.obsCustom
 $("regen"+SUF).addEventListener("click",()=>{O.obsCustom=null;osmoRender()});
 $("pdf"+SUF).addEventListener("click",()=>pdfFrom("stage"+SUF,"obs"+SUF,cfg.foot+" · "+[O.info.code,O.info.agricola,O.info.campo,O.info.equipo].filter(Boolean).join(" · "),osmoFile(),$("pdf"+SUF),"pdfStatus"+SUF));
 O.equipos=cfg.sample();O.info={...O.equipos[0].info};osmoForm();
-return{refresh:()=>{O.obsCustom=null;osmoForm();osmoRender()},parse:parseOsmo,loadWB:loadOsmoWB,render:osmoRender,fit:fitO,count:()=>O.isSample?0:O.equipos.length,reset:()=>{O.equipos=cfg.sample();O.isSample=true;O.idx=0;O.per="all";O.info={...O.equipos[0].info};osmoForm();osmoRender()}};
+return{all:()=>O.equipos,refresh:()=>{O.obsCustom=null;osmoForm();osmoRender()},parse:parseOsmo,loadWB:loadOsmoWB,render:osmoRender,fit:fitO,count:()=>O.isSample?0:O.equipos.length,reset:()=>{O.equipos=cfg.sample();O.isSample=true;O.idx=0;O.per="all";O.info={...O.equipos[0].info};osmoForm();osmoRender()}};
 }
 
 /* =================== Configuración de pestañas de series de tiempo =================== */
@@ -1255,7 +1256,7 @@ function casetaSample(){
   const d=[[9,2],[9,16],[9,30],[10,7],[10,14],[10,21],[10,28]];
   const pe=[2.6,2.7,2.8,2.9,3.1,3.3,3.6],ps=[2.4,2.45,2.5,2.5,2.55,2.6,2.6],q=[48,47,46,46,44,42,40];
   const mk=v=>d.map(([m,dd],i)=>({fecha:{y:2026,m,d:dd,H:8,M:15},v:v[i],com:"",est:"OK"}));
-  return[{key:"DEMO-CS",name:"Caseta 1",label:"Caseta 1",info:{code:"000",agricola:"Agrícola Ejemplo",campo:"Campo 01 Demostración",equipo:"Caseta 1"},
+  return[{key:"AG000-A01-CS01",name:"Caseta 1",label:"Caseta 1",info:{code:"000",agricola:"Agrícola Ejemplo",campo:"Campo 01 Demostración",equipo:"Caseta 1"},
     types:[{key:"p1",label:"Presión entrada filtro",unit:"bar",min:2,max:3.5,opt:2.8,rd:mk(pe)},{key:"p2",label:"Presión salida filtro",unit:"bar",min:2,max:3.2,opt:2.6,rd:mk(ps)},{key:"q",label:"Caudal caseta",unit:"m³/h",min:40,max:55,opt:48,rd:mk(q)}]}];
 }
 const OS=makeTS("O",{match:isOsmoRow,
@@ -1270,7 +1271,7 @@ const CS=makeTS("C",{match:(act,cod,tipo)=>!isOsmoRow(act,cod,tipo)&&/(^|-)CS\d+
   title:(act,cod)=>{const c=casetaNum(cod);return c!=null?`Caseta ${c}`:"Caseta"},
   typeKey:(t,act)=>t+"|"+String(act||"").trim(),typeLabel:(t,act)=>prettyVar(t)+(String(act||"").trim()&&!norm(t).includes(norm(act))?" · "+titleCase(act):""),
   eyebrow:"REPORTE DE CASETA",h1:"Caseta",foot:"Reporte de caseta",fileTag:"Caseta",singular:"caseta",plural:"casetas",
-  emptyMsg:"no trae mediciones de casetas (filtros, bombas, presiones o caudales de caseta).",sample:casetaSample});
+  emptyMsg:"no trae mediciones de casetas (filtros, bombas, presiones o caudales de caseta).",sample:casetaSample,cross:(E,types)=>crossCaseta(E,types)});
 
 /* =================== Terreno: bloques de riego =================== */
 const BL={campos:[],idx:0,sel:"all",info:{},obsCustom:null,isSample:true};
@@ -1278,8 +1279,48 @@ function bloqueSample(){let seed=11;const rnd_=()=>{seed=(seed*16807)%2147483647
   for(let sct=1;sct<=6;sct++){const pf=[1.02,.78,1.15,.95,1.3,.88][sct-1],af=[1.0,.93,1.06,.98,1.04,.9][sct-1];
     raw.push({vk:"PRESION VALVULA",trN:1,eqN:1,secNum:sct,blNum:1,v:+(1.8*pf).toFixed(2),fecha:{y:2026,m:10,d:20,H:9,M:sct},day:20261020,min:1.6,max:2,opt:1.8,equipo:"Equipo 1",sector:"Sector "+sct});
     for(let e=0;e<12;e++)raw.push({vk:"AFORO EMISOR",trN:1,eqN:1,secNum:sct,blNum:e%4+1,v:+(1.6*af*(0.88+rnd_()*0.22)).toFixed(2),fecha:{y:2026,m:10,d:20+(sct>3?1:0),H:10,M:e},day:20261020+(sct>3?1:0),min:1.4,max:1.8,opt:1.6,equipo:"Equipo 1",sector:"Sector "+sct})}
-  return[{name:"demo",key:"DEMO",info:{code:"000",agricola:"Agrícola Ejemplo",campo:"Campo 01 Demostración"},raw,rows:[]}]}
-function riegoObs(RB){const out=[];const P={riego:RB};
+  return[{name:"demo",key:"AG000-A01",info:{code:"000",agricola:"Agrícola Ejemplo",campo:"Campo 01 Demostración"},raw,rows:[]}]}
+/* ---------- Análisis cruzado caseta ↔ terreno (mismo campo: cliente + campo del código, p. ej. AG042-A10) ---------- */
+const campoOf=k=>{const m=String(k||"").match(/^([A-Z]{2}\d+-[A-Z]\d+)/i);return m?m[1].toUpperCase():null};
+const daysBetween=(a,b)=>Math.abs(tsOf(a)-tsOf(b))/864e5;
+function nearest(T,ref,maxDays){let best=null,bd=1e9;T.rd.forEach(r=>{if(!r.fecha||!inTime(r.fecha))return;const d=daysBetween(r.fecha,ref);if(d<bd){bd=d;best=r}});return best&&bd<=maxDays?{r:best,d:bd}:best?{r:best,d:bd,far:true}:null}
+function presTypes(E){const P=E.types.filter(T=>/presion/.test(norm(T.label)));return{ent:P.find(T=>/entrada/.test(norm(T.label))),sal:P.find(T=>/salida/.test(norm(T.label))),gen:P.find(T=>!/entrada|salida/.test(norm(T.label))),caudal:E.types.find(T=>/caudal/.test(norm(T.label)))}}
+function crossTerreno(RB,C){
+  const out=[];const ck=campoOf(C?.key);if(!ck||!RB||!RB.f1)return out;
+  const cas=CS.all().filter(E=>campoOf(E.key)===ck);if(!cas.length)return out;
+  const vb=RB.blocks.filter(b=>b.pm!=null);const vAvg=vb.length?vb.reduce((a,b)=>a+b.pm,0)/vb.length:null;
+  const vOpt=vb.filter(b=>b.pom).length?vb.filter(b=>b.pom).reduce((a,b)=>a+b.pom,0)/vb.filter(b=>b.pom).length:null;
+  const vLow=vb.filter(b=>b.pmin!=null&&b.pm<b.pmin);
+  cas.forEach(E=>{const t=presTypes(E);const src=t.sal||t.gen;
+    if(src){const n=nearest(src,RB.f1,7);
+      if(n&&!n.far&&vAvg!=null){const dif=n.r.v-vAvg;
+        out.push([`${E.label} → válvulas: ${dif>=0?"pérdida":"ganancia"} de ${f2(Math.abs(dif))} bar.`,`El ${fdate(n.r.fecha)} la ${E.label} marcó ${f2(n.r.v)} bar${t.sal?" a la salida del filtro":""}; las válvulas del campo promedian ${f2(vAvg)} bar${vOpt?` (${Math.round(vAvg/vOpt*100)} % de su óptimo)`:""}.${vLow.length?` ${vLow.length} de ${vb.length} válvulas quedaron bajo su presión mínima.`:" Ninguna válvula quedó bajo su presión mínima."}`])}
+      else if(n)out.push([`${E.label} sin medición cercana a los aforos.`,`La medición de presión de caseta más cercana es del ${fdate(n.r.fecha)}, a ${Math.round(n.d)} días de los aforos (${fdate(RB.f1)}). Medir caseta y terreno el mismo día permite ver cuánta presión se pierde entre ambos.`])}
+    if(t.ent&&t.sal){const pares=t.ent.rd.filter(r=>r.fecha&&inTime(r.fecha)).map(r=>{const s2=t.sal.rd.find(x=>x.fecha&&dayOf(x.fecha)===dayOf(r.fecha));return s2?{f:r.fecha,d:r.v-s2.v}:null}).filter(Boolean);
+      if(pares.length){const last=pares[pares.length-1],first=pares[0];
+        let txt=`El diferencial del filtro (entrada − salida) fue de ${f2(last.d)} bar el ${fdate(last.f)}`;
+        if(pares.length>1)txt+=`, frente a ${f2(first.d)} bar el ${fdate(first.f)}`;txt+=".";
+        const sube=pares.length>1&&last.d>first.d*1.2+0.05;
+        if(sube)txt+=" Un diferencial en aumento es señal típica de filtros saturados y reduce la presión que llega a las válvulas.";
+        out.push([sube?`Diferencial de filtro en aumento en ${E.label}.`:`Diferencial de filtro en ${E.label}.`,txt])}}
+    if(t.caudal){const n=nearest(t.caudal,RB.f1,7);if(n&&!n.far){const o=outOf(t.caudal,n.r.v);const u=t.caudal.unit?" "+t.caudal.unit:"";
+      out.push([`Caudal de ${E.label} ${o?"fuera de rango":"dentro de rango"}.`,`El ${fdate(n.r.fecha)} la caseta registró ${fmtT(t.caudal,n.r.v)}${u} (rango ${rangoTxt(t.caudal)}), el mismo período de los aforos de terreno.`])}}
+  });
+  return out;
+}
+function crossCaseta(E,types){
+  const out=[];const ck=campoOf(E.key);if(!ck)return out;const C=BL.campos.find(c=>campoOf(c.key)===ck);if(!C)return out;
+  const RB=riegoData(C.raw,"all");if(!RB||!RB.f1)return out;
+  const vb=RB.blocks.filter(b=>b.pm!=null);const vAvg=vb.length?vb.reduce((a,b)=>a+b.pm,0)/vb.length:null;const vLow=vb.filter(b=>b.pmin!=null&&b.pm<b.pmin);
+  const t=presTypes({types});const src=t.sal||t.gen;const n=src?nearest(src,RB.f1,7):null;
+  let txt=`En terreno del mismo campo (mediciones del ${fdate(RB.f1)})`;
+  txt+=vAvg!=null?`, las válvulas promedian ${f2(vAvg)} bar y ${vLow.length} de ${vb.length} quedaron bajo su presión mínima`:"";
+  txt+=RB.duMed!=null?`; la DU mediana de los bloques es ${Math.round(RB.duMed)} %`:"";txt+=".";
+  if(n&&!n.far&&vAvg!=null)txt+=` Ese día la caseta marcó ${f2(n.r.v)} bar${t.sal?" a la salida del filtro":""}: ${f2(Math.abs(n.r.v-vAvg))} bar de ${n.r.v>=vAvg?"pérdida":"ganancia"} hasta las válvulas.`;
+  else if(n)txt+=` La medición de caseta más cercana es del ${fdate(n.r.fecha)}, a ${Math.round(n.d)} días; conviene medir ambos el mismo día.`;
+  out.push(["Relación con terreno.",txt]);return out;
+}
+function riegoObs(RB,C){const out=[];const P={riego:RB};
   {const bs=RB.blocks;
     const low=bs.filter(b=>b.du!=null&&Math.round(b.du)<90);
     if(RB.duMed!=null)out.push([low.length?`${low.length} ${low.length===1?"bloque de riego":"bloques de riego"} con DU bajo 90 %.`:"Uniformidad de riego sobre 90 %.",low.length?`${lista(low.slice(0,8).map(b=>b.full+" ("+Math.round(b.du)+" %)"))}${low.length>8?` y ${low.length-8} más`:""}. La mediana de DU entre bloques es ${Math.round(RB.duMed)} %.`:`Todos los bloques con al menos 4 aforos tienen DU de 90 % o más (mediana ${Math.round(RB.duMed)} %).`]);
@@ -1289,6 +1330,7 @@ function riegoObs(RB){const out=[];const P={riego:RB};
     const pb=bs.filter(b=>b.flags.some(f=>/Presión/.test(f)));if(pb.length)out.push([`${pb.length} ${pb.length===1?"válvula":"válvulas"} fuera de su rango de presión.`,lista(pb.slice(0,8).map(b=>`${b.full} (${f2(b.pm)} bar)`))+"."]);
   }
 
+  out.push(...crossTerreno(RB,C));
   return out.map(([b,t])=>`<li><b>${esc(b)}</b> ${esc(t)}</li>`).join("")}
 function blDays(){const C=BL.campos[BL.idx];return new Set((C?.raw||[]).filter(r=>(isAforo(r.vk)||isPres(r.vk))&&inTime(r.fecha)).map(r=>r.day).filter(Boolean))}
 function blForm(){
@@ -1334,7 +1376,7 @@ function blRender(){
   }
 
   }
-  const ow=el("div");const oh=el("h2","sec","Observaciones");oh.style.marginTop="14pt";const ul=el("ul","obs",BL.obsCustom??(RB?riegoObs(RB):""));ul.contentEditable="true";ul.spellcheck=false;ul.id="obsB";
+  const ow=el("div");const oh=el("h2","sec","Observaciones");oh.style.marginTop="14pt";const ul=el("ul","obs",BL.obsCustom??(RB?riegoObs(RB,C):""));ul.contentEditable="true";ul.spellcheck=false;ul.id="obsB";
   ul.addEventListener("input",()=>{BL.obsCustom=ul.innerHTML});ow.append(oh,ul);flow(ow);
   pages.forEach((pg,k)=>{pg.f.innerHTML=`<span>${esc(footTxt)}</span><span>Página ${k+1} de ${pages.length}</span>`});
   $("fnameB").textContent=blFile(RB);fitB();
@@ -1378,7 +1420,7 @@ async function loadAll(file,from){
   const tot=got.S+got.B+got.O+got.C;
   if(!got.S)setStatus("status","warn",`${esc(name)}: no trae lecturas de suelo.`);
   if(!got.B)setStatus("statusB","warn",`${esc(name)}: no trae aforos ni presiones de válvula.`);
-  TABS.forEach(([t])=>setBadge(t,got[t]));
+  TABS.forEach(([t])=>setBadge(t,got[t]));BL.obsCustom=null;CS.refresh();blRender();
   if(!tot){setStatus(SID(from),"err",esc(soilErr?.message||"No encontré mediciones que pueda leer en este archivo."));return}
   const dest=got[from]?from:TABS.map(x=>x[0]).find(t=>got[t]);
   const resumen=TABS.filter(([t])=>got[t]).map(([t,l])=>l).join(", ");
