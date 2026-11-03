@@ -118,6 +118,9 @@ div.f{display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--mute
 .cal-d.sel::after{background:var(--brand-ink)}
 .cal-d:focus-visible{outline:2px solid var(--teal-ink);outline-offset:1px}
 .tcount{display:inline-grid;place-items:center;min-width:18px;height:18px;padding:0 5px;margin-left:6px;border-radius:9px;background:var(--soft);color:var(--teal-ink);font-size:11px;font-weight:700;vertical-align:1px}
+.hbox{display:flex;align-items:center;gap:6px;flex-wrap:wrap;color:var(--muted)}
+.hbox input{font:inherit;font-size:13.5px;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:6px 8px;min-width:0;width:9.2em}
+.hbox .cal-all{margin-left:auto}
 details.help{font-size:12.5px;color:var(--muted)}
 details.help summary{cursor:pointer;color:var(--teal-ink);font-weight:700}
 details.help code{font-size:11.5px;background:var(--soft);padding:0 4px;border-radius:3px;color:var(--fg)}
@@ -567,6 +570,12 @@ function parseWorkbook(wb){
 /* ---------- Cálculos ---------- */
 const fkey=f=>f?f.y*1e8+f.m*1e6+f.d*1e4+f.H*100+f.M:0;
 const dayOf=f=>f?f.y*1e4+f.m*100+f.d:0;
+/* filtro de horario común a todas las pestañas (admite rangos que cruzan medianoche) */
+const TF={from:null,to:null};
+const hm=v=>{if(!v)return null;const m=String(v).match(/^(\d{1,2}):(\d{2})/);return m?(+m[1])*60+(+m[2]):null};
+const tfOn=()=>TF.from!=null||TF.to!=null;
+const tfTxt=()=>{const f=x=>x==null?"":`${pad(x/60|0)}:${pad(x%60)}`;return TF.from!=null&&TF.to!=null?`${f(TF.from)} a ${f(TF.to)} h`:TF.from!=null?`desde las ${f(TF.from)} h`:`hasta las ${f(TF.to)} h`};
+function inTime(f){if(!tfOn())return true;if(!f)return false;const t=f.H*60+f.M;const a=TF.from??0,b=TF.to??1439;return a<=b?t>=a&&t<=b:t>=a||t<=b}
 /* profundidades: las que tienen al menos 25 % de las lecturas son profundidades propias (se elige una);
    las demás se tratan como lecturas sueltas y se marcan con asterisco */
 function depthInfo(){const cnt={};let n=0;state.rows.forEach(r=>{if(r.hum!=null&&r.depth!=null){cnt[r.depth]=(cnt[r.depth]||0)+1;n++}});
@@ -578,7 +587,7 @@ const isPres=k=>/presion/.test(norm(k));
 const median=a=>{if(!a.length)return null;const b=a.slice().sort((x,y)=>x-y);const m=b.length>>1;return b.length%2?b[m]:(b[m-1]+b[m])/2};
 /* Bloques de riego (válvula = sector): presión de válvula y aforos de emisores */
 function riegoData(rawIn,sel){
-  const raw=(rawIn||[]).filter(r=>isAforo(r.vk)||isPres(r.vk));if(!raw.some(r=>isAforo(r.vk)))return null;
+  const raw=(rawIn||[]).filter(r=>(isAforo(r.vk)||isPres(r.vk))&&inTime(r.fecha));if(!raw.some(r=>isAforo(r.vk)))return null;
   const months=[...new Set(raw.map(r=>r.day/100|0))].sort();
   let mon=sel==="all"||sel==null?null:+String(sel).slice(0,6);if(mon!=null&&!months.includes(mon))mon=months[months.length-1];
   const L=mon==null?raw:raw.filter(r=>(r.day/100|0)===mon);
@@ -629,7 +638,8 @@ function pearson(a,b){const n=a.length;if(n<3)return null;const ma=a.reduce((x,y
 const genericH=i=>i.hmin!=null&&i.hmax!=null&&i.hmax-i.hmin>=60;
 function prepared(){
   const dc=depthInfo();const ref=state.depth;
-  let src=state.day==="all"?state.rows:state.rows.filter(r=>String(dayOf(r.fecha))===state.day);
+  const base=state.rows.filter(r=>inTime(r.fecha));
+  let src=state.day==="all"?base:base.filter(r=>String(dayOf(r.fecha))===state.day);
   const src0=src;
   if(!state.merge)src=src.flatMap(r=>(r.hum!=null&&r.depth!=null&&r.depth!==ref&&dc.major.includes(r.depth))?(r.ce!=null?[{...r,hum:null,depth:null}]:[]):[r]);
   const rows=src.slice().sort((a,b)=>natCmp(a.equipo,b.equipo)||natCmp(a.sector,b.sector)||natCmp(a.bloque,b.bloque)||fkey(a.fecha)-fkey(b.fecha));
@@ -831,7 +841,7 @@ function render(){
   p1.c.innerHTML=`<img class="logo" src="${LOGO}" alt="">
   <div class="eyebrow">REPORTE DE SUELO</div>
   <h1>${hasCE?"% Humedad y Conductividad Eléctrica":"% Humedad de suelo"}</h1>
-  <div class="sub"><b>${esc([info.code,info.agricola].filter(Boolean).join(" · "))}</b>${info.campo?sep+esc(info.campo):""}${periodo?sep+"Período: "+esc(periodo):""}</div>
+  <div class="sub"><b>${esc([info.code,info.agricola].filter(Boolean).join(" · "))}</b>${info.campo?sep+esc(info.campo):""}${periodo?sep+"Período: "+esc(periodo):""}${tfOn()?sep+"Horario: "+esc(tfTxt()):""}</div>
   <div class="kpis">
    <div class="kpi"><div class="l">BLOQUES MEDIDOS</div><div class="v">${measured} <small>de ${P.allBlocks}</small></div><div class="s">${nEq?`${nEq} ${nEq===1?"equipo":"equipos"} · `:""}${nSec} ${nSec===1?"sector":"sectores"}</div></div>
    <div class="kpi"><div class="l">HUMEDAD PROM. ${P.ref} CM</div><div class="v">${f1(hs?.avg)} <small>%</small></div><div class="s">${hs?`Rango ${f1(hs.min)} – ${f1(hs.max)} %`:"Sin lecturas"}</div></div>
@@ -937,7 +947,7 @@ function calendar(host,days,sel,onPick,opt={}){
     h+=`</div></div>`});
   H.innerHTML=h;H.querySelectorAll("button[data-v]").forEach(b=>b.addEventListener("click",()=>onPick(b.dataset.v)));
 }
-function drawCalS(){const days=new Set(state.rows.map(r=>dayOf(r.fecha)).filter(Boolean));$("calWrapS").hidden=days.size<2;
+function drawCalS(){const days=new Set(state.rows.filter(r=>inTime(r.fecha)).map(r=>dayOf(r.fecha)).filter(Boolean));$("calWrapS").hidden=days.size<2;
   calendar("calS",days,state.day,v=>{state.day=v;state.obsCustom=null;$("day").value=v;drawCalS();render()},{allLabel:"Todas las fechas"})}
 function fillForm(){const i=state.info;FIELDS.forEach(k=>{const v=k==="periodo"?(state.periodoAuto?defaultPeriodo(state.rows):i.periodo):i[k];$(k).value=typeof v==="number"?fnum(v):(v??"")});
   const di=depthInfo();const ds=di.major.length?di.major.slice():[state.depth];if(!ds.includes(state.depth))ds.push(state.depth);
@@ -1130,9 +1140,9 @@ function osmoForm(){
   $("per"+SUF).innerHTML=`<option value="all">Todo el historial</option>`+months.map(m=>`<option value="${m}">${MESES[m%100-1].replace(/^./,c=>c.toUpperCase())} ${m/100|0}</option>`).join("");$("per"+SUF).value=O.per;
   ["code","agricola","campo","equipo"].forEach(k=>$(k+SUF).value=O.info[k]||"");
 }
-function drawCalO(){const E=O.equipos[O.idx];if(!E)return;const days=new Set(E.types.flatMap(T=>T.rd.map(r=>r.fecha?dayOf(r.fecha):0)).filter(Boolean));
+function drawCalO(){const E=O.equipos[O.idx];if(!E)return;const days=new Set(E.types.flatMap(T=>T.rd.filter(r=>inTime(r.fecha)).map(r=>r.fecha?dayOf(r.fecha):0)).filter(Boolean));
   $("calWrap"+SUF).hidden=days.size<1;calendar("cal"+SUF,days,O.per,v=>{O.per=v==="all"?"all":String(v).slice(0,6);O.obsCustom=null;$("per"+SUF).value=O.per;drawCalO();osmoRender()},{allLabel:"Todo el historial",selMonth:O.per==="all"?null:O.per})}
-function osmoTypes(){const E=O.equipos[O.idx];return E.types.map(T=>({...T,rd:O.per==="all"?T.rd:T.rd.filter(r=>r.fecha&&String(r.fecha.y*100+r.fecha.m)===O.per)})).filter(T=>T.rd.length)}
+function osmoTypes(){const E=O.equipos[O.idx];return E.types.map(T=>({...T,rd:T.rd.filter(r=>inTime(r.fecha)&&(O.per==="all"||(r.fecha&&String(r.fecha.y*100+r.fecha.m)===O.per)))})).filter(T=>T.rd.length)}
 
 function osmoObs(types){
   const out=[];
@@ -1178,7 +1188,7 @@ function osmoRender(){
   cur.c.innerHTML=`<img class="logo" src="${LOGO}" alt="">
    <div class="eyebrow">${cfg.eyebrow}</div>
    <h1>${esc(i.equipo||cfg.h1)}</h1>
-   <div class="sub"><b>${esc([i.code,i.agricola].filter(Boolean).join(" · "))}</b>${i.campo?sep+esc(i.campo):""}${periodo?sep+"Período: "+esc(periodo):""}</div>
+   <div class="sub"><b>${esc([i.code,i.agricola].filter(Boolean).join(" · "))}</b>${i.campo?sep+esc(i.campo):""}${periodo?sep+"Período: "+esc(periodo):""}${tfOn()?sep+"Horario: "+esc(tfTxt()):""}</div>
    ${T?`<div class="kpis">
     <div class="kpi"><div class="l">ÚLTIMA MEDICIÓN</div><div class="v">${fmtT(T,last.v)} <small>${esc(T.unit)}</small></div><div class="s">${esc(T.label)} · ${fdate(last.fecha)}</div></div>
     <div class="kpi"><div class="l">PROMEDIO</div><div class="v">${fmtT(T,st.avg)} <small>${esc(T.unit)}</small></div><div class="s">Rango ${fmtT(T,st.min)} – ${fmtT(T,st.max)}${esc(u)}</div></div>
@@ -1229,7 +1239,7 @@ $("per"+SUF).addEventListener("change",()=>{O.per=$("per"+SUF).value;O.obsCustom
 $("regen"+SUF).addEventListener("click",()=>{O.obsCustom=null;osmoRender()});
 $("pdf"+SUF).addEventListener("click",()=>pdfFrom("stage"+SUF,"obs"+SUF,cfg.foot+" · "+[O.info.code,O.info.agricola,O.info.campo,O.info.equipo].filter(Boolean).join(" · "),osmoFile(),$("pdf"+SUF),"pdfStatus"+SUF));
 O.equipos=cfg.sample();O.info={...O.equipos[0].info};osmoForm();
-return{parse:parseOsmo,loadWB:loadOsmoWB,render:osmoRender,fit:fitO,count:()=>O.isSample?0:O.equipos.length,reset:()=>{O.equipos=cfg.sample();O.isSample=true;O.idx=0;O.per="all";O.info={...O.equipos[0].info};osmoForm();osmoRender()}};
+return{refresh:()=>{O.obsCustom=null;osmoForm();osmoRender()},parse:parseOsmo,loadWB:loadOsmoWB,render:osmoRender,fit:fitO,count:()=>O.isSample?0:O.equipos.length,reset:()=>{O.equipos=cfg.sample();O.isSample=true;O.idx=0;O.per="all";O.info={...O.equipos[0].info};osmoForm();osmoRender()}};
 }
 
 /* =================== Configuración de pestañas de series de tiempo =================== */
@@ -1280,7 +1290,7 @@ function riegoObs(RB){const out=[];const P={riego:RB};
   }
 
   return out.map(([b,t])=>`<li><b>${esc(b)}</b> ${esc(t)}</li>`).join("")}
-function blDays(){const C=BL.campos[BL.idx];return new Set((C?.raw||[]).filter(r=>isAforo(r.vk)||isPres(r.vk)).map(r=>r.day).filter(Boolean))}
+function blDays(){const C=BL.campos[BL.idx];return new Set((C?.raw||[]).filter(r=>(isAforo(r.vk)||isPres(r.vk))&&inTime(r.fecha)).map(r=>r.day).filter(Boolean))}
 function blForm(){
   $("campoWrapB").hidden=BL.campos.length<2;
   $("campoSelB").innerHTML=BL.campos.map((c,i)=>`<option value="${i}">${esc(c.info.campo||c.name)}</option>`).join("");$("campoSelB").value=BL.idx;
@@ -1298,10 +1308,10 @@ function blRender(){
   const footTxt=[[info.code,info.agricola].filter(Boolean).join(" · "),info.campo,"Reporte de terreno"].filter(Boolean).join(" · ");
   let cur=pageShell();pages.push(cur);stage.append(cur.p);
   cur.c.innerHTML=`<img class="logo" src="${LOGO}" alt=""><div class="eyebrow">REPORTE DE TERRENO · BLOQUES DE RIEGO</div><h1>Presión de válvulas y aforos</h1>
-   <div class="sub"><b>${esc([info.code,info.agricola].filter(Boolean).join(" · "))}</b>${info.campo?sep+esc(info.campo):""}${periodo?sep+"Período: "+esc(periodo):""}</div>`;
+   <div class="sub"><b>${esc([info.code,info.agricola].filter(Boolean).join(" · "))}</b>${info.campo?sep+esc(info.campo):""}${periodo?sep+"Período: "+esc(periodo):""}${tfOn()?sep+"Horario: "+esc(tfTxt()):""}</div>`;
   const LIMIT=cur.c.clientHeight;
   const flow=n=>{cur.c.append(n);if(cur.c.scrollHeight>LIMIT+1){n.remove();cur=pageShell();pages.push(cur);stage.append(cur.p);n.style.marginTop="0";cur.c.append(n)}};
-  if(!RB){flow(el("div","note","Este campo no tiene aforos en el período elegido."))}
+  if(!RB){flow(el("div","note",tfOn()?"No hay aforos en el período y horario elegidos.":"Este campo no tiene aforos en el período elegido."))}
   else{const P={riego:RB};
   {const pct=(a,b)=>b?Math.round(a/b*100):0;
     const w1=el("div");
@@ -1382,6 +1392,16 @@ function showTab(t){TABS.forEach(([k,,h])=>{$("view"+k).hidden=k!==t;$("tab"+k).
 TABS.forEach(([k])=>$("tab"+k).addEventListener("click",()=>showTab(k)));
 const tabFromHash=()=>{const x=TABS.find(t=>t[2]===location.hash||(t[0]==="B"&&location.hash==="#bloques"));return x?x[0]:"C"};
 addEventListener("hashchange",()=>showTab(tabFromHash()));
+document.querySelectorAll(".filters").forEach((F,i)=>{const d=document.createElement("div");d.className="f full hrow";
+  d.innerHTML=`<span>Horario</span><div class="hbox"><input type="time" class="hf" id="hf${i}" aria-label="Desde"><span>a</span><input type="time" class="ht" id="ht${i}" aria-label="Hasta"><button type="button" class="cal-all hclr" aria-pressed="true">Todo el día</button></div>`;F.append(d)});
+function applyTF(){
+  document.querySelectorAll(".hf").forEach(x=>x.value=TF.from==null?"":`${pad(TF.from/60|0)}:${pad(TF.from%60)}`);
+  document.querySelectorAll(".ht").forEach(x=>x.value=TF.to==null?"":`${pad(TF.to/60|0)}:${pad(TF.to%60)}`);
+  document.querySelectorAll(".hclr").forEach(b=>b.setAttribute("aria-pressed",String(!tfOn())));
+  state.obsCustom=null;BL.obsCustom=null;drawCalS();blForm();OS.refresh();CS.refresh();
+  const t=TABS.find(([k])=>!$("view"+k).hidden)?.[0]||"C";if(t==="S")render();else if(t==="B")blRender()}
+document.querySelectorAll(".hf,.ht").forEach(x=>x.addEventListener("change",()=>{TF[x.classList.contains("hf")?"from":"to"]=hm(x.value);applyTF()}));
+document.querySelectorAll(".hclr").forEach(b=>b.addEventListener("click",()=>{TF.from=null;TF.to=null;applyTF()}));
 blForm();
 $("dropB").addEventListener("click",()=>$("fileB").click());
 $("fileB").addEventListener("change",e=>{const f=e.target.files[0];if(f)loadAll(f,"B");e.target.value=""});
