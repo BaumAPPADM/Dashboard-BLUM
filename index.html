@@ -106,7 +106,10 @@ div.f{display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--mute
 .cal-all[aria-pressed="true"]{background:var(--brand);color:var(--brand-ink);border-color:var(--brand)}
 .cal-m{border:1px solid var(--line);border-radius:8px;padding:8px 8px 6px;background:var(--bg)}
 .cal-m.on{border-color:var(--teal)}
-.cal-t{font-size:12.5px;font-weight:700;color:var(--fg);margin:0 2px 6px;display:flex;justify-content:space-between}
+.cal-t{font:inherit;font-size:12.5px;font-weight:700;color:var(--fg);margin:0 0 6px;padding:3px 4px;width:100%;display:flex;justify-content:space-between;align-items:baseline;background:transparent;border:0;border-radius:6px;cursor:pointer;text-align:left}
+.cal-t:hover{background:var(--soft)}
+.cal-t.msel{background:var(--brand);color:var(--brand-ink)}
+.cal-t.msel small{color:var(--brand-ink)}
 .cal-t small{font-weight:400;color:var(--muted)}
 .cal-g{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center}
 .cal-w{font-size:10.5px;color:var(--muted);padding-bottom:2px}
@@ -575,6 +578,7 @@ function parseWorkbook(wb){
 /* ---------- Cálculos ---------- */
 const fkey=f=>f?f.y*1e8+f.m*1e6+f.d*1e4+f.H*100+f.M:0;
 const dayOf=f=>f?f.y*1e4+f.m*100+f.d:0;
+const selMatch=(sel,f)=>{if(sel==null||sel==="all")return true;if(!f)return false;const v=String(sel);return v.length===6?String(f.y*100+f.m)===v:String(dayOf(f))===v};
 /* filtro de horario común a todas las pestañas (admite rangos que cruzan medianoche) */
 const TF={from:null,to:null};
 const hm=v=>{if(!v)return null;const m=String(v).match(/^(\d{1,2}):(\d{2})/);return m?(+m[1])*60+(+m[2]):null};
@@ -594,8 +598,8 @@ const median=a=>{if(!a.length)return null;const b=a.slice().sort((x,y)=>x-y);con
 function riegoData(rawIn,sel){
   const raw=(rawIn||[]).filter(r=>(isAforo(r.vk)||isPres(r.vk))&&inTime(r.fecha));if(!raw.some(r=>isAforo(r.vk)))return null;
   const months=[...new Set(raw.map(r=>r.day/100|0))].sort();
-  let mon=sel==="all"||sel==null?null:+String(sel).slice(0,6);if(mon!=null&&!months.includes(mon))mon=months[months.length-1];
-  const L=mon==null?raw:raw.filter(r=>(r.day/100|0)===mon);
+  const sv=sel==null?"all":String(sel);let mon=sv==="all"?null:+sv.slice(0,6);if(sv.length===6&&!months.includes(mon))mon=months[months.length-1];
+  const L=sv==="all"?raw:sv.length===8?raw.filter(r=>String(r.day)===sv):raw.filter(r=>(r.day/100|0)===mon);if(!L.some(r=>isAforo(r.vk)))return null;
   const G=new Map();
   L.forEach(r=>{const k=r.equipo+"|"+r.sector;let g=G.get(k);if(!g){g={equipo:r.equipo,sector:r.sector,secNum:r.secNum,A:[],P:[]};G.set(k,g)}(isAforo(r.vk)?g.A:g.P).push(r)});
   const multi=new Set([...G.values()].map(g=>g.equipo)).size>1;
@@ -644,7 +648,7 @@ const genericH=i=>i.hmin!=null&&i.hmax!=null&&i.hmax-i.hmin>=60;
 function prepared(){
   const dc=depthInfo();const ref=state.depth;
   const base=state.rows.filter(r=>inTime(r.fecha));
-  let src=state.day==="all"?base:base.filter(r=>String(dayOf(r.fecha))===state.day);
+  let src=base.filter(r=>selMatch(state.day,r.fecha));
   const src0=src;
   if(!state.merge)src=src.flatMap(r=>(r.hum!=null&&r.depth!=null&&r.depth!==ref&&dc.major.includes(r.depth))?(r.ce!=null?[{...r,hum:null,depth:null}]:[]):[r]);
   const rows=src.slice().sort((a,b)=>natCmp(a.equipo,b.equipo)||natCmp(a.sector,b.sector)||natCmp(a.bloque,b.bloque)||fkey(a.fecha)-fkey(b.fecha));
@@ -820,6 +824,7 @@ function observaciones(P,info){
 function defaultPeriodo(rows){
   const f=rows.map(r=>r.fecha).filter(Boolean);if(!f.length)return"";
   const ks=f.map(fkey);const a=f[ks.indexOf(Math.min(...ks))],b=f[ks.indexOf(Math.max(...ks))];
+  if(String(state.day).length===8||dayOf(a)===dayOf(b)&&String(state.day)!=="all")return`${pad(b.d)} de ${MESES[b.m-1]} ${b.y}`;
   if(a.y===b.y&&a.m===b.m)return`01 al ${pad(b.d)} de ${MESES[b.m-1]} ${b.y}`;
   return`${pad(a.d)} de ${MESES[a.m-1]}${a.y!==b.y?" "+a.y:""} al ${pad(b.d)} de ${MESES[b.m-1]} ${b.y}`;
 }
@@ -894,7 +899,7 @@ function render(){
   const flow=n=>{cur.c.append(n);if(cur.c.scrollHeight>LIMIT+1){n.remove();cur=pageShell();pages.push(cur);stage.append(cur.p);n.style.marginTop="0";cur.c.append(n)}};
   if(P.riego){const RB=P.riego;const pct=(a,b)=>b?Math.round(a/b*100):0;
     const w1=el("div");const h=el("h2","sec","Bloques de riego: presión de válvula y aforos");w1.append(h);
-    w1.append(el("div","note",`Cada bloque de riego es una válvula (sector). ${RB.f0&&fkey(RB.f0)===fkey(RB.f1)?`Mediciones del ${fdate(RB.f0)}`:`Mediciones del ${fdm(RB.f0)} al ${fdate(RB.f1)}`}.`));
+    w1.append(el("div","note",`Cada bloque de riego es una válvula (sector). ${RB.f0&&dayOf(RB.f0)===dayOf(RB.f1)?`Mediciones del ${fdate(RB.f0)}`:`Mediciones del ${fdm(RB.f0)} al ${fdate(RB.f1)}`}.`));
     const k=el("div","kpis");k.style.marginTop="8pt";
     k.innerHTML=`<div class="kpi"><div class="l">AFORO PROMEDIO</div><div class="v">${f2(RB.am)} <small>l/h</small></div><div class="s">${RB.nm!=null?`Nominal promedio ${f2(RB.nm)} l/h`:"Sin caudal nominal"}</div></div>
      <div class="kpi"${pct(RB.bajo+RB.sobre,RB.nA)>=10?' style="border-color:#e2876a;background:#fdf3ef"':""}><div class="l">FUERA DE RANGO</div><div class="v"${pct(RB.bajo+RB.sobre,RB.nA)>=10?' style="color:#c0532b"':""}>${pct(RB.bajo,RB.nA)}<small>% bajo el mín.</small></div><div class="s">${pct(RB.sobre,RB.nA)} % sobre el máx. · ${RB.nA} aforos</div></div>
@@ -955,8 +960,8 @@ function calendar(host,days,sel,onPick,opt={}){
   const months=[...new Set(ds.map(d=>d/100|0))].sort().reverse();
   let h=`<button type="button" class="cal-all" aria-pressed="${sel==="all"}" data-v="all">${opt.allLabel||"Todas las fechas"}</button>`;
   months.forEach(m=>{const y=m/100|0,mo=m%100;const first=new Date(y,mo-1,1).getDay();const off=(first+6)%7;const nd=new Date(y,mo,0).getDate();
-    const cnt=ds.filter(d=>(d/100|0)===m).length;const on=opt.selMonth!=null?String(m)===String(opt.selMonth):String(sel).slice(0,6)===String(m);
-    h+=`<div class="cal-m${on?" on":""}"><div class="cal-t">${MESES[mo-1].replace(/^./,c=>c.toUpperCase())} ${y}<small>${cnt} ${cnt===1?"día":"días"} con datos</small></div><div class="cal-g">${["L","M","M","J","V","S","D"].map(w=>`<span class="cal-w">${w}</span>`).join("")}${"<span></span>".repeat(off)}`;
+    const cnt=ds.filter(d=>(d/100|0)===m).length;const monSel=String(sel)===String(m);const on=monSel||String(sel).slice(0,6)===String(m);
+    h+=`<div class="cal-m${on?" on":""}"><button type="button" class="cal-t${monSel?" msel":""}" data-v="${m}" aria-pressed="${monSel}" title="Ver el mes completo">${MESES[mo-1].replace(/^./,c=>c.toUpperCase())} ${y}<small>${monSel?"mes completo":`${cnt} ${cnt===1?"día":"días"} con datos`}</small></button><div class="cal-g">${["L","M","M","J","V","S","D"].map(w=>`<span class="cal-w">${w}</span>`).join("")}${"<span></span>".repeat(off)}`;
     for(let d=1;d<=nd;d++){const k=m*100+d;const has=days.has(k);const isSel=String(sel)===String(k);
       h+=has?`<button type="button" class="cal-d has${isSel?" sel":""}" data-v="${k}" aria-label="${d} de ${MESES[mo-1]}${isSel?" (seleccionado)":""}" aria-pressed="${isSel}">${d}</button>`:`<span class="cal-d">${d}</span>`}
     h+=`</div></div>`});
@@ -1156,8 +1161,8 @@ function osmoForm(){
   ["code","agricola","campo","equipo"].forEach(k=>$(k+SUF).value=O.info[k]||"");
 }
 function drawCalO(){const E=O.equipos[O.idx];if(!E)return;const days=new Set(E.types.flatMap(T=>T.rd.filter(r=>inTime(r.fecha)).map(r=>r.fecha?dayOf(r.fecha):0)).filter(Boolean));
-  $("calWrap"+SUF).hidden=days.size<1;calendar("cal"+SUF,days,O.per,v=>{O.per=v==="all"?"all":String(v).slice(0,6);O.obsCustom=null;$("per"+SUF).value=O.per;drawCalO();osmoRender()},{allLabel:"Todo el historial",selMonth:O.per==="all"?null:O.per})}
-function osmoTypes(){const E=O.equipos[O.idx];return E.types.map(T=>({...T,rd:T.rd.filter(r=>inTime(r.fecha)&&(O.per==="all"||(r.fecha&&String(r.fecha.y*100+r.fecha.m)===O.per)))})).filter(T=>T.rd.length)}
+  $("calWrap"+SUF).hidden=days.size<1;calendar("cal"+SUF,days,O.per,v=>{O.per=String(v);O.obsCustom=null;drawCalO();osmoRender()},{allLabel:"Todo el historial"})}
+function osmoTypes(){const E=O.equipos[O.idx];return E.types.map(T=>({...T,rd:T.rd.filter(r=>inTime(r.fecha)&&selMatch(O.per,r.fecha))})).filter(T=>T.rd.length)}
 
 function osmoObs(types){
   const out=[];
@@ -1196,7 +1201,7 @@ function osmoRender(){
   const stage=$("stage"+SUF);stage.innerHTML="";if(!O.equipos.length)return;
   const i=O.info;const types=osmoTypes();const pages=[];
   const all=types.flatMap(T=>T.rd);const ks=all.map(r=>tsOf(r.fecha));const f0=all[ks.indexOf(Math.min(...ks))]?.fecha,f1_=all[ks.indexOf(Math.max(...ks))]?.fecha;
-  const periodo=f0&&f1_?(fkey(f0)===fkey(f1_)?fdate(f0):`${fdm(f0)}${f0.y!==f1_.y?"-"+f0.y:""} al ${fdate(f1_)}`):"";
+  const periodo=f0&&f1_?(dayOf(f0)===dayOf(f1_)?fdate(f0):`${fdm(f0)}${f0.y!==f1_.y?"-"+f0.y:""} al ${fdate(f1_)}`):"";
   const footTxt=[[i.code,i.agricola].filter(Boolean).join(" · "),i.campo,cfg.foot].filter(Boolean).join(" · ");
   const sep="  ·  ";
   let cur=pageShell();pages.push(cur);stage.append(cur.p);
@@ -1353,7 +1358,7 @@ function blForm(){if(!BL.campos.length){$("campoWrapB").hidden=true;$("calWrapB"
   $("campoWrapB").hidden=BL.campos.length<2;
   $("campoSelB").innerHTML=BL.campos.map((c,i)=>`<option value="${i}">${esc(c.info.campo||c.name)}</option>`).join("");$("campoSelB").value=BL.idx;
   const days=blDays();$("calWrapB").hidden=days.size<1;
-  calendar("calB",days,BL.sel,v=>{BL.sel=v==="all"?"all":String(v).slice(0,6);BL.obsCustom=null;blForm();blRender()},{allLabel:"Todas las fechas",selMonth:BL.sel==="all"?null:BL.sel});
+  calendar("calB",days,BL.sel,v=>{BL.sel=String(v);BL.obsCustom=null;blForm();blRender()},{allLabel:"Todas las fechas"});
   ["code","agricola","campo"].forEach(k=>$(k+"B").value=BL.info[k]||"");
 }
 function blSelect(i){BL.idx=i;BL.obsCustom=null;const C=BL.campos[i];BL.info={...C.info};const mem=memGet(C.key);if(mem?.agricola)BL.info.agricola=mem.agricola;
@@ -1363,7 +1368,7 @@ function blRender(){
   if(EMPTY.B){emptyView("B","aforos ni presiones de válvula de terreno",lastFile);return}markEmpty("B",false);
   const stage=$("stageB");stage.innerHTML="";const C=BL.campos[BL.idx];if(!C)return;
   const RB=riegoData(C.raw,BL.sel);const info=BL.info;const pages=[];const sep="  ·  ";
-  const periodo=RB&&RB.f0?(fkey(RB.f0)===fkey(RB.f1)?fdate(RB.f0):`${fdm(RB.f0)} al ${fdate(RB.f1)}`):"";
+  const periodo=RB&&RB.f0?(dayOf(RB.f0)===dayOf(RB.f1)?fdate(RB.f0):`${fdm(RB.f0)} al ${fdate(RB.f1)}`):"";
   const footTxt=[[info.code,info.agricola].filter(Boolean).join(" · "),info.campo,"Reporte de terreno"].filter(Boolean).join(" · ");
   let cur=pageShell();pages.push(cur);stage.append(cur.p);
   cur.c.innerHTML=`<img class="logo" src="${LOGO}" alt=""><div class="eyebrow">REPORTE DE TERRENO · BLOQUES DE RIEGO</div><h1>Presión de válvulas y aforos</h1>
@@ -1374,7 +1379,7 @@ function blRender(){
   else{const P={riego:RB};
   {const pct=(a,b)=>b?Math.round(a/b*100):0;
     const w1=el("div");
-    w1.append(el("div","note",`Cada bloque de riego es una válvula (sector). ${RB.f0&&fkey(RB.f0)===fkey(RB.f1)?`Mediciones del ${fdate(RB.f0)}`:`Mediciones del ${fdm(RB.f0)} al ${fdate(RB.f1)}`}.`));
+    w1.append(el("div","note",`Cada bloque de riego es una válvula (sector). ${RB.f0&&dayOf(RB.f0)===dayOf(RB.f1)?`Mediciones del ${fdate(RB.f0)}`:`Mediciones del ${fdm(RB.f0)} al ${fdate(RB.f1)}`}.`));
     const k=el("div","kpis");k.style.marginTop="10pt";
     k.innerHTML=`<div class="kpi"><div class="l">AFORO PROMEDIO</div><div class="v">${f2(RB.am)} <small>l/h</small></div><div class="s">${RB.nm!=null?`Nominal promedio ${f2(RB.nm)} l/h`:"Sin caudal nominal"}</div></div>
      <div class="kpi"${pct(RB.bajo+RB.sobre,RB.nA)>=10?' style="border-color:#e2876a;background:#fdf3ef"':""}><div class="l">FUERA DE RANGO</div><div class="v"${pct(RB.bajo+RB.sobre,RB.nA)>=10?' style="color:#c0532b"':""}>${pct(RB.bajo,RB.nA)}<small>% bajo el mín.</small></div><div class="s">${pct(RB.sobre,RB.nA)} % sobre el máx. · ${RB.nA} aforos</div></div>
