@@ -147,11 +147,11 @@ details.help ul{padding-left:18px;margin:6px 0 0}
 .page .sub b{font-weight:600;color:var(--ink)}
 .page .logo{position:absolute;right:0;top:0;width:30pt;height:34.88pt}
 .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:6pt;margin-top:12pt}
-.kpi{background:var(--card);border:.75pt solid var(--card-b);border-radius:4pt;height:59.5pt;padding:7pt 9.5pt 0}
+.kpi{min-width:0;overflow:hidden;background:var(--card);border:.75pt solid var(--card-b);border-radius:4pt;height:59.5pt;padding:7pt 9.5pt 0}
 .kpi .l{font-size:7.8pt;letter-spacing:.55pt;color:var(--mut);line-height:11pt}
 .kpi .v{font-family:var(--f-head);font-weight:600;font-size:17pt;color:var(--ink);line-height:21pt;margin-top:1pt;white-space:nowrap}
 .kpi .v small{font-family:"Nunito",sans-serif;font-weight:400;font-size:9pt;color:var(--mut);margin-left:1pt}
-.kpi .s{font-size:7.8pt;color:var(--mut);line-height:10pt;margin-top:1.5pt;white-space:nowrap}
+.kpi .s{font-size:7.8pt;color:var(--mut);line-height:10pt;margin-top:1.5pt;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sec{font-family:var(--f-head);font-weight:600;font-size:12.5pt;color:var(--ink);line-height:15pt;padding:2.5pt 0 4.5pt;border-bottom:1pt solid var(--teal);margin:0}
 .kpis + .sec{margin-top:13.5pt}
 table.t{width:100%;border-collapse:collapse;margin-top:6pt;table-layout:fixed}
@@ -415,7 +415,8 @@ const pad=n=>String(n).padStart(2,"0");
 const rnd=(v,d)=>Math.round(v*10**d+1e-7)/10**d;
 const f1=v=>v==null||isNaN(v)?"–":rnd(v,1).toFixed(1).replace(".",",");
 const f2=v=>v==null||isNaN(v)?"–":rnd(v,2).toFixed(2).replace(".",",");
-const fnum=v=>{if(v==null||isNaN(v))return"";return (Math.round(v*100)/100).toString().replace(".",",")};
+const NF=new Intl.NumberFormat("es-CL",{maximumFractionDigits:2});
+const fnum=v=>{if(v==null||isNaN(v))return"";return Math.abs(v)>=10000?NF.format(Math.round(v*100)/100):(Math.round(v*100)/100).toString().replace(".",",")};
 const parseNum=v=>{if(v==null||v==="")return null;if(typeof v==="number")return isFinite(v)?v:null;const s=String(v).trim().replace(/\s|%/g,"").replace(",",".");if(s===""||s==="-")return null;const n=parseFloat(s);return isFinite(n)?n:null};
 const natNum=s=>{const m=String(s).match(/\d+/);return m?parseInt(m[0],10):null};
 const natCmp=(a,b)=>String(a).localeCompare(String(b),"es",{numeric:true,sensitivity:"base"});
@@ -675,7 +676,11 @@ const eqTxt=e=>!e?"–":e.length>10?e.replace(/^Equipo\s*/,"Eq. "):e;
 const blabel=b=>{const n=natNum(b);return n!=null?"B"+n:String(b).slice(0,4)};
 const bnum=b=>{const n=natNum(b);return n!=null?String(n):String(b)};
 
-function niceStep(raw,list){for(const s of list)if(s>=raw-1e-9)return s;return list[list.length-1]}
+function niceStep(raw,list){
+  if(!(raw>0)||!isFinite(raw))return list[0];
+  if(raw<=list[list.length-1]*1.0000001&&raw>=list[0]*0.5){for(const s of list)if(s>=raw-1e-9)return s}
+  // fuera de la lista: paso "redondo" según la magnitud (1, 2, 2,5, 5 × 10^n)
+  const e=Math.pow(10,Math.floor(Math.log10(raw)));for(const m of [1,2,2.5,5,10])if(m*e>=raw-1e-9)return m*e;return 10*e}
 
 /* ---------- Construcción de las hojas ---------- */
 function el(tag,cls,html){const e=document.createElement(tag);if(cls)e.className=cls;if(html!=null)e.innerHTML=html;return e}
@@ -713,7 +718,7 @@ function humChart(blocks,info,opt){
   if(hmin!=null&&hmax!=null&&opt.band){const a=Math.max(hmin,lo),b=Math.min(hmax,hi);if(b>a){
     const band=el("div","ab");band.style.cssText=`left:${X0}pt;width:${W}pt;top:${y(b)}pt;height:${y(a)-y(b)}pt;background:var(--band)`;ch.append(band);
     const bl=el("div","bandlbl",`Rango óptimo ${fnum(hmin)}–${fnum(hmax)} ${esc(opt.unit||"")}`);bl.style.right=(510.3-X0-W+3.4)+"pt";bl.style.top=(y(b)-8.6)+"pt";ch.append(bl)}}
-  for(let v=lo;v<=hi+1e-9;v+=step){const g=el("div","gl");g.style.cssText=`left:${X0}pt;width:${W}pt;top:${y(v)}pt`;ch.append(g);
+  for(let v=lo,gi=0;v<=hi+1e-9&&gi<13;v+=step,gi++){const g=el("div","gl");g.style.cssText=`left:${X0}pt;width:${W}pt;top:${y(v)}pt`;ch.append(g);
     const l=el("div","yl",fnum(rnd(v,4)));l.style.left=(X0-24.5)+"pt";l.style.top=(y(v)-4.2)+"pt";ch.append(l)}
   const s=slots(blocks,W);
   blocks.forEach((b,i)=>{const gv=G(b);if(gv==null)return;const cx=X0+s.xs[i],cy=y(Math.min(Math.max(gv,lo),hi));
@@ -1075,7 +1080,7 @@ const loOf=T=>T.min!=null&&T.min>0?T.min:null,hiOf=T=>T.max!=null&&!(T.max===0&&
 const outOf=(T,v)=>{const lo=loOf(T),hi=hiOf(T);return(lo!=null&&v<lo)||(hi!=null&&v>hi)};
 const rangoTxt=T=>{const lo=loOf(T),hi=hiOf(T),u=T.unit?" "+T.unit:"";return lo!=null&&hi!=null?`${fnum(lo)}–${fnum(hi)}${u}`:hi!=null?`máx. ${fnum(hi)}${u}`:lo!=null?`mín. ${fnum(lo)}${u}`:"sin definir"};
 const decOf=T=>{const mx=Math.max(...T.rd.map(r=>Math.abs(r.v)),0);return mx<10?2:mx<100?1:0};
-const fmtT=(T,v)=>{if(v==null)return"–";const d=decOf(T);let s=rnd(v,d).toFixed(d);if(d&&/\.0+$/.test(s)&&T.rd.every(r=>Number.isInteger(r.v)))s=String(Math.round(v));return s.replace(".",",")};
+const fmtT=(T,v)=>{if(v==null)return"–";if(Math.abs(v)>=10000)return NF.format(Math.round(v));const d=decOf(T);let s=rnd(v,d).toFixed(d);if(d&&/\.0+$/.test(s)&&T.rd.every(r=>Number.isInteger(r.v)))s=String(Math.round(v));return s.replace(".",",")};
 
 function lineChart(T){
   const X0=33,W=469.8,TOP=14,H=118,yB=TOP+H+4.5;
@@ -1088,7 +1093,7 @@ function lineChart(T){
   const y=v=>TOP+H-(v-y0)/(y1-y0)*H;
   const t0=tsOf(rd[0].fecha),t1=tsOf(rd[rd.length-1].fecha);const pad_=14;
   const x=t=>rd.length<2||t1===t0?X0+W/2:X0+pad_+(t-t0)/(t1-t0)*(W-2*pad_);
-  for(let v=y0;v<=y1+1e-9;v+=step){const g=el("div","gl");g.style.cssText=`left:${X0}pt;width:${W}pt;top:${y(v)}pt`;ch.append(g);
+  for(let v=y0,gi=0;v<=y1+1e-9&&gi<13;v+=step,gi++){const g=el("div","gl");g.style.cssText=`left:${X0}pt;width:${W}pt;top:${y(v)}pt`;ch.append(g);
     const l=el("div","yl",fnum(rnd(v,4)));l.style.left=(X0-24.5)+"pt";l.style.top=(y(v)-4.2)+"pt";ch.append(l)}
   [[hi,"Máx."],[lo,"Mín."]].forEach(([v,t])=>{if(v==null||v<y0||v>y1)return;const ln=el("div","lim");ln.style.cssText=`left:${X0}pt;width:${W}pt;top:${y(v)}pt`;ch.append(ln);
 });
@@ -1176,7 +1181,7 @@ function osmoObs(types){
     t+=".";
     out.push([`${pre}última medición ${outOf(T,last.v)?"fuera del rango":lo==null&&hi==null?"registrada":"dentro del rango"}.`.replace(/^./,c=>c.toUpperCase()),t]);
     // tendencia
-    if(rd.length>=3){const xs=rd.map(r=>tsOf(r.fecha)/864e5),ys=rd.map(r=>r.v);const mx=xs.reduce((a,b)=>a+b)/xs.length,my=st.avg;
+    if(rd.length>=3&&!/acumulad|totaliz/.test(norm(T.label))){const xs=rd.map(r=>tsOf(r.fecha)/864e5),ys=rd.map(r=>r.v);const mx=xs.reduce((a,b)=>a+b)/xs.length,my=st.avg;
       let num=0,den=0;xs.forEach((xv,i)=>{num+=(xv-mx)*(ys[i]-my);den+=(xv-mx)**2});const slope=den?num/den:0;const span=xs[xs.length-1]-xs[0];const delta=slope*span;
       const tol=Math.max((hi??st.max)*0.05,(st.max-st.min)*0.15,0.01);
       const dir=Math.abs(delta)<tol?"estable":delta>0?"al alza":"a la baja";
@@ -1186,6 +1191,13 @@ function osmoObs(types){
     if(fo.length)out.push([`${pre}${fo.length} ${fo.length===1?"medición":"mediciones"} fuera de rango.`.replace(/^./,c=>c.toUpperCase()),`${lista(fo.slice(0,6).map(r=>`${fdm(r.fecha)} (${fmtT(T,r.v)}${u})`))}${fo.length>6?` y ${fo.length-6} más`:""}. Rango configurado: ${rangoTxt(T)}.`]);
     else if((lo!=null||hi!=null)&&rd.length>1)out.push([`${pre}todas las mediciones dentro del rango.`.replace(/^./,c=>c.toUpperCase()),`Las ${rd.length} mediciones del período cumplen el rango configurado (${rangoTxt(T)}).`]);
     else if(lo==null&&hi==null)out.push([`${pre}rango sin definir.`.replace(/^./,c=>c.toUpperCase()),"Esta medición no tiene rango óptimo configurado en BLUM, por lo que no se puede evaluar si está bien o mal."]);
+    // revisión de datos: contadores acumulados que bajan y valores fuera de escala
+    if(/acumulad|totaliz/.test(norm(T.label))){const bajas=[];for(let k=1;k<rd.length;k++)if(rd[k].v<rd[k-1].v)bajas.push(k);
+      if(bajas.length){const k=bajas[0];out.push([`${pre}el acumulado baja entre mediciones.`.replace(/^./,c=>c.toUpperCase()),`Pasa de ${fmtT(T,rd[k-1].v)}${u} (${fdm(rd[k-1].fecha)}) a ${fmtT(T,rd[k].v)}${u} (${fdm(rd[k].fecha)})${bajas.length>1?` y vuelve a bajar ${bajas.length-1} ${bajas.length-1===1?"vez":"veces"} más`:""}. Un contador acumulado no debería bajar: puede haber dos caudalímetros registrados con el mismo nombre o un error de digitación.`])}
+      else if(rd.length>1){const dd=(tsOf(last.fecha)-tsOf(rd[0].fecha))/864e5;const cons=last.v-rd[0].v;
+        out.push([`${pre}consumo del período.`.replace(/^./,c=>c.toUpperCase()),`Entre el ${fdate(rd[0].fecha)} y el ${fdate(last.fecha)} el contador avanzó ${fmtT(T,cons)}${u}${dd>=1?`, unos ${fmtT(T,cons/dd)}${u} por día`:""}.`])}}
+    {const ref=hi??(T.opt||null);const raros=ref?rd.filter(r=>Math.abs(r.v)>Math.abs(ref)*100):[];
+      if(raros.length)out.push([`${pre}${raros.length===1?"valor":"valores"} fuera de escala.`.replace(/^./,c=>c.toUpperCase()),`${lista(raros.slice(0,5).map(r=>`${fdm(r.fecha)} (${fmtT(T,r.v)}${u})`))} ${raros.length===1?"es":"son"} más de 100 veces el rango configurado (${rangoTxt(T)}). Probablemente es un error de digitación o un valor cargado en la medición equivocada.`])}
     // frecuencia (solo para la medición principal)
     if(ti===0&&rd.length>=2){const ts=rd.map(r=>tsOf(r.fecha)/864e5);let gmax=0,gi=0;for(let i=1;i<ts.length;i++){const g=ts[i]-ts[i-1];if(g>gmax){gmax=g;gi=i}}
       const avg=(ts[ts.length-1]-ts[0])/(ts.length-1);
