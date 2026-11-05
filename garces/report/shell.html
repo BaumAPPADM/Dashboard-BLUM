@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Informe de riego · blum</title>
+<style>
+/*LOGO_CSS*/
+html, body { margin: 0; }
+body { font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif; }
+.lg-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #002E2B; padding: 16px; box-sizing: border-box; }
+.lg-card { width: 100%; max-width: 380px; background: #FFFFFF; border-radius: 6px; padding: 32px 28px; box-shadow: 0 10px 40px rgba(0,0,0,.25); box-sizing: border-box; }
+.lg-head { background: #002E2B; margin: -32px -28px 24px; padding: 22px 28px; border-radius: 6px 6px 0 0; border-bottom: 5px solid #77CFC9; }
+.lg-logo { width: 6.4rem; height: 2rem; background: #FFFFFF; }
+.lg-card h1 { margin: 0 0 4px; font-size: 20px; font-weight: 500; color: #002E2B; }
+.lg-card p { margin: 0 0 20px; font-size: 13px; color: #5C6F6D; line-height: 1.5; }
+.lg-card label { display: block; font-size: 11px; text-transform: uppercase; color: #5C6F6D; margin: 12px 0 4px; letter-spacing: .03em; }
+.lg-card input { width: 100%; box-sizing: border-box; font: inherit; font-size: 15px; padding: 10px 12px; border: 1px solid #C9D3D1; border-radius: 4px; color: #002E2B; }
+.lg-card input:focus { outline: 2px solid #77CFC9; border-color: #77CFC9; }
+.lg-card button { margin-top: 20px; width: 100%; font: inherit; font-size: 15px; font-weight: 600; padding: 11px; border: 0; border-radius: 4px; background: #77CFC9; color: #002E2B; cursor: pointer; }
+.lg-card button:disabled { opacity: .6; cursor: wait; }
+.lg-err { color: #C30016; font-size: 13px; min-height: 18px; margin-top: 10px; }
+.lg-foot { margin-top: 18px; font-size: 11px; color: #8A9B99; text-align: center; }
+</style>
+</head>
+<body>
+<div class="lg-wrap" id="login">
+  <div class="lg-card" role="form" aria-label="Acceso al informe">
+    <div class="lg-head"><div class="lg-logo" role="img" aria-label="blum"></div></div>
+    <h1>Informe de riego</h1>
+    <p>Presiones, aforos y plan de mediciones. Ingrese con el usuario y la clave entregados por blum.</p>
+    <label for="u">Usuario</label>
+    <input id="u" autocomplete="username" placeholder="Nombre del cliente">
+    <label for="p">Clave</label>
+    <input id="p" type="password" autocomplete="current-password">
+    <button id="go" type="button">Entrar</button>
+    <div class="lg-err" id="err" role="alert"></div>
+    <div class="lg-foot">Datos actualizados: <span id="upd">—</span></div>
+  </div>
+</div>
+<div id="app" hidden></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<script>
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const b64 = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
+  const norm = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '');
+  let enc = null;
+  fetch('reporte.enc.json', {cache: 'no-store'}).then((r) => r.json()).then((j) => { enc = j; $('upd').textContent = j.actualizado || '—'; })
+    .catch(() => { $('err').textContent = 'No se pudo cargar el informe. Intente nuevamente.'; });
+  async function entrar() {
+    $('err').textContent = '';
+    if (!enc) { $('err').textContent = 'El informe aún se está cargando, espere unos segundos.'; return; }
+    $('go').disabled = true; $('go').textContent = 'Abriendo…';
+    try {
+      const pass = new TextEncoder().encode(norm($('u').value) + '|' + $('p').value);
+      const base = await crypto.subtle.importKey('raw', pass, 'PBKDF2', false, ['deriveKey']);
+      const key = await crypto.subtle.deriveKey({name: 'PBKDF2', salt: b64(enc.salt), iterations: enc.iter, hash: 'SHA-256'}, base, {name: 'AES-GCM', length: 256}, false, ['decrypt']);
+      const plain = await crypto.subtle.decrypt({name: 'AES-GCM', iv: b64(enc.iv)}, key, b64(enc.ct));
+      const bytes = new Uint8Array(plain);
+      const ds = new DecompressionStream('gzip');
+      const text = await new Response(new Blob([bytes]).stream().pipeThrough(ds)).text();
+      abrir(JSON.parse(text));
+    } catch (e) {
+      console.error(e);
+      $('err').textContent = 'Usuario o clave incorrectos.';
+      $('go').disabled = false; $('go').textContent = 'Entrar';
+    }
+  }
+  function abrir(P) {
+    const st = document.createElement('style'); st.textContent = P.css; document.head.appendChild(st);
+    $('login').remove();
+    const app = $('app'); app.hidden = false;
+    app.innerHTML = '<button class="gx-salir" type="button">Salir</button><div id="dash-root"></div>';
+    app.querySelector('.gx-salir').onclick = () => location.reload();
+    document.getElementById('dash-root').innerHTML = P.html;
+    (new Function(P.shim))();
+    window.dash._init(P.data, P.params);
+    P.scripts.forEach((s, i) => { try { (new Function(s))(); } catch (e) { console.error('Script', i, e); } });
+    const h = location.hash.slice(1);
+    if (h && document.getElementById(h) && document.getElementById(h).classList.contains('gx-page')) window.dash.setParams({vista: h});
+    else window.dash._refresh();
+  }
+  $('go').addEventListener('click', entrar);
+  $('p').addEventListener('keydown', (e) => { if (e.key === 'Enter') entrar(); });
+  $('u').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('p').focus(); });
+})();
+</script>
+</body>
+</html>
