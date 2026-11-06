@@ -95,7 +95,7 @@
       <div class="yb-sechead">
         <div class="row"><p class="yb-eyebrow">blum · Avance</p><p class="yb-eyebrow data">/ 01</p></div>
         <h2>Avance por campo</h2>
-        <p>Porcentaje de los bloques priorizados que ya tienen medición. Calendario corrido un mes respecto del documento original (inicio 5 de noviembre). La línea marca el avance esperado a la fecha para los campos cuyo plazo aún no vence; los demás deberían estar al 100 %.</p>
+        <p>Porcentaje de los bloques priorizados que ya tienen medición. Calendario corrido un mes respecto del documento original: todos los campos parten el 5 de noviembre y cada uno tiene su fecha límite, que se muestra junto a la barra (en naranjo si ya venció sin completar). La línea marca el avance esperado a la fecha para los campos cuyo plazo aún no vence; los demás deberían estar al 100 %.</p>
       </div>
       <div class="yb-block">
         <div class="yb-legend">
@@ -110,7 +110,7 @@
       <div class="yb-block">
         <div class="yb-tablewrap gx-tall">
           <table class="yb-table" data-source="cumplimiento" data-row-key="campo">
-            <thead><tr><th data-field="campo">Campo</th><th data-field="fin">Fecha límite</th><th class="num" data-field="priorizados">Priorizados</th><th class="num" data-field="medidos">Medidos</th><th class="num" data-field="pct">% avance</th><th data-field="estado">Estado</th><th class="num" data-field="sectoresPendientes">Sectores sin medir</th><th class="num" data-field="fueraPlan">Medidos fuera del plan</th><th data-field="ultima">Última medición del plan</th></tr></thead>
+            <thead><tr><th data-field="campo">Campo</th><th data-field="inicio">Inicio</th><th data-field="fin">Fecha límite</th><th data-field="restan">Plazo</th><th class="num" data-field="priorizados">Priorizados</th><th class="num" data-field="medidos">Medidos</th><th class="num" data-field="pct">% avance</th><th data-field="estado">Estado</th><th class="num" data-field="sectoresPendientes">Sectores sin medir</th><th class="num" data-field="fueraPlan">Medidos fuera del plan</th><th data-field="ultima">Última medición del plan</th></tr></thead>
             <tbody data-draw="cumplTabla"></tbody>
           </table>
         </div>
@@ -135,7 +135,7 @@
       <div class="yb-block">
         <div class="yb-tablewrap gx-tall">
           <table class="yb-table" data-source="plan" data-row-key="id">
-            <thead><tr><th data-field="campo">Campo</th><th data-field="categoria">Motivo de prioridad</th><th data-field="equipo">Equipo</th><th data-field="sector">Sector</th><th class="num" data-field="bloques_plan">Bloques plan</th><th class="num" data-field="bloques_medidos">Medidos</th><th data-field="estado">Estado</th><th data-field="fin">Fecha límite</th><th data-field="ultima">Última medición</th></tr></thead>
+            <thead><tr><th data-field="campo">Campo</th><th data-field="categoria">Motivo de prioridad</th><th data-field="equipo">Equipo</th><th data-field="sector">Sector</th><th class="num" data-field="bloques_plan">Bloques plan</th><th class="num" data-field="bloques_medidos">Medidos</th><th data-field="estado">Estado</th><th data-field="inicio">Inicio</th><th data-field="fin">Fecha límite</th><th data-field="ultima">Última medición</th></tr></thead>
             <tbody data-draw="planDetalle"></tbody>
           </table>
         </div>
