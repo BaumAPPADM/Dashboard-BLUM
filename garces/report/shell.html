@@ -5,67 +5,148 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <title>Informe de riego · blum</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 /*LOGO_CSS*/
-html, body { margin: 0; }
-body { font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif; }
-.lg-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #002E2B; padding: 16px; box-sizing: border-box; }
-.lg-card { width: 100%; max-width: 380px; background: #FFFFFF; border-radius: 6px; padding: 32px 28px; box-shadow: 0 10px 40px rgba(0,0,0,.25); box-sizing: border-box; }
-.lg-head { background: #002E2B; margin: -32px -28px 24px; padding: 22px 28px; border-radius: 6px 6px 0 0; border-bottom: 5px solid #77CFC9; }
-.lg-logo { width: 6.4rem; height: 2rem; background: #FFFFFF; }
-.lg-card h1 { margin: 0 0 4px; font-size: 20px; font-weight: 500; color: #002E2B; }
-.lg-card p { margin: 0 0 20px; font-size: 13px; color: #5C6F6D; line-height: 1.5; }
-.lg-card label { display: block; font-size: 11px; text-transform: uppercase; color: #5C6F6D; margin: 12px 0 4px; letter-spacing: .03em; }
-.lg-card input { width: 100%; box-sizing: border-box; font: inherit; font-size: 15px; padding: 10px 12px; border: 1px solid #C9D3D1; border-radius: 4px; color: #002E2B; }
-.lg-card input:focus { outline: 2px solid #77CFC9; border-color: #77CFC9; }
-.lg-card button { margin-top: 20px; width: 100%; font: inherit; font-size: 15px; font-weight: 600; padding: 11px; border: 0; border-radius: 4px; background: #77CFC9; color: #002E2B; cursor: pointer; }
-.lg-card button:disabled { opacity: .6; cursor: wait; }
-.lg-err { color: #C30016; font-size: 13px; min-height: 18px; margin-top: 10px; }
-.lg-foot { margin-top: 18px; font-size: 11px; color: #8A9B99; text-align: center; }
+:root { --bosque: #002E2B; --turquesa: #77CFC9; --blanco: #FFFFFF; --tinta: #0F2624; --gris: #5C6F6D; --linea: #D7E0DE; }
+html, body { margin: 0; height: 100%; }
+body { font-family: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif; color: var(--tinta); background: var(--bosque); }
+.pt { min-height: 100vh; display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(360px, 1fr); }
+/* Lado de marca */
+.pt-marca { position: relative; overflow: hidden; background: radial-gradient(120% 90% at 15% 10%, #0B4743 0%, var(--bosque) 55%, #00211F 100%); color: var(--blanco); padding: clamp(28px, 5vw, 64px); display: flex; flex-direction: column; }
+.pt-curvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.pt-curvas path { fill: none; stroke: var(--turquesa); stroke-width: 1; }
+@media (prefers-reduced-motion: no-preference) { .pt-curvas g { animation: deriva 40s ease-in-out infinite alternate; transform-origin: 70% 60%; } }
+@keyframes deriva { from { transform: rotate(-2deg) scale(1); } to { transform: rotate(2deg) scale(1.04); } }
+.pt-marca > * { position: relative; }
+.pt-marca > .pt-curvas { position: absolute; inset: 0; }
+.lg-logo { width: 7.2rem; height: 2.25rem; background: var(--blanco); }
+.pt-centro { margin: auto 0; max-width: 34rem; padding: 48px 0; }
+.pt-eyebrow { display: inline-flex; align-items: center; gap: 10px; font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--turquesa); margin: 0 0 22px; }
+.pt-eyebrow::before { content: ''; width: 28px; height: 2px; background: var(--turquesa); }
+.pt-marca h1 { font-family: 'Sora', sans-serif; font-weight: 300; font-size: clamp(32px, 4.2vw, 54px); line-height: 1.08; letter-spacing: -.02em; margin: 0 0 18px; }
+.pt-marca h1 b { font-weight: 600; color: var(--turquesa); }
+.pt-lead { font-size: 16px; line-height: 1.6; color: rgba(255, 255, 255, .78); margin: 0 0 34px; max-width: 30rem; }
+.pt-items { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+.pt-items li { display: grid; grid-template-columns: 40px 1fr; gap: 14px; align-items: center; font-size: 14px; line-height: 1.45; color: rgba(255, 255, 255, .88); }
+.pt-items li span b { display: block; color: var(--blanco); font-weight: 500; font-size: 15px; }
+.pt-ico { width: 40px; height: 40px; border-radius: 10px; border: 1px solid rgba(119, 207, 201, .45); background: rgba(119, 207, 201, .08); display: grid; place-items: center; }
+.pt-ico svg { width: 20px; height: 20px; stroke: var(--turquesa); fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.pt-pie { display: flex; flex-wrap: wrap; gap: 8px 22px; font-size: 12px; color: rgba(255, 255, 255, .6); border-top: 1px solid rgba(255, 255, 255, .12); padding-top: 18px; }
+.pt-pie b { color: rgba(255, 255, 255, .9); font-weight: 500; }
+.pt-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--turquesa); margin-right: 6px; box-shadow: 0 0 0 4px rgba(119, 207, 201, .18); }
+/* Lado de acceso */
+.pt-acceso { background: var(--blanco); display: flex; align-items: center; justify-content: center; padding: clamp(28px, 5vw, 64px); }
+.pt-form { width: 100%; max-width: 360px; }
+.pt-form h2 { font-family: 'Sora', sans-serif; font-weight: 400; font-size: 26px; letter-spacing: -.01em; margin: 0 0 6px; color: var(--bosque); }
+.pt-form p { margin: 0 0 30px; font-size: 14px; line-height: 1.55; color: var(--gris); }
+.pt-campo { margin-bottom: 18px; }
+.pt-campo label { display: block; font-size: 12px; font-weight: 500; color: var(--bosque); margin-bottom: 7px; }
+.pt-input { position: relative; }
+.pt-input input { width: 100%; box-sizing: border-box; font: inherit; font-size: 15px; padding: 13px 14px; border: 1px solid var(--linea); border-radius: 8px; color: var(--tinta); background: #FAFBFB; transition: border-color .2s, box-shadow .2s, background .2s; }
+.pt-input input:focus { outline: none; border-color: var(--turquesa); background: var(--blanco); box-shadow: 0 0 0 4px rgba(119, 207, 201, .25); }
+.pt-ver { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); border: 0; background: transparent; font: inherit; font-size: 12px; color: var(--gris); cursor: pointer; padding: 6px 8px; border-radius: 6px; }
+.pt-ver:hover { color: var(--bosque); background: #EEF3F2; }
+.pt-entrar { margin-top: 8px; width: 100%; font: inherit; font-size: 15px; font-weight: 600; padding: 14px; border: 0; border-radius: 8px; background: var(--bosque); color: var(--blanco); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; transition: background .2s, transform .1s; }
+.pt-entrar:hover { background: #0B4743; }
+.pt-entrar:active { transform: translateY(1px); }
+.pt-entrar svg { width: 18px; height: 18px; stroke: var(--turquesa); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.pt-entrar:disabled { opacity: .7; cursor: wait; }
+.lg-err { color: #C30016; font-size: 13px; min-height: 20px; margin-top: 12px; }
+.pt-seguro { display: flex; gap: 10px; align-items: flex-start; margin-top: 26px; padding: 14px; border-radius: 8px; background: #F1F6F5; font-size: 12px; line-height: 1.5; color: var(--gris); }
+.pt-seguro svg { flex: none; width: 18px; height: 18px; stroke: var(--bosque); fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; margin-top: 1px; }
+.pt-firma { margin-top: 28px; font-size: 11px; color: #8A9B99; text-align: center; }
+@media (max-width: 860px) {
+  .pt { grid-template-columns: 1fr; }
+  .pt-centro { padding: 28px 0 8px; }
+  .pt-items { display: none; }
+  .pt-lead { margin-bottom: 18px; }
+}
 </style>
 </head>
 <body>
-<div class="lg-wrap" id="login">
-  <div class="lg-card" role="form" aria-label="Acceso al informe">
-    <div class="lg-head"><div class="lg-logo" role="img" aria-label="blum"></div></div>
-    <h1>Informe de riego</h1>
-    <p>Presiones, aforos y plan de mediciones. Ingrese con el usuario y la clave entregados por blum.</p>
-    <label for="u">Usuario</label>
-    <input id="u" autocomplete="username" placeholder="Nombre del cliente">
-    <label for="p">Clave</label>
-    <input id="p" type="password" autocomplete="current-password">
-    <button id="go" type="button">Entrar</button>
-    <div class="lg-err" id="err" role="alert"></div>
-    <div class="lg-foot">Datos actualizados: <span id="upd">—</span></div>
-  </div>
+<div class="pt" id="login">
+  <section class="pt-marca" aria-label="blum">
+    <svg class="pt-curvas" id="curvas" aria-hidden="true"></svg>
+    <div class="lg-logo" role="img" aria-label="blum"></div>
+    <div class="pt-centro">
+      <p class="pt-eyebrow">Informe de riego · Temporada 2026-27</p>
+      <h1>Cada bloque, medido.<br><b>Cada decisión, informada.</b></h1>
+      <p class="pt-lead">Presiones, caudal y uniformidad de sus campos, con el plan de acción para corregir lo que no está funcionando.</p>
+      <ul class="pt-items">
+        <li><span class="pt-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="7"/><path d="M12 13l3.5-3.5M12 3v3"/></svg></span><span><b>Presión de válvula y cola</b>Estado de cada bloque frente a su rango óptimo.</span></li>
+        <li><span class="pt-ico"><svg viewBox="0 0 24 24"><path d="M12 3c3 4 6 7.3 6 10.5A6 6 0 0 1 6 13.5C6 10.3 9 7 12 3z"/><path d="M9.5 14.5a2.5 2.5 0 0 0 2.5 2.5"/></svg></span><span><b>Aforos y uniformidad (CU %)</b>Caudal de goteros y mapa GPS de dónde se midió.</span></li>
+        <li><span class="pt-ico"><svg viewBox="0 0 24 24"><path d="M4 6h10M4 12h16M4 18h7"/><path d="M16 4l2 2 3-3"/></svg></span><span><b>Calendario y plan de acción</b>Avance de las mediciones y qué hacer en cada bloque.</span></li>
+      </ul>
+    </div>
+    <div class="pt-pie">
+      <span><i class="pt-dot"></i>Datos actualizados: <b id="upd">—</b></span>
+      <span>Se actualiza a las 7:00 y 14:00</span>
+    </div>
+  </section>
+  <section class="pt-acceso">
+    <div class="pt-form" role="form" aria-label="Acceso al informe">
+      <h2>Acceso clientes</h2>
+      <p>Ingrese con el usuario y la clave entregados por blum.</p>
+      <div class="pt-campo"><label for="u">Usuario</label><div class="pt-input"><input id="u" autocomplete="username" placeholder="Nombre del cliente"></div></div>
+      <div class="pt-campo"><label for="p">Clave</label><div class="pt-input"><input id="p" type="password" autocomplete="current-password"><button class="pt-ver" id="ver" type="button" aria-label="Mostrar clave">Mostrar</button></div></div>
+      <button class="pt-entrar" id="go" type="button"><span>Entrar al informe</span><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+      <div class="lg-err" id="err" role="alert"></div>
+      <div class="pt-seguro"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><span>La información está cifrada y solo se abre con su usuario y clave. Nadie más puede leerla, aunque tenga el link.</span></div>
+      <div class="pt-firma">blum · Método de riego</div>
+    </div>
+  </section>
 </div>
 <div id="app" hidden></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
 <script>
 (function () {
   const $ = (id) => document.getElementById(id);
+  // Curvas de nivel decorativas
+  (function curvas() {
+    const svg = $('curvas'); if (!svg) return;
+    const W = 1000, H = 1000, ns = 'http://www.w3.org/2000/svg';
+    svg.setAttribute('viewBox', `0 0 ${W} ${H}`); svg.setAttribute('preserveAspectRatio', 'xMidYMid slice');
+    const g = document.createElementNS(ns, 'g'); svg.appendChild(g);
+    const centros = [[760, 640, 15], [180, 860, 8], [880, 120, 6]];
+    centros.forEach(([cx, cy, n], ci) => {
+      for (let i = 1; i <= n; i++) {
+        const r = i * 46, pts = [];
+        for (let a = 0; a <= 64; a++) {
+          const t = a / 64 * Math.PI * 2;
+          const k = 1 + 0.09 * Math.sin(3 * t + i * 0.5 + ci) + 0.05 * Math.cos(5 * t - i * 0.3);
+          pts.push([cx + Math.cos(t) * r * k * 1.25, cy + Math.sin(t) * r * k]);
+        }
+        const p = document.createElementNS(ns, 'path');
+        p.setAttribute('d', 'M' + pts.map((q) => q.map((v) => v.toFixed(1)).join(',')).join('L') + 'Z');
+        p.setAttribute('opacity', (0.05 + 0.18 * (1 - i / (n + 1))).toFixed(2));
+        g.appendChild(p);
+      }
+    });
+  })();
   const b64 = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
   const norm = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '');
   let enc = null;
   fetch('reporte.enc.json', {cache: 'no-store'}).then((r) => r.json()).then((j) => { enc = j; $('upd').textContent = j.actualizado || '—'; })
     .catch(() => { $('err').textContent = 'No se pudo cargar el informe. Intente nuevamente.'; });
+  $('ver').addEventListener('click', () => { const p = $('p'), v = p.type === 'password'; p.type = v ? 'text' : 'password'; $('ver').textContent = v ? 'Ocultar' : 'Mostrar'; });
   async function entrar() {
     $('err').textContent = '';
     if (!enc) { $('err').textContent = 'El informe aún se está cargando, espere unos segundos.'; return; }
-    $('go').disabled = true; $('go').textContent = 'Abriendo…';
+    const btn = $('go'); btn.disabled = true; btn.querySelector('span').textContent = 'Abriendo…';
     try {
       const pass = new TextEncoder().encode(norm($('u').value) + '|' + $('p').value);
       const base = await crypto.subtle.importKey('raw', pass, 'PBKDF2', false, ['deriveKey']);
       const key = await crypto.subtle.deriveKey({name: 'PBKDF2', salt: b64(enc.salt), iterations: enc.iter, hash: 'SHA-256'}, base, {name: 'AES-GCM', length: 256}, false, ['decrypt']);
       const plain = await crypto.subtle.decrypt({name: 'AES-GCM', iv: b64(enc.iv)}, key, b64(enc.ct));
-      const bytes = new Uint8Array(plain);
       const ds = new DecompressionStream('gzip');
-      const text = await new Response(new Blob([bytes]).stream().pipeThrough(ds)).text();
+      const text = await new Response(new Blob([new Uint8Array(plain)]).stream().pipeThrough(ds)).text();
       abrir(JSON.parse(text));
     } catch (e) {
-      console.error(e);
       $('err').textContent = 'Usuario o clave incorrectos.';
-      $('go').disabled = false; $('go').textContent = 'Entrar';
+      btn.disabled = false; btn.querySelector('span').textContent = 'Entrar al informe';
     }
   }
   function abrir(P) {
