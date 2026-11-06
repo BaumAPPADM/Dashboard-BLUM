@@ -1,0 +1,61 @@
+name: Actualizar informe Ag. Garcés
+
+on:
+  schedule:
+    # 07:00 y 14:00 hora de Chile en horario de verano (UTC-3). En invierno corre una hora antes.
+    - cron: '0 10 * * *'
+    - cron: '0 17 * * *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: actualizar-informe-garces
+  cancel-in-progress: false
+
+jobs:
+  actualizar:
+    runs-on: ubuntu-latest
+    if: ${{ github.ref == 'refs/heads/main' }}
+    steps:
+      - name: Revisar credenciales
+        id: cred
+        env:
+          GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
+          REPORT_PASSWORD: ${{ secrets.REPORT_PASSWORD }}
+        run: |
+          if [ -z "$GCP_SA_KEY" ] || [ -z "$REPORT_PASSWORD" ]; then
+            echo "Faltan los secretos GCP_SA_KEY o REPORT_PASSWORD: no se actualiza el informe." >> "$GITHUB_STEP_SUMMARY"
+            echo "listo=no" >> "$GITHUB_OUTPUT"
+          else
+            echo "listo=si" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v4
+        if: steps.cred.outputs.listo == 'si'
+      - uses: actions/setup-python@v5
+        if: steps.cred.outputs.listo == 'si'
+        with:
+          python-version: '3.12'
+      - name: Instalar dependencias
+        if: steps.cred.outputs.listo == 'si'
+        run: pip install google-cloud-bigquery==3.25.0 pandas==2.2.3 numpy==2.1.3 cryptography==43.0.3
+      - name: Credencial de BigQuery
+        if: steps.cred.outputs.listo == 'si'
+        env:
+          GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
+        run: printf '%s' "$GCP_SA_KEY" > "$RUNNER_TEMP/sa.json"
+      - name: Descargar datos y armar el informe cifrado
+        if: steps.cred.outputs.listo == 'si'
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
+          REPORT_PASSWORD: ${{ secrets.REPORT_PASSWORD }}
+        run: python garces/scripts/actualizar.py
+      - name: Publicar
+        if: steps.cred.outputs.listo == 'si'
+        run: |
+          git config user.name "blum-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add garces/reporte.enc.json garces/index.html
+          git diff --cached --quiet || git commit -m "Actualización automática de datos"
+          git push

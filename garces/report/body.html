@@ -1,0 +1,515 @@
+<div class="yb">
+  <nav class="gx-tabs" aria-label="Vistas">
+    <button type="button" class="gx-tab" data-vista="campos" aria-pressed="true">Todos los campos</button>
+    <button type="button" class="gx-tab" data-vista="cumplimiento" aria-pressed="false">Cumplimiento del plan</button>
+    <button type="button" class="gx-tab" data-vista="resumen" aria-pressed="false">Resumen del campo</button>
+    <button type="button" class="gx-tab" data-vista="tecnico" aria-pressed="false">Análisis técnico</button>
+    <button type="button" class="gx-tab" data-vista="plan" aria-pressed="false">Plan de acción</button>
+  </nav>
+
+  <nav class="gx-filters gx-campo-filtros" id="filtros" aria-label="Filtros" hidden>
+    <label class="gx-field"><span>Campo</span>
+      <select data-draw="campoSel" data-source="general" aria-label="Campo"></select>
+    </label>
+    <label class="gx-field gx-solo-tecnico" hidden><span>Equipo</span>
+      <select data-draw="equipoSel" data-source="bloques" aria-label="Equipo"></select>
+    </label>
+    <p class="yb-note">Todo lo que sigue corresponde al campo elegido.</p>
+  </nav>
+
+  <!-- ============ TODOS LOS CAMPOS ============ -->
+  <div class="gx-page" id="campos">
+    <header class="yb-hero" id="campos-inicio">
+      <div class="yb-hero-top">
+        <div class="yb-logo" role="img" aria-label="blum"></div>
+        <p class="yb-eyebrow">Informe de riego · <span class="data">Temporada 2026-27</span></p>
+      </div>
+      <p class="yb-eyebrow">Ag. Garcés · Todos los campos</p>
+      <h1>Presiones y caudal de goteros en los campos de Ag. Garcés</h1>
+      <p class="lead">Mediciones de terreno registradas en blum desde julio de 2026: presión de válvula, presión de cola y aforo de goteros, con la ubicación GPS de cada aforo.</p>
+      <div class="yb-kpis">
+        <div class="kpi"><span>Campos con mediciones</span><b data-draw="v" data-source="general" data-field="campos" data-where="campo=Total">—</b></div>
+        <div class="kpi"><span>Bloques medidos</span><b><span data-draw="v" data-source="general" data-field="bloques" data-where="campo=Total">—</span><small>/ <span data-draw="v" data-source="general" data-field="bloquesCampo" data-where="campo=Total">—</span></small></b></div>
+        <div class="kpi"><span>Caudal promedio de goteros</span><b><span data-draw="v" data-source="resumen" data-field="prom" data-where="k=Total%7CAforo">—</span><small>l/h</small></b></div>
+        <div class="kpi"><span>Válvulas bajo su presión</span><b class="warn"><span data-draw="v" data-source="resumen" data-field="activosBaja" data-where="k=Total%7CV%C3%A1lvula">—</span><small>/ <span data-draw="v" data-source="resumen" data-field="activos" data-where="k=Total%7CV%C3%A1lvula">—</span></small></b></div>
+      </div>
+    </header>
+
+    <section class="yb-sec" id="campos-tabla">
+      <div class="yb-sechead">
+        <div class="row"><p class="yb-eyebrow">blum · Campos</p><p class="yb-eyebrow data">/ 01</p></div>
+        <h2>Estado de cada campo</h2>
+        <p>Haga clic en un campo para ver su resumen. Válvulas y colas: bajo su presión de las medidas. Aforo: promedio frente al nominal. Los colores marcan si el porcentaje es bueno, intermedio o bajo.</p>
+      </div>
+      <div class="yb-block">
+        <div class="yb-tablewrap gx-tall">
+          <table class="yb-table gx-campos-tabla" data-source="campos" data-row-key="campo">
+            <thead><tr><th data-field="campo">Campo</th><th class="num" data-field="bloques">Bloques medidos</th><th data-field="desde">Período</th><th class="num" data-field="valvBajas">Válvulas bajas</th><th class="num" data-field="colasBajas">Colas bajas</th><th class="num" data-field="aforos">Aforos</th><th class="num" data-field="aforoProm">Caudal / nominal (l/h)</th><th class="num" data-field="pctAforoRango">% aforos en rango</th><th class="num" data-field="cuMed">Uniformidad CU %</th><th class="num" data-field="pctEnBloque">% aforos en su bloque</th><th class="num" data-field="alertas">Acciones prioritarias</th></tr></thead>
+            <tbody data-draw="camposTabla"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="yb-sec" id="campos-plan">
+      <div class="yb-sechead">
+        <div class="row"><p class="yb-eyebrow">blum · Plan de acción</p><p class="yb-eyebrow data">/ 02</p></div>
+        <h2>Acciones de prioridad alta en todos los campos</h2>
+        <p>Observaciones que requieren acción pronto. El detalle y las demás observaciones de cada campo están en su resumen.</p>
+      </div>
+      <div class="yb-block">
+        <div class="yb-tablewrap gx-tall">
+          <table class="yb-table gx-obs" data-source="observaciones" data-row-key="id">
+            <thead><tr><th data-field="campo">Campo</th><th data-field="nivel">Nivel</th><th data-field="detalle">Observación</th><th data-field="accion">Acción</th><th data-field="donde">Dónde</th></tr></thead>
+            <tbody data-draw="planTabla"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <footer class="yb-foot">
+      <span class="brand"><i class="yb-iso" aria-hidden="true"></i>blum · Método de riego</span>
+      <span>Ag. Garcés · Temporada 2026-27 · Mediciones registradas en blum · Horario de Chile</span>
+    </footer>
+  </div>
+
+  <!-- ============ CUMPLIMIENTO DEL PLAN ============ -->
+  <div class="gx-page" id="cumplimiento" hidden>
+    <header class="yb-hero" id="cumplimiento-inicio">
+      <div class="yb-hero-top">
+        <div class="yb-logo" role="img" aria-label="blum"></div>
+        <p class="yb-eyebrow">Calendario de mediciones · <span class="data">Temporada 2026-27</span></p>
+      </div>
+      <p class="yb-eyebrow">Ag. Garcés · Plan prioritario</p>
+      <h1>Cumplimiento del calendario de mediciones</h1>
+      <p class="lead">Bloques priorizados por Ag. Garcés (sectores sin mediciones la temporada pasada o con baja uniformidad) frente a lo registrado en blum al <span class="data" data-draw="v" data-source="cumplimiento" data-field="corte" data-where="campo=Total">—</span>. Un bloque cuenta como medido si tiene presión de válvula, de cola o aforo esta temporada.</p>
+      <div class="yb-kpis">
+        <div class="kpi"><span>Bloques priorizados</span><b data-draw="v" data-source="cumplimiento" data-field="priorizados" data-where="campo=Total">—</b></div>
+        <div class="kpi"><span>Medidos</span><b data-draw="v" data-source="cumplimiento" data-field="medidos" data-where="campo=Total">—</b></div>
+        <div class="kpi"><span>Cumplimiento</span><b class="warn"><span data-draw="v" data-source="cumplimiento" data-field="pct" data-where="campo=Total">—</span><small>%</small></b></div>
+        <div class="kpi"><span>Campos sin avance</span><b class="warn"><span data-draw="v" data-source="cumplimiento" data-field="sinAvance" data-where="campo=Total">—</span><small>/ <span data-draw="v" data-source="cumplimiento" data-field="campos" data-where="campo=Total">—</span></small></b></div>
+      </div>
+    </header>
+
+    <section class="yb-sec" id="cumplimiento-campos">
+      <div class="yb-sechead">
+        <div class="row"><p class="yb-eyebrow">blum · Avance</p><p class="yb-eyebrow data">/ 01</p></div>
+        <h2>Avance por campo</h2>
+        <p>Porcentaje de los bloques priorizados que ya tienen medición. Calendario corrido un mes respecto del documento original (inicio 5 de noviembre). La línea marca el avance esperado a la fecha para los campos cuyo plazo aún no vence; los demás deberían estar al 100 %.</p>
+      </div>
+      <div class="yb-block">
+        <div class="yb-legend">
+          <span><i class="sw gx-sw-ok"></i>Cumplido o al día</span>
+          <span><i class="sw gx-sw-casi"></i>Casi completo (75 % o más, plazo vencido)</span>
+          <span><i class="sw gx-sw-baja"></i>Atrasado (bajo 75 %)</span>
+          <span><i class="sw gx-sw-alta"></i>Sin avance</span>
+          <span><i class="sw gx-sw-ini"></i>Por iniciar (plazo recién comenzado, sin mediciones)</span>
+        </div>
+        <div class="yb-chart" data-draw="cumplChart" data-source="cumplimiento" style="min-height: 900px"></div>
+      </div>
+      <div class="yb-block">
+        <div class="yb-tablewrap gx-tall">
+          <table class="yb-table" data-source="cumplimiento" data-row-key="campo">
+            <thead><tr><th data-field="campo">Campo</th><th data-field="fin">Fecha límite</th><th class="num" data-field="priorizados">Priorizados</th><th class="num" data-field="medidos">Medidos</th><th class="num" data-field="pct">% avance</th><th data-field="estado">Estado</th><th class="num" data-field="sectoresPendientes">Sectores sin medir</th><th class="num" data-field="fueraPlan">Medidos fuera del plan</th><th data-field="ultima">Última medición del plan</th></tr></thead>
+            <tbody data-draw="cumplTabla"></tbody>
+          </table>
+        </div>
+        <p class="yb-note">Medidos fuera del plan: bloques con medición esta temporada que no estaban entre los priorizados. Lihueimo, Mallorca, El Descanso y El Roble no tienen sectores priorizados en el calendario.</p>
+      </div>
+    </section>
+
+    <section class="yb-sec" id="cumplimiento-sectores">
+      <div class="yb-sechead">
+        <div class="row"><p class="yb-eyebrow">blum · Pendientes</p><p class="yb-eyebrow data">/ 02</p></div>
+        <h2>Sectores priorizados y su estado</h2>
+        <p>Cada sector del calendario con sus bloques planificados y medidos. Primero los pendientes.</p>
+      </div>
+      <div class="gx-row">
+        <label class="gx-field"><span>Campo</span><select data-draw="planCampoSel" data-source="plan" aria-label="Campo del plan"></select></label>
+        <label class="gx-field"><span>Estado</span>
+          <select class="gx-plan-estado" aria-label="Estado del sector">
+            <option value="">Todos</option><option value="Pendiente">Pendiente</option><option value="Parcial">Parcial</option><option value="Completo">Completo</option>
+          </select>
+        </label>
+      </div>
+      <div class="yb-block">
+        <div class="yb-tablewrap gx-tall">
+          <table class="yb-table" data-source="plan" data-row-key="id">
+            <thead><tr><th data-field="campo">Campo</th><th data-field="categoria">Motivo de prioridad</th><th data-field="equipo">Equipo</th><th data-field="sector">Sector</th><th class="num" data-field="bloques_plan">Bloques plan</th><th class="num" data-field="bloques_medidos">Medidos</th><th data-field="estado">Estado</th><th data-field="fin">Fecha límite</th><th data-field="ultima">Última medición</th></tr></thead>
+            <tbody data-draw="planDetalle"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <footer class="yb-foot">
+      <span class="brand"><i class="yb-iso" aria-hidden="true"></i>blum · Método de riego</span>
+      <span>Ag. Garcés · Calendario de mediciones temporada 2026-2027 · Mediciones registradas en blum</span>
+    </footer>
+  </div>
+
+  <!-- ============ RESUMEN DEL CAMPO ============ -->
+  <div class="gx-page" id="resumen" hidden>
+    <header class="yb-hero" id="resumen-inicio">
+      <div class="yb-hero-top">
+        <div class="yb-logo" role="img" aria-label="blum"></div>
+        <p class="yb-eyebrow">Informe de riego · <span class="data">Temporada 2026-27</span></p>
+      </div>
+      <p class="yb-eyebrow">Ag. Garcés</p>
+      <h1>Campo <span data-draw="v" data-source="general" data-field="campo" data-where-t="campo={campo}">—</span></h1>
+      <p class="lead">Mediciones del <span class="data" data-draw="v" data-source="general" data-field="desde" data-where-t="campo={campo}">—</span> al <span class="data" data-draw="v" data-source="general" data-field="hasta" data-where-t="campo={campo}">—</span>: presión de válvula, presión de cola y aforo de goteros.</p>
+      <div class="yb-kpis">
+        <div class="kpi"><span>Bloques revisados</span><b><span data-draw="v" data-source="general" data-field="bloques" data-where-t="campo={campo}">—</span><small>/ <span data-draw="v" data-source="general" data-field="bloquesCampo" data-where-t="campo={campo}">—</span></small></b></div>
+        <div class="kpi"><span>Caudal promedio de goteros</span><b><span data-draw="v" data-source="resumen" data-field="prom" data-where-t="k={campo}%7CAforo">—</span><small>l/h</small></b></div>
+        <div class="kpi"><span>Uniformidad de riego (CU)</span><b><span data-draw="v" data-source="resumen" data-field="cuMed" data-where-t="k={campo}%7CAforo">—</span><small>%</small></b></div>
+        <div class="kpi"><span>Válvulas bajo su presión</span><b class="warn"><span data-draw="v" data-source="resumen" data-field="activosBaja" data-where-t="k={campo}%7CV%C3%A1lvula">—</span><small>/ <span data-draw="v" data-source="resumen" data-field="activos" data-where-t="k={campo}%7CV%C3%A1lvula">—</span></small></b></div>
+      </div>
+    </header>
+
+    <section class="yb-sec" id="resumen-plan">
+      <div class="yb-sechead">
+        <div class="row"><p class="yb-eyebrow">blum · Observaciones</p><p class="yb-eyebrow data">/ 01</p></div>
+        <h2>Observaciones y plan de acción</h2>
+        <p>Una línea por hallazgo, con la acción sugerida, dónde aplicarla y su prioridad.</p>
+      </div>
+      <div class="yb-block">
+        <div class="yb-tablewrap">
+          <table class="yb-table gx-obs" data-source="observaciones" data-row-key="id">
+            <thead><tr><th data-field="nivel">Nivel</th><th data-field="detalle">Observación</th><th data-field="accion">Acción</th><th data-field="donde">Dónde</th><th data-field="prioridad">Prioridad</th></tr></thead>
+            <tbody data-draw="obsTabla"></tbody>
+          </table>
+        </div>
+        <p class="yb-note">E = equipo, S = sector, B = bloque.</p>
+      </div>
+    </section>
+
+    <section class="yb-sec" id="resumen-semaforo">
+      <div class="yb-sechead">
+        <div class="row"><p class="yb-eyebrow">blum · Bloques</p><p class="yb-eyebrow data">/ 02</p></div>
+        <h2>Estado de cada bloque revisado</h2>
+        <p>Presión promedio de válvula y cola, caudal promedio de los goteros y uniformidad, con los comentarios registrados en terreno. El color indica si el promedio está dentro del rango cargado en blum.</p>
+      </div>
+      <div class="yb-legend">
+        <span><i class="sw gx-sw-ok"></i>En rango</span>
+        <span><i class="sw gx-sw-baja"></i>Bajo el rango</span>
+        <span><i class="sw gx-sw-alta"></i>Sobre el rango</span>
+      </div>
+      <div class="yb-block">
+        <div class="yb-tablewrap gx-tall">
+          <table class="yb-table gx-sema" data-source="semaforo" data-row-key="bloque_key">
+            <thead><tr><th data-field="equipo">Equipo</th><th data-field="sector">Sector</th><th data-field="bloque">Bloque</th><th class="num" data-field="valvula">Válvula (bar)</th><th class="num" data-field="cola">Cola (bar)</th><th class="num" data-field="aforo">Caudal (l/h)</th><th class="num" data-field="cu">Uniformidad CU %</th><th data-field="motivo">Qué revisar</th><th data-field="comentarios">Comentarios de terreno</th></tr></thead>
+            <tbody data-draw="semaforoTabla"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="yb-sec" id="resumen-relacion">
+      <div class="yb-sechead">
+        <div class="row"><p class="yb-eyebrow">blum · Aforos</p><p class="yb-eyebrow data">/ 03</p></div>
+        <h2>Aforos de goteros</h2>
+        <p>Caudal medido en terreno frente al caudal nominal cargado para el gotero de cada bloque. La uniformidad (CU, coeficiente de Christiansen) mide qué tan parejo entregan agua los goteros del bloque: 100 % es todos iguales; bajo 90 % indica riego disparejo.</p>
+      </div>
+      <div class="yb-tiles">
+        <div class="yb-tile"><span class="lbl">Aforo promedio</span><span class="big"><span data-draw="v" data-source="resumen" data-field="prom" data-where-t="k={campo}%7CAforo">—</span><small> l/h</small></span><span class="foot">nominal promedio <span data-draw="v" data-source="resumen" data-field="nominal" data-where-t="k={campo}%7CAforo">—</span> l/h</span></div>
+        <div class="yb-tile is-alert"><span class="lbl">Aforos fuera de rango</span><span class="big"><span data-draw="v" data-source="resumen" data-field="pctBajo" data-where-t="k={campo}%7CAforo">—</span><small>% bajo el mínimo</small></span><span class="foot"><span data-draw="v" data-source="resumen" data-field="pctAlto" data-where-t="k={campo}%7CAforo">—</span>% sobre el máximo · <span data-draw="v" data-source="resumen" data-field="lecturas" data-where-t="k={campo}%7CAforo">—</span> aforos</span></div>
+        <div class="yb-tile"><span class="lbl">CU mediana por bloque</span><span class="big"><span data-draw="v" data-source="resumen" data-field="cuMed" data-where-t="k={campo}%7CAforo">—</span><small>%</small></span><span class="foot"><span data-draw="v" data-source="resumen" data-field="bloquesCuBajo" data-where-t="k={campo}%7CAforo">—</span> bloques bajo <span data-draw="k" data-k="duMin">—</span>%</span></div>
+        <div class="yb-tile"><span class="lbl">Aforos por bloque</span><span class="big"><span data-draw="v" data-source="resumen" data-field="porBloque" data-where-t="k={campo}%7CAforo">—</span></span><span class="foot">promedio en <span data-draw="v" data-source="resumen" data-field="bloques" data-where-t="k={campo}%7CAforo">—</span> bloques</span></div>
+      </div>
+      <div class="yb-block" id="resumen-graf-relacion">
+        <h3>¿La presión de la válvula explica el caudal del bloque?</h3>
+        <p class="yb-note">Cada punto es un bloque con presión de válvula y aforo medidos. Hacia la derecha, la válvula trabaja sobre su presión óptima; hacia arriba, los goteros entregan más que su caudal nominal. Si la presión mandara el caudal, los puntos formarían una diagonal que sube hacia la derecha.</p>
+        <div class="yb-chart" data-draw="relScatter" data-alcance="todos" data-source="aforo_bloque" style="min-height: 360px"></div>
+        <p class="yb-note">Correlación <span class="data" data-draw="v" data-source="relacion" data-field="r" data-where-t="campo={campo}">—</span> en <span data-draw="v" data-source="relacion" data-field="bloques" data-where-t="campo={campo}">—</span> bloques: cerca de 0 significa sin relación, cerca de 1 que el caudal sube con la presión. Se calcula con 5 bloques o más.</p>
+      </div>
+    </section>
+
+    <section class="yb-sec" id="resumen-mapa">
+      <div class="yb-sechead">
+        <div class="row"><p class="yb-eyebrow">blum · Terreno</p><p class="yb-eyebrow data">/ 04</p></div>
+        <h2>Dónde se midieron los aforos</h2>
+        <p>Un equipo de riego a la vez. Cada zona sombreada es un sector, cada rombo la válvula de un bloque (con su número), cada cuadrado su cola y cada punto un gotero aforado, ubicado con el GPS que registró blum al guardar la medición. Plano en metros, norte arriba.</p>
+      </div>
+      <div class="yb-block">
+        <div class="yb-legend">
+          <span><i class="sw sw-valve"></i>Válvula</span>
+          <span><i class="sw sw-cola"></i>Cola</span>
+          <span><i class="sw gx-u0"></i>Junto a la válvula</span>
+          <span><i class="sw gx-u1"></i>Dentro del bloque</span>
+          <span><i class="sw gx-u2"></i>Junto a la cola</span>
+          <span><i class="sw gx-u3"></i>Junto a otro bloque</span>
+          <span><i class="sw gx-u4"></i>Lejos de su bloque</span>
+        </div>
+        <div class="gx-row"><label class="gx-field"><span>Equipo de riego</span><select data-draw="mapaEqSel" data-source="lecturas" aria-label="Equipo de riego del mapa"></select></label></div>
+        <div class="yb-chart gx-map" data-draw="mapaEquipo" data-source="bloques lecturas" style="min-height: 380px"></div>
+        <p class="yb-note"><span data-draw="v" data-source="ubicacion" data-field="pctEnBloque" data-where-t="id={campo}%7CTotal">—</span>% de los aforos quedó en su bloque. Pase el cursor sobre un punto para ver el bloque, la fecha, el caudal, su distancia a la válvula y a la cola y el comentario.</p>
+      </div>
+    </section>
+
+    <footer class="yb-foot">
+      <span class="brand"><i class="yb-iso" aria-hidden="true"></i>blum · Método de riego</span>
+      <span>Ag. Garcés · Temporada 2026-27 · Mediciones registradas en blum · Horario de Chile</span>
+    </footer>
+  </div>
+
+  <!-- ============ ANÁLISIS TÉCNICO ============ -->
+  <div class="gx-page" id="tecnico" hidden>
+    <section class="yb-sec" id="valvulas">
+      <div class="yb-sechead">
+        <div class="row"><p class="yb-eyebrow">blum · Riego</p><p class="yb-eyebrow data">/ 01</p></div>
+        <h2>Presión de válvulas</h2>
+        <p>Cada válvula se compara con el rango óptimo cargado en blum para ese activo. Presión baja o alta: su promedio está bajo el mínimo o sobre el máximo. Inestable: el promedio está en rango, pero la mitad o más de sus lecturas no.</p>
+      </div>
+      <div class="yb-tiles">
+        <div class="yb-tile is-alert"><span class="lbl">Presión baja</span><span class="big"><span data-draw="v" data-source="resumen" data-field="activosBaja" data-where-t="k={campo}%7CV%C3%A1lvula">—</span> <small>de <span data-draw="v" data-source="resumen" data-field="activos" data-where-t="k={campo}%7CV%C3%A1lvula">—</span> válvulas</small></span><span class="foot">promedio bajo su mínimo</span></div>
+        <div class="yb-tile"><span class="lbl">Presión alta</span><span class="big"><span data-draw="v" data-source="resumen" data-field="activosAlta" data-where-t="k={campo}%7CV%C3%A1lvula">—</span> <small>válvulas</small></span><span class="foot">promedio sobre su máximo</span></div>
+        <div class="yb-tile"><span class="lbl">Lecturas en rango</span><span class="big"><span data-draw="v" data-source="resumen" data-field="pctEnRango" data-where-t="k={campo}%7CV%C3%A1lvula">—</span><small>%</small></span><span class="foot">de <span data-draw="v" data-source="resumen" data-field="lecturas" data-where-t="k={campo}%7CV%C3%A1lvula">—</span> lecturas</span></div>
+        <div class="yb-tile"><span class="lbl">Presión promedio</span><span class="big"><span data-draw="v" data-source="resumen" data-field="prom" data-where-t="k={campo}%7CV%C3%A1lvula">—</span><small> bar</small></span><span class="foot">en las válvulas medidas</span></div>
+      </div>
+      <div class="yb-block" id="graf-cond-valvulas">
+        <h3>Condición de las válvulas por equipo</h3>
+        <div class="yb-legend">
+          <span><i class="sw gx-sw-baja"></i>Presión baja</span><span><i class="sw gx-sw-alta"></i>Presión alta</span><span><i class="sw gx-sw-ines"></i>Inestable</span><span><i class="sw gx-sw-ok"></i>En rango</span>
+        </div>
+        <div class="yb-chart" data-draw="condChart" data-tipo="Válvula" data-source="cond_bloque" style="min-height: 140px"></div>
+      </div>
+      <div class="yb-block" id="tabla-valvulas">
+        <h2>Detalle por válvula</h2>
+        <div class="yb-tablewrap">
+          <table class="yb-table" data-source="cond_bloque" data-row-key="id">
+            <thead><tr><th data-field="equipo">Equipo</th><th data-field="sector">Sector</th><th data-field="bloque">Bloque</th><th class="num" data-field="lecturas">Lecturas</th><th class="num" data-field="prom">Prom. (bar)</th><th class="num" data-field="rango">Rango óptimo</th><th class="num" data-field="ult">Última</th><th data-field="ultFecha">Fecha última</th><th class="num" data-field="pctBajo">% bajo</th><th class="num" data-field="pctAlto">% sobre</th><th data-field="condicion">Condición</th><th data-field="comentarios">Comentarios</th></tr></thead>
+            <tbody data-draw="condTabla" data-tipo="Válvula"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="yb-sec" id="colas">
+      <div class="yb-sechead">
+        <div class="row"><p class="yb-eyebrow">blum · Riego</p><p class="yb-eyebrow data">/ 02</p></div>
+        <h2>Presión de cola</h2>
+        <p>Presión al final de los laterales. En cada visita se pueden medir varias hileras por bloque; todas las lecturas cuentan.</p>
+      </div>
+      <div class="yb-tiles">
+        <div class="yb-tile is-alert"><span class="lbl">Presión baja</span><span class="big"><span data-draw="v" data-source="resumen" data-field="activosBaja" data-where-t="k={campo}%7CCola">—</span> <small>de <span data-draw="v" data-source="resumen" data-field="activos" data-where-t="k={campo}%7CCola">—</span> colas</small></span><span class="foot">promedio bajo su mínimo</span></div>
+        <div class="yb-tile"><span class="lbl">Presión alta</span><span class="big"><span data-draw="v" data-source="resumen" data-field="activosAlta" data-where-t="k={campo}%7CCola">—</span> <small>colas</small></span><span class="foot">promedio sobre su máximo</span></div>
+        <div class="yb-tile"><span class="lbl">Lecturas en rango</span><span class="big"><span data-draw="v" data-source="resumen" data-field="pctEnRango" data-where-t="k={campo}%7CCola">—</span><small>%</small></span><span class="foot">de <span data-draw="v" data-source="resumen" data-field="lecturas" data-where-t="k={campo}%7CCola">—</span> lecturas</span></div>
+        <div class="yb-tile is-alert"><span class="lbl">Cola sobre la válvula</span><span class="big"><span data-draw="v" data-source="cola_valvula" data-field="colaMayor" data-where-t="campo={campo}">—</span> <small>de <span data-draw="v" data-source="cola_valvula" data-field="pares" data-where-t="campo={campo}">—</span> visitas</small></span><span class="foot">la cola marcó más que su válvula el mismo día</span></div>
+      </div>
+      <div class="yb-block" id="graf-cond-colas">
+        <h3>Condición de las colas por equipo</h3>
+        <div class="yb-legend">
+          <span><i class="sw gx-sw-baja"></i>Presión baja</span><span><i class="sw gx-sw-alta"></i>Presión alta</span><span><i class="sw gx-sw-ines"></i>Inestable</span><span><i class="sw gx-sw-ok"></i>En rango</span>
+        </div>
+        <div class="yb-chart" data-draw="condChart" data-tipo="Cola" data-source="cond_bloque" style="min-height: 140px"></div>
+      </div>
+      <div class="yb-block" id="tabla-colas">
+        <h2>Detalle por cola</h2>
+        <div class="yb-tablewrap">
+          <table class="yb-table" data-source="cond_bloque" data-row-key="id">
+            <thead><tr><th data-field="equipo">Equipo</th><th data-field="sector">Sector</th><th data-field="bloque">Bloque</th><th class="num" data-field="lecturas">Lecturas</th><th class="num" data-field="prom">Prom. (bar)</th><th class="num" data-field="rango">Rango óptimo</th><th class="num" data-field="ult">Última</th><th data-field="ultFecha">Fecha última</th><th class="num" data-field="pctBajo">% bajo</th><th class="num" data-field="pctAlto">% sobre</th><th data-field="condicion">Condición</th><th data-field="comentarios">Comentarios</th></tr></thead>
+            <tbody data-draw="condTabla" data-tipo="Cola"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="yb-sec" id="aforos">
+      <div class="yb-sechead">
+        <div class="row"><p class="yb-eyebrow">blum · Riego</p><p class="yb-eyebrow data">/ 03</p></div>
+        <h2>Aforos de goteros</h2>
+        <p>Caudal medido frente al caudal nominal cargado para el gotero de cada bloque. Uniformidad CU (Christiansen): 1 menos la desviación media de los aforos dividida por su promedio. También se muestra el DU (cuarto más bajo / promedio).</p>
+      </div>
+      <div class="yb-tiles">
+        <div class="yb-tile"><span class="lbl">Aforo promedio</span><span class="big"><span data-draw="v" data-source="resumen" data-field="prom" data-where-t="k={campo}%7CAforo">—</span><small> l/h</small></span><span class="foot">nominal <span data-draw="v" data-source="resumen" data-field="nominal" data-where-t="k={campo}%7CAforo">—</span> l/h</span></div>
+        <div class="yb-tile is-alert"><span class="lbl">Aforos bajo el mínimo</span><span class="big"><span data-draw="v" data-source="resumen" data-field="pctBajo" data-where-t="k={campo}%7CAforo">—</span><small>%</small></span><span class="foot"><span data-draw="v" data-source="resumen" data-field="pctAlto" data-where-t="k={campo}%7CAforo">—</span>% sobre el máximo · <span data-draw="v" data-source="resumen" data-field="lecturas" data-where-t="k={campo}%7CAforo">—</span> aforos</span></div>
+        <div class="yb-tile"><span class="lbl">CU mediana por bloque</span><span class="big"><span data-draw="v" data-source="resumen" data-field="cuMed" data-where-t="k={campo}%7CAforo">—</span><small>%</small></span><span class="foot"><span data-draw="v" data-source="resumen" data-field="bloquesCuBajo" data-where-t="k={campo}%7CAforo">—</span> bloques bajo <span data-draw="k" data-k="duMin">—</span>%</span></div>
+        <div class="yb-tile"><span class="lbl">Aforos por bloque</span><span class="big"><span data-draw="v" data-source="resumen" data-field="porBloque" data-where-t="k={campo}%7CAforo">—</span></span><span class="foot">promedio en <span data-draw="v" data-source="resumen" data-field="bloques" data-where-t="k={campo}%7CAforo">—</span> bloques</span></div>
+      </div>
+      <div class="yb-block" id="tabla-aforos">
+        <h2>Aforos por bloque</h2>
+        <div class="yb-tablewrap">
+          <table class="yb-table" data-source="aforo_bloque" data-row-key="id">
+            <thead><tr><th data-field="equipo">Equipo</th><th data-field="sector">Sector</th><th data-field="bloque">Bloque</th><th class="num" data-field="aforos">Aforos</th><th class="num" data-field="dias">Días</th><th class="num" data-field="prom">Prom. (l/h)</th><th class="num" data-field="nominal">Nominal</th><th class="num" data-field="difPct">Diferencia %</th><th class="num" data-field="cu">CU %</th><th class="num" data-field="du">DU %</th><th class="num" data-field="pctAlto">% sobre máx.</th><th class="num" data-field="pctBajo">% bajo mín.</th><th class="num" data-field="valvProm">Válvula (bar)</th><th class="num" data-field="colaProm">Cola (bar)</th><th data-field="comentarios">Comentarios</th></tr></thead>
+            <tbody data-draw="aforoTabla"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="yb-sec" id="ubicacion">
+      <div class="yb-sechead">
+        <div class="row"><p class="yb-eyebrow">blum · Terreno</p><p class="yb-eyebrow data">/ 04</p></div>
+        <h2>Dónde se realizaron los aforos</h2>
+        <p>Cada aforo se ubica con el GPS que guardó la app al registrarlo, frente a la válvula de su bloque (coordenada del activo en blum) y a su cola (posición de las lecturas de cola). Junto = a <span data-draw="k" data-k="zonaM">—</span> m o menos. Junto a otro bloque: el GPS quedó al lado de la válvula de otro bloque. Fuera del campo: a más de <span data-draw="k" data-k="fueraKm">—</span> km de cualquier bloque.</p>
+      </div>
+      <div class="yb-tiles">
+        <div class="yb-tile"><span class="lbl">Ubicados en su bloque</span><span class="big"><span data-draw="v" data-source="ubicacion" data-field="pctEnBloque" data-where-t="id={campo}%7CTotal">—</span><small>%</small></span><span class="foot"><span data-draw="v" data-source="ubicacion" data-field="enBloque" data-where-t="id={campo}%7CTotal">—</span> de <span data-draw="v" data-source="ubicacion" data-field="aforos" data-where-t="id={campo}%7CTotal">—</span> aforos</span></div>
+        <div class="yb-tile is-alert"><span class="lbl">Junto a otro bloque</span><span class="big"><span data-draw="v" data-source="ubicacion" data-field="otroBloque" data-where-t="id={campo}%7CTotal">—</span></span><span class="foot">aforos</span></div>
+        <div class="yb-tile"><span class="lbl">Tercio final del lateral</span><span class="big"><span data-draw="v" data-source="tramo" data-field="pct" data-where-t="id={campo}%7CFinal">—</span><small>%</small></span><span class="foot">inicio <span data-draw="v" data-source="tramo" data-field="pct" data-where-t="id={campo}%7CInicio">—</span>% · mitad <span data-draw="v" data-source="tramo" data-field="pct" data-where-t="id={campo}%7CMitad">—</span>%</span></div>
+        <div class="yb-tile"><span class="lbl">Sin GPS o fuera del campo</span><span class="big"><span data-draw="v" data-source="ubicacion" data-field="sinGps" data-where-t="id={campo}%7CTotal">—</span></span><span class="foot">sin GPS · <span data-draw="v" data-source="ubicacion" data-field="fueraCampo" data-where-t="id={campo}%7CTotal">—</span> fuera del campo</span></div>
+      </div>
+      <div class="yb-block" id="graf-ubicacion">
+        <h3>Ubicación de los aforos por equipo</h3>
+        <div class="yb-legend">
+          <span><i class="sw gx-u0"></i>Junto a la válvula</span><span><i class="sw gx-u1"></i>Dentro del bloque</span><span><i class="sw gx-u2"></i>Junto a la cola</span><span><i class="sw gx-u3"></i>Junto a otro bloque</span><span><i class="sw gx-u4"></i>Lejos de su bloque</span><span><i class="sw gx-u5"></i>Fuera del campo</span><span><i class="sw gx-u6"></i>Sin GPS</span>
+        </div>
+        <div class="yb-chart" data-draw="ubicBar" data-source="lecturas" style="min-height: 120px"></div>
+      </div>
+      <div class="yb-block" id="mapa-aforos">
+        <h2>Mapa de válvulas, colas y aforos</h2>
+        <p class="yb-note">Plano del campo en metros (norte arriba) para el equipo elegido. Los rombos sin línea son válvulas de bloques sin cola medida.</p>
+        <div class="yb-legend">
+          <span><i class="sw sw-valve"></i>Válvula</span><span><i class="sw sw-cola"></i>Cola</span><span><i class="sw gx-u0"></i>Junto a la válvula</span><span><i class="sw gx-u1"></i>Dentro del bloque</span><span><i class="sw gx-u2"></i>Junto a la cola</span><span><i class="sw gx-u3"></i>Junto a otro bloque</span><span><i class="sw gx-u4"></i>Lejos de su bloque</span>
+        </div>
+        <div class="yb-chart gx-map" data-draw="mapa" data-source="bloques lecturas" style="min-height: 560px"></div>
+      </div>
+    </section>
+
+    <section class="yb-sec" id="calidad">
+      <div class="yb-sechead">
+        <div class="row"><p class="yb-eyebrow">blum · Datos</p><p class="yb-eyebrow data">/ 05</p></div>
+        <h2>Limpieza y calidad de los datos</h2>
+        <p>Reglas aplicadas antes de calcular. Las lecturas excluidas o corregidas siguen en el detalle, marcadas.</p>
+      </div>
+      <div class="yb-grid">
+        <div class="yb-block" id="tabla-limpieza">
+          <h3>Reglas de limpieza</h3>
+          <div class="yb-tablewrap">
+            <table class="yb-table" data-source="limpieza" data-row-key="id">
+              <thead><tr><th data-field="regla">Regla</th><th data-field="accion">Acción</th><th class="num" data-field="lecturas">Lecturas</th></tr></thead>
+              <tbody data-draw="limpiezaTabla"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="yb-block" id="tabla-rangos">
+          <h3>Rangos óptimos de válvula cargados en blum</h3>
+          <div class="yb-tablewrap">
+            <table class="yb-table" data-source="rangos_valvula" data-row-key="id">
+              <thead><tr><th class="num" data-field="rango">Mín / óptimo / máx (bar)</th><th class="num" data-field="valvulas">Válvulas</th><th data-field="equipos">Equipos</th></tr></thead>
+              <tbody data-draw="rangosTabla"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="yb-sec" id="anexo">
+      <div class="yb-sechead">
+        <div class="row"><p class="yb-eyebrow">blum · Anexo</p><p class="yb-eyebrow data">/ 06</p></div>
+        <h2>Detalle de lecturas</h2>
+        <p>Todas las lecturas del campo y equipo elegidos, de la más reciente a la más antigua, incluidas las excluidas o corregidas por la limpieza.</p>
+      </div>
+      <div class="yb-block" id="tabla-detalle">
+        <div class="gx-row">
+          <label class="gx-field"><span>Tipo</span>
+            <select class="gx-tipo" aria-label="Tipo de medición">
+              <option value="">Todas</option><option value="Válvula">Válvula</option><option value="Cola">Cola</option><option value="Aforo">Aforo</option>
+            </select>
+          </label>
+          <label class="gx-field"><span>Estado</span>
+            <select class="gx-estado" aria-label="Estado">
+              <option value="">Todos</option><option value="Fuera de rango">Fuera de rango</option><option value="Bajo">Bajo</option><option value="Alto">Alto</option><option value="En rango">En rango</option><option value="Con comentario">Con comentario</option><option value="Limpieza">Con regla de limpieza</option>
+            </select>
+          </label>
+          <label class="gx-field gx-grow"><span>Buscar</span><input class="gx-q" type="search" placeholder="Bloque, sector, comentario…" aria-label="Buscar"></label>
+        </div>
+        <div class="yb-tablewrap gx-tall">
+          <table class="yb-table" data-source="lecturas" data-row-key="id">
+            <thead><tr><th data-field="fecha">Fecha</th><th data-field="tipo">Tipo</th><th data-field="equipo">Equipo</th><th data-field="sector">Sector</th><th data-field="bloque">Bloque</th><th class="num" data-field="valor">Valor</th><th data-field="unidad">Unidad</th><th class="num" data-field="min">Mín.</th><th class="num" data-field="max">Máx.</th><th data-field="estado">Estado</th><th data-field="ubicacion">Ubicación GPS</th><th data-field="comentario">Comentario</th><th data-field="nota">Limpieza</th></tr></thead>
+            <tbody data-draw="detalleTabla"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <footer class="yb-foot">
+      <span class="brand"><i class="yb-iso" aria-hidden="true"></i>blum · Método de riego</span>
+      <span>Ag. Garcés · Temporada 2026-27 · Datos de BigQuery de Baumsystem · Horario de Chile</span>
+    </footer>
+  </div>
+  <!-- ============ PLAN DE ACCIÓN ============ -->
+  <div class="gx-page" id="plan" hidden>
+    <section class="yb-sec" id="plan-guia">
+      <div class="yb-sechead">
+        <div class="row"><p class="yb-eyebrow">blum · Decisión</p><p class="yb-eyebrow data">/ 01</p></div>
+        <h2>Cómo leer válvula, cola y caudal juntos</h2>
+        <p>Cada bloque se diagnostica combinando las tres mediciones. "Bajo" y "alto" significan bajo el mínimo o sobre el máximo del rango cargado en blum para ese activo (por ejemplo, un gotero de 2 l/h con rango 1,8 a 2,3 l/h).</p>
+      </div>
+      <div class="yb-block">
+        <div class="yb-tablewrap">
+          <table class="yb-table gx-obs gx-guia">
+            <thead><tr><th>Válvula</th><th>Cola</th><th>Caudal</th><th>Qué está pasando</th><th>Qué hacer</th><th>Prioridad</th></tr></thead>
+            <tbody>
+              <tr><td><span class="yb-chip low">Baja</span></td><td><span class="yb-chip low">Baja</span> o en rango</td><td><span class="yb-chip alert">Alto</span></td><td class="gx-wrap"><b>Presión baja con caudal alto.</b> El bloque entrega más agua de la diseñada y eso hace caer la presión: fugas o roturas en laterales, goteros dañados o un gotero de mayor caudal que el cargado. También puede ser un manómetro que marca bajo.</td><td class="gx-wrap">Verificar el manómetro, recorrer laterales buscando fugas y goteros saltados, confirmar el gotero instalado. Recién después ajustar la válvula.</td><td><span class="yb-chip alert">Alta</span></td></tr>
+              <tr><td><span class="yb-chip low">Baja</span></td><td>Cualquiera</td><td><span class="yb-chip low">Bajo</span></td><td class="gx-wrap"><b>Falta presión.</b> No llega suficiente presión y el caudal ya bajó: filtros sucios, válvula mal regulada, bomba o demasiados sectores a la vez.</td><td class="gx-wrap">Revisar presión de caseta y filtros, subir la regulación de la válvula, revisar turnos de riego.</td><td><span class="yb-chip alert">Alta</span></td></tr>
+              <tr><td><span class="yb-chip ok">En rango</span></td><td><span class="yb-chip low">Baja</span></td><td><span class="yb-chip low">Bajo</span></td><td class="gx-wrap"><b>Pérdida de presión en los laterales.</b> La presión entra bien pero no llega al final: laterales obstruidos o con fugas.</td><td class="gx-wrap">Lavar laterales abriendo finales de línea, revisar fugas y, si persiste, limpieza química.</td><td><span class="yb-chip alert">Alta</span></td></tr>
+              <tr><td><span class="yb-chip ok">En rango</span></td><td><span class="yb-chip ok">En rango</span></td><td><span class="yb-chip low">Bajo</span></td><td class="gx-wrap"><b>Obstrucción de goteros.</b> Con presión correcta, el caudal bajo apunta a sarro, algas o sedimento.</td><td class="gx-wrap">Revisar goteros y filtros; limpieza química (ácido o cloro) y volver a aforar.</td><td><span class="yb-chip alert">Alta</span></td></tr>
+              <tr><td colspan="3">Goteros con 0,2 l/h o menos</td><td class="gx-wrap"><b>Goteros sin caudal.</b> Tapados, laterales cortados o línea sin riego.</td><td class="gx-wrap">Revisar de inmediato, limpiar o reemplazar y volver a aforar.</td><td><span class="yb-chip alert">Alta</span></td></tr>
+              <tr><td><span class="yb-chip low">Baja</span></td><td><span class="yb-chip low">Baja</span></td><td><span class="yb-chip ok">En rango</span></td><td class="gx-wrap"><b>Goteros al límite.</b> Todavía compensan, pero con un poco menos de presión el caudal caerá.</td><td class="gx-wrap">Revisar filtros, subir la regulación de la válvula y volver a medir.</td><td><span class="yb-chip low">Media</span></td></tr>
+              <tr><td colspan="2">Cola marca más que la válvula</td><td>Cualquiera</td><td class="gx-wrap"><b>Lecturas inconsistentes.</b> En terreno plano no ocurre: manómetros distintos o válvula medida a la entrada.</td><td class="gx-wrap">Medir válvula (a la salida) y cola con el mismo manómetro antes de ajustar nada.</td><td><span class="yb-chip low">Media</span></td></tr>
+              <tr><td><span class="yb-chip ok">En rango</span></td><td><span class="yb-chip low">Baja</span></td><td><span class="yb-chip ok">En rango</span></td><td class="gx-wrap"><b>Pérdida en el lateral.</b> Fugas o laterales largos; el caudal todavía se mantiene.</td><td class="gx-wrap">Revisar fugas y finales de línea, lavar laterales.</td><td><span class="yb-chip low">Media</span></td></tr>
+              <tr><td><span class="yb-chip ok">En rango</span></td><td><span class="yb-chip ok">En rango</span></td><td><span class="yb-chip alert">Alto</span></td><td class="gx-wrap"><b>Gotero distinto al cargado.</b> Gotero de mayor caudal o gastado que ya no regula.</td><td class="gx-wrap">Confirmar el gotero instalado y corregir el nominal en blum; evaluar reemplazo si están gastados.</td><td><span class="yb-chip low">Media</span></td></tr>
+              <tr><td><span class="yb-chip alert">Alta</span></td><td><span class="yb-chip alert">Alta</span></td><td>Cualquiera</td><td class="gx-wrap"><b>Sobrepresión.</b> Más riesgo de fugas y desgaste de goteros.</td><td class="gx-wrap">Bajar la regulación de la válvula al óptimo.</td><td><span class="yb-chip low">Media</span></td></tr>
+              <tr><td colspan="3">Caudal en rango, CU bajo 90 %</td><td class="gx-wrap"><b>Riego disparejo.</b> Algunos goteros entregan mucho menos: obstrucción puntual.</td><td class="gx-wrap">Ubicar las hileras con goteros bajos, limpiar o reemplazar.</td><td><span class="yb-chip low">Media</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="yb-sec" id="plan-resumen">
+      <div class="yb-sechead">
+        <div class="row"><p class="yb-eyebrow">blum · Diagnóstico</p><p class="yb-eyebrow data">/ 02</p></div>
+        <h2>Diagnósticos encontrados</h2>
+        <p>Cuántos bloques quedan en cada diagnóstico, ordenados por prioridad.</p>
+      </div>
+      <div class="gx-row">
+        <label class="gx-field"><span>Mostrar</span>
+          <select class="gx-alcance" aria-label="Alcance">
+            <option value="">Campo elegido</option>
+            <option value="todos">Todos los campos</option>
+          </select>
+        </label>
+        <label class="gx-field"><span>Prioridad</span>
+          <select class="gx-prio" aria-label="Prioridad">
+            <option value="">Todas</option>
+            <option value="Alta">Alta</option>
+            <option value="Media">Media</option>
+            <option value="Baja">Baja</option>
+            <option value="—">Sin acción</option>
+          </select>
+        </label>
+      </div>
+      <div class="yb-block">
+        <div class="yb-tablewrap">
+          <table class="yb-table gx-obs" data-source="diag_resumen" data-row-key="id">
+            <thead><tr><th data-field="prioridad">Prioridad</th><th data-field="diagnostico">Diagnóstico</th><th class="num" data-field="bloques">Bloques</th><th data-field="accion">Acción principal</th></tr></thead>
+            <tbody data-draw="diagResTabla"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="yb-sec" id="plan-bloques">
+      <div class="yb-sechead">
+        <div class="row"><p class="yb-eyebrow">blum · Plan de acción</p><p class="yb-eyebrow data">/ 03</p></div>
+        <h2>Qué hacer en cada bloque</h2>
+        <p>Primero los bloques de prioridad alta. Los valores son promedios del bloque; el color indica si están bajo, en o sobre su rango.</p>
+      </div>
+      <div class="yb-block">
+        <div class="yb-tablewrap gx-tall">
+          <table class="yb-table gx-obs" data-source="diagnostico" data-row-key="bloque_key">
+            <thead><tr><th data-field="prioridad">Prioridad</th><th data-field="campo">Campo</th><th data-field="bloque">Equipo · sector · bloque</th><th class="num" data-field="valvula">Válvula (bar)</th><th class="num" data-field="cola">Cola (bar)</th><th class="num" data-field="aforo">Caudal (l/h)</th><th class="num" data-field="cu">CU %</th><th data-field="diagnostico">Diagnóstico</th><th data-field="accion">Qué hacer</th><th data-field="comentarios">Comentarios de terreno</th></tr></thead>
+            <tbody data-draw="planBloques"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <footer class="yb-foot">
+      <span class="brand"><i class="yb-iso" aria-hidden="true"></i>blum · Método de riego</span>
+      <span>Ag. Garcés · Temporada 2026-27 · Diagnóstico por reglas sobre mediciones registradas en blum</span>
+    </footer>
+  </div>
+</div>
