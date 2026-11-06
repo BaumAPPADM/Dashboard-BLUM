@@ -304,7 +304,7 @@ dash.calc('diag_resumen', {
 
 dash.calc('cumplimiento', {
   inputs: ['plan', 'lecturas'], title: 'Cumplimiento del calendario',
-  description: 'Por campo del calendario de mediciones de Ag. Garcés: bloques priorizados, bloques priorizados ya medidos (válvula, cola o aforo desde julio 2026), % de avance, avance esperado a la fecha de la última medición registrada, estado (casi completo: plazo vencido con 75 % o más) y bloques medidos fuera del plan; la fila Total suma todos los campos.',
+  description: 'Por campo del calendario de mediciones de Ag. Garcés: bloques priorizados, bloques priorizados ya medidos (válvula, cola o aforo desde julio 2026), % de avance, fechas de inicio y fecha límite (corridas un mes), días que faltan para la fecha límite al corte, avance esperado a la fecha de la última medición registrada, estado (casi completo: plazo vencido con 75 % o más) y bloques medidos fuera del plan; la fila Total suma todos los campos.',
   fn: (plan, lecturas) => {
     const corte = lecturas.map((r) => r.dia).sort().pop();
     const dias = (a, b) => (Date.parse(b) - Date.parse(a)) / 864e5;
@@ -313,14 +313,15 @@ dash.calc('cumplimiento', {
       const prio = d3.sum(g, (r) => r.bloques_plan), med = d3.sum(g, (r) => r.bloques_medidos), ini = g[0].inicio, fin = g[0].fin;
       const pct = Math.round(med * 100 / prio), esperado = corte >= fin ? 100 : Math.max(0, Math.round(dias(ini, corte) * 100 / dias(ini, fin)));
       const medidosTotal = tot.get(campo) || 0;
-      return {campo, campo_n: g[0].campo_n, inicio: ini, fin, corte, priorizados: prio, medidos: med, pendientes: prio - med, pct, esperado,
+      const restan = Math.round(dias(corte, fin));
+      return {campo, campo_n: g[0].campo_n, inicio: ini, fin, inicio_original: g[0].inicio_original, fin_original: g[0].fin_original, restan, corte, priorizados: prio, medidos: med, pendientes: prio - med, pct, esperado,
         estado: pct >= 100 ? 'Cumplido' : med === 0 && esperado === 0 ? 'Por iniciar' : med === 0 ? 'Sin avance' : pct >= esperado ? 'Al día' : pct >= 75 ? 'Casi completo' : 'Atrasado',
         sectores: g.length, sectoresPendientes: g.filter((r) => r.estado === 'Pendiente').length,
         medidosTotal, fueraPlan: Math.max(0, medidosTotal - med),
         ultima: g.map((r) => r.ultima).filter(Boolean).sort().pop() || null};
     }).sort((a, b) => a.campo_n - b.campo_n);
     const P = d3.sum(out, (r) => r.priorizados), Me = d3.sum(out, (r) => r.medidos);
-    out.push({campo: 'Total', campo_n: 999, inicio: null, fin: null, corte, priorizados: P, medidos: Me, pendientes: P - Me, pct: Math.round(Me * 100 / P), esperado: null,
+    out.push({campo: 'Total', campo_n: 999, inicio: d3.min(out, (r) => r.inicio), fin: d3.max(out, (r) => r.fin), inicio_original: null, fin_original: null, restan: null, corte, priorizados: P, medidos: Me, pendientes: P - Me, pct: Math.round(Me * 100 / P), esperado: null,
       estado: null, sectores: d3.sum(out, (r) => r.sectores), sectoresPendientes: d3.sum(out, (r) => r.sectoresPendientes), medidosTotal: d3.sum(out, (r) => r.medidosTotal),
       fueraPlan: d3.sum(out, (r) => r.fueraPlan), ultima: null, campos: out.length, sinAvance: out.filter((r) => r.estado === 'Sin avance').length,
       cumplidos: out.filter((r) => r.estado === 'Cumplido').length, atrasados: out.filter((r) => r.estado === 'Atrasado' || r.estado === 'Sin avance').length, casi: out.filter((r) => r.estado === 'Casi completo').length});

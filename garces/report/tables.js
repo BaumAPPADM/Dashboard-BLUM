@@ -147,10 +147,11 @@ dash.draw('planBloques', (tb) => {
 
 // Cumplimiento del calendario
 const estKind = (e) => (e === 'Cumplido' || e === 'Completo' || e === 'Al día' ? 'ok' : e === 'Casi completo' ? 'casi' : e === 'Por iniciar' ? 'mid' : e === 'Sin avance' || e === 'Pendiente' ? 'alert' : 'low');
+const plazo = (r) => (r.restan == null ? '—' : r.estado === 'Cumplido' ? 'Cumplido' : r.restan > 1 ? `Quedan ${r.restan} días` : r.restan === 1 ? 'Queda 1 día' : r.restan === 0 ? 'Vence hoy' : r.restan === -1 ? 'Venció hace 1 día' : `Venció hace ${-r.restan} días`);
 dash.draw('cumplTabla', (tb) => {
   const {fdate} = window.GX;
   fillRows(tb, 'cumplimiento', (r) => r.campo !== 'Total', (a, b) => a.campo_n - b.campo_n, (tr, r) => {
-    cell(tr, r.campo, 'strong'); cell(tr, fdate(r.fin)); cell(tr, nv(r.priorizados), 'num'); cell(tr, nv(r.medidos), 'num'); cell(tr, nv(r.pct), 'num strong');
+    cell(tr, r.campo, 'strong'); cell(tr, fdate(r.inicio)); cell(tr, fdate(r.fin), 'strong'); cell(tr, plazo(r), r.restan < 0 && r.estado !== 'Cumplido' ? 'gx-vencido' : 'gx-muted'); cell(tr, nv(r.priorizados), 'num'); cell(tr, nv(r.medidos), 'num'); cell(tr, nv(r.pct), 'num strong');
     chip(tr, r.estado, estKind(r.estado)); cell(tr, `${nv(r.sectoresPendientes)} / ${nv(r.sectores)}`, 'num'); cell(tr, nv(r.fueraPlan), 'num'); cell(tr, fdate(r.ultima));
   }, 'campo');
 });
@@ -170,6 +171,6 @@ dash.draw('planDetalle', (tb) => {
   const ord = {Pendiente: 0, Parcial: 1, Completo: 2};
   fillRows(tb, 'plan', (r) => (!c || r.campo === c) && (!e || r.estado === e), (a, b) => a.campo_n - b.campo_n || ord[a.estado] - ord[b.estado] || a.equipo.localeCompare(b.equipo, 'es', {numeric: true}) || a.sector.localeCompare(b.sector, 'es', {numeric: true}), (tr, r) => {
     cell(tr, r.campo); cell(tr, r.categoria, 'gx-wrap gx-muted'); cell(tr, r.equipo); cell(tr, r.sector); cell(tr, nv(r.bloques_plan), 'num'); cell(tr, nv(r.bloques_medidos), 'num strong');
-    chip(tr, r.estado, estKind(r.estado)); cell(tr, fdate(r.fin)); cell(tr, fdate(r.ultima));
+    chip(tr, r.estado, estKind(r.estado)); cell(tr, fdate(r.inicio)); cell(tr, fdate(r.fin), 'strong'); cell(tr, fdate(r.ultima));
   });
 });

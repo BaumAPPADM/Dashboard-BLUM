@@ -158,7 +158,8 @@ dash.draw('cumplChart', (el) => {
   const rows = d.data.filter((r) => r.campo !== 'Total');
   const W = el.clientWidth, rowH = 24, H = rows.length * rowH + 30;
   const svg = d3.select(el).append('svg').attr('width', '100%').attr('viewBox', `0 0 ${W} ${H}`).attr('height', H);
-  const ml = Math.max(...rows.map((r) => textW(svg, r.campo))) + 12, mr = 60;
+  const lim = (r) => `vence ${fdate(r.fin).replace(/ \d\d$/, '')}`;
+  const ml = Math.max(...rows.map((r) => textW(svg, r.campo))) + 12, mr = 48 + Math.max(...rows.map((r) => textW(svg, lim(r)))) + 8;
   const x = d3.scaleLinear([0, 100], [ml, W - mr]), y = d3.scaleBand(rows.map((r) => r.campo), [4, H - 24]).padding(0.28);
   [0, 25, 50, 75, 100].forEach((v) => {
     svg.append('line').attr('x1', x(v)).attr('x2', x(v)).attr('y1', 0).attr('y2', H - 24).style('stroke', 'var(--cds-chart-grid)');
@@ -173,8 +174,9 @@ dash.draw('cumplChart', (el) => {
     svg.append('rect').attr('x', x(0)).attr('y', yy).attr('width', Math.max(r.pct ? 2 : 0, x(Math.min(100, r.pct)) - x(0))).attr('height', h).attr('rx', 2).style('fill', col(r));
     if (r.esperado < 100) svg.append('line').attr('x1', x(r.esperado)).attr('x2', x(r.esperado)).attr('y1', yy - 3).attr('y2', yy + h + 3).style('stroke', BL.bosque).attr('stroke-width', 2);
     svg.append('text').attr('x', x(100) + 6).attr('y', yy + h / 2).attr('dy', '0.35em').attr('class', 'strong').text(`${fint(r.pct)}%`);
+    svg.append('text').attr('x', x(100) + 48).attr('y', yy + h / 2).attr('dy', '0.35em').style('fill', r.fin < r.corte && r.estado !== 'Cumplido' ? BL.naranjo : 'var(--color-fg-muted)').text(lim(r));
     svg.append('rect').attr('x', 0).attr('y', yy - 2).attr('width', W).attr('height', h + 4).style('fill', 'transparent')
-      .on('mousemove', (ev) => { const [px, py] = d3.pointer(ev, el); t.show([r.campo, `${fint(r.medidos)} de ${fint(r.priorizados)} bloques priorizados medidos`, `Fecha límite ${fdate(r.fin)} · ${r.estado}`, `${fint(r.fueraPlan)} bloques medidos fuera del plan`], px, py); })
+      .on('mousemove', (ev) => { const [px, py] = d3.pointer(ev, el); t.show([r.campo, `${fint(r.medidos)} de ${fint(r.priorizados)} bloques priorizados medidos`, `Período ${fdate(r.inicio)} – ${fdate(r.fin)} · ${r.estado}`, `Calendario original: ${fdate(r.inicio_original)} – ${fdate(r.fin_original)}`, `${fint(r.fueraPlan)} bloques medidos fuera del plan`], px, py); })
       .on('mouseleave', () => t.hide());
   });
 });

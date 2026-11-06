@@ -54,3 +54,4 @@
 .gx-map svg { overflow: hidden; }
 .yb-legend .gx-sw-ini { background: #668280; border-color: #668280; border-radius: 2px; }
 .yb-hero .kpi b span { font-size: inherit; text-transform: none; opacity: 1; }
+.gx-vencido { color: var(--bl-naranjo); font-weight: 500; white-space: nowrap; }
