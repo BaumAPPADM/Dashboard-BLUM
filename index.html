@@ -698,7 +698,7 @@ function prepared(){
   const tsBase=state.tsr?state.tsr.filter(r=>inTime(r.fecha)&&eqCulOk(r,state)).map(r=>r.kind==="ce"?{equipo:r.equipo,sector:r.sector,bloque:r.bloque,fecha:r.fecha,ce:r.v,hum:null,depth:null}:{equipo:r.equipo,sector:r.sector,bloque:r.bloque,fecha:r.fecha,hum:r.v,ce:null,depth:r.depth}):base;
   const evoSrc=tsBase.filter(r=>isSpan(state.day)?selMatch(state.day,r.fecha):true);
   const perBlockDay=new Map();evoSrc.forEach(r=>{if(!r.fecha)return;const k=r.equipo+"|"+r.sector+"|"+r.bloque+"|"+dayOf(r.fecha)+"|"+(r.ce!=null?"c":"h")+(r.depth??"");perBlockDay.set(k,(perBlockDay.get(k)||0)+1)});
-  const fine=[...perBlockDay.values()].some(n=>n>1);// varias lecturas por día: se grafica por hora (lectura a lectura)
+  const pbd=[...perBlockDay.values()];const fine=pbd.length>0&&pbd.filter(n=>n>1).length>=pbd.length*0.5;// varias lecturas por día: se grafica por hora (lectura a lectura)
   const tkey=f=>fine?dayOf(f)*100+f.H:dayOf(f);
   const evo=k=>{const byG=new Map(),byD=new Map();
     evoSrc.forEach(r=>{const v=k==="ce"?r.ce:(r.hum!=null&&(state.merge||r.depth==null||r.depth===ref)?r.hum:null);if(v==null||!r.fecha)return;const d=tkey(r.fecha);
