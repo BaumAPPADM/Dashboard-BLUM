@@ -185,6 +185,11 @@ table.t sup{font-size:7.2pt;font-weight:600;line-height:0;margin-left:.3pt}
 .chart .dot.out{background:#c0532b}
 .chart .bar{position:absolute;background:var(--teal)}
 .chart .bandlbl{position:absolute;font-size:6pt;color:var(--mut);line-height:7pt;text-align:right;white-space:nowrap}
+.evo-f{display:flex;flex-wrap:wrap;gap:3pt;margin-top:6pt}
+.evo-f button{font:inherit;font-size:7pt;line-height:9pt;padding:1.5pt 6pt;border-radius:8pt;border:.75pt solid var(--card-b);background:#fff;color:var(--mut);cursor:pointer;display:inline-flex;align-items:center;gap:3pt}
+.evo-f button[style]::before{content:"";width:5pt;height:5pt;border-radius:50%;background:var(--c)}
+.evo-f button:hover{border-color:var(--teal)}
+.evo-f button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#fff}
 .note{font-size:8pt;color:var(--mut);line-height:11.6pt;margin-top:5pt}
 ul.obs{list-style:none;margin:6.5pt 0 0;padding:0;display:flex;flex-direction:column;gap:3pt;font-size:9.5pt;line-height:13.3pt;color:var(--text)}
 ul.obs li{position:relative;padding-left:12pt}
@@ -436,7 +441,7 @@ if(PUBLICO){
   let n=0;SAMPLE.rows=[];demo.forEach(([sec,h,c])=>h.forEach((v,i)=>{n++;SAMPLE.rows.push({equipo:"Equipo 1",sector:sec,bloque:"Bloque "+n,fecha:{y:2026,m:10,d:15,H:9,M:4+n*3},hum:v,depth:30,ce:c[i]})}));
   SAMPLE.info={code:"000",agricola:"Agrícola Ejemplo",campo:"Campo 01 Demostración",periodo:"",hmin:36,hmax:48,cemin:0,cemax:1.2};
 }
-const state={fEq:"all",fCul:"all",vars:{},rows:SAMPLE.rows,info:ceDefault({...SAMPLE.info}),periodoAuto:true,depth:30,merge:false,obsCustom:null,isSample:true,day:"all",names:"",key:null};
+const state={evoSel:{ce:"all",hum:"all"},fEq:"all",fCul:"all",vars:{},rows:SAMPLE.rows,info:ceDefault({...SAMPLE.info}),periodoAuto:true,depth:30,merge:false,obsCustom:null,isSample:true,day:"all",names:"",key:null};
 /* Recuerdo por campo (solo en este navegador): nombre de agrícola y de sectores */
 const PRESETS={};
 function memGet(k){let m=null;try{m=JSON.parse(localStorage.getItem("suelo:"+k)||"null")}catch(e){}return m||PRESETS[k]||null}
@@ -692,7 +697,7 @@ function prepared(){
   // evolución: todas las fechas del período (no solo el día elegido), con los mismos filtros de horario, equipo y cultivo
   const tsBase=state.tsr?state.tsr.filter(r=>inTime(r.fecha)&&eqCulOk(r,state)).map(r=>r.kind==="ce"?{equipo:r.equipo,sector:r.sector,bloque:r.bloque,fecha:r.fecha,ce:r.v,hum:null,depth:null}:{equipo:r.equipo,sector:r.sector,bloque:r.bloque,fecha:r.fecha,hum:r.v,ce:null,depth:r.depth}):base;
   const evoSrc=tsBase.filter(r=>isSpan(state.day)?selMatch(state.day,r.fecha):true);
-  const perBlockDay=new Map();evoSrc.forEach(r=>{if(!r.fecha)return;const k=r.equipo+"|"+r.sector+"|"+r.bloque+"|"+dayOf(r.fecha);perBlockDay.set(k,(perBlockDay.get(k)||0)+1)});
+  const perBlockDay=new Map();evoSrc.forEach(r=>{if(!r.fecha)return;const k=r.equipo+"|"+r.sector+"|"+r.bloque+"|"+dayOf(r.fecha)+"|"+(r.ce!=null?"c":"h")+(r.depth??"");perBlockDay.set(k,(perBlockDay.get(k)||0)+1)});
   const fine=[...perBlockDay.values()].some(n=>n>1);// varias lecturas por día: se grafica por hora (lectura a lectura)
   const tkey=f=>fine?dayOf(f)*100+f.H:dayOf(f);
   const evo=k=>{const byG=new Map(),byD=new Map();
@@ -948,11 +953,13 @@ function render(){
   const newTable=(cont)=>{const h=el("h2","sec","Detalle por bloque"+(cont?" (continuación)":""));if(cur.c.children.length)h.style.marginTop="14pt";cur.c.append(h);const t=el("table","t",head+"<tbody></tbody>");cur.c.append(t);return t.tBodies[0]};
   const flow=n=>{cur.c.append(n);if(cur.c.scrollHeight>LIMIT+1){n.remove();cur=pageShell();pages.push(cur);stage.append(cur.p);n.style.marginTop="0";cur.c.append(n)}};
   {const secs=[];
-    if(P.evoCE)secs.push({E:P.evoCE,title:"Evolución de la conductividad eléctrica (CE)",unit:"dS/m",fmt:f2,max:info.cemax!=null&&info.cemax-(info.cemin??0)<50?info.cemax:null,min:null,lim:info.cemax!=null&&info.cemax-(info.cemin??0)<50?`Óptimo máx. ${fnum(info.cemax)} dS/m`:""});
-    if(P.evoH)secs.push({E:P.evoH,title:`Evolución de la humedad a ${fnum(P.ref)} cm`,unit:"%",fmt:f1,max:genericH(info)?null:info.hmax,min:genericH(info)?null:info.hmin,lim:genericH(info)||info.hmin==null?"":`Rango óptimo ${fnum(info.hmin)}–${fnum(info.hmax)} %`});
+    if(P.evoCE)secs.push({k:"ce",E:P.evoCE,title:"Evolución de la conductividad eléctrica (CE)",unit:"dS/m",fmt:f2,max:info.cemax!=null&&info.cemax-(info.cemin??0)<50?info.cemax:null,min:null,lim:info.cemax!=null&&info.cemax-(info.cemin??0)<50?`Óptimo máx. ${fnum(info.cemax)} dS/m`:""});
+    if(P.evoH)secs.push({k:"hum",E:P.evoH,title:`Evolución de la humedad a ${fnum(P.ref)} cm`,unit:"%",fmt:f1,max:genericH(info)?null:info.hmax,min:genericH(info)?null:info.hmin,lim:genericH(info)||info.hmin==null?"":`Rango óptimo ${fnum(info.hmin)}–${fnum(info.hmax)} %`});
     secs.forEach((S,i)=>{const w=el("div");const h=el("h2","sec",S.title);h.style.marginTop=cur.c.children.length?"16pt":"0";w.append(h);
-      const c=evoChart(S.E,S);w.append(el("div","legend",evoLegend(S.E,c.showG,S.unit,S.lim)));c.ch.style.marginTop="4pt";w.append(c.ch);
-      w.append(el("div","note",`${S.E.fine?`Lectura a lectura (promedio por hora de los bloques), ${S.E.nDays} días`:`Promedio de los bloques medidos en cada fecha (${S.E.days.length} fechas)`}.${S.E.groups.length>8?" Hay más de 8 sectores, por eso se muestra solo el promedio del campo.":""}`));flow(w)})}
+      let sel=state.evoSel[S.k];if(sel!=="all"&&!S.E.groups.some(g=>g.name===sel))sel=state.evoSel[S.k]="all";
+      if(S.E.groups.length>1){const f=el("div","evo-f");f.innerHTML=[["all","Todos"]].concat(S.E.groups.map(g=>[g.name,g.name])).map(([v,t],i)=>`<button type="button" data-k="${S.k}" data-g="${esc(v)}" aria-pressed="${sel===v}"${i?` style="--c:${EVO_COLORS[(i-1)%8]}"`:""}>${esc(t)}</button>`).join("");w.append(f)}
+      const c=evoChart(S.E,{...S,focus:sel==="all"?null:sel});w.append(el("div","legend",evoLegend(S.E,c.showG,S.unit,S.lim,c)));c.ch.style.marginTop="4pt";w.append(c.ch);
+      w.append(el("div","note",`${c.focusG?`Sector mostrado: ${c.focusG.name}. `:""}${S.E.fine?`Lectura a lectura (promedio por hora de los bloques), ${S.E.nDays} días`:`Promedio de los bloques medidos en cada fecha (${S.E.days.length} fechas)`}.${S.E.groups.length>8?" Hay más de 8 sectores, por eso se muestra solo el promedio del campo.":""}`));flow(w)})}
   if(P.riego){const RB=P.riego;const pct=(a,b)=>b?Math.round(a/b*100):0;
     const w1=el("div");const h=el("h2","sec","Bloques de riego: presión de válvula y aforos");w1.append(h);
     w1.append(el("div","note",`Cada bloque de riego es una válvula (sector). ${RB.f0&&dayOf(RB.f0)===dayOf(RB.f1)?`Mediciones del ${fdate(RB.f0)}`:`Mediciones del ${fdm(RB.f0)} al ${fdate(RB.f1)}`}.`));
@@ -1060,7 +1067,7 @@ function setStatus(id,cls,html){const s=$(id);s.hidden=false;s.className="status
 /* ---------- Carga de archivo ---------- */
 function selectCampo(i){
   const C=state.campos[i];state.campoIdx=i;
-  state.rows=C.rows;state.key=C.key;state.obsCustom=null;state.merge=false;state.fEq="all";state.fCul="all";state.vars=C.vars||{};state.raw=C.raw||[];state.tsr=C.tsr||null;
+  state.rows=C.rows;state.key=C.key;state.obsCustom=null;state.merge=false;state.fEq="all";state.fCul="all";state.evoSel={ce:"all",hum:"all"};state.vars=C.vars||{};state.raw=C.raw||[];state.tsr=C.tsr||null;
   const mem=memGet(C.key);
   state.info=ceDefault({code:"",agricola:"",campo:"",periodo:"",hmin:null,hmax:null,cemin:null,cemax:null,...C.info});
   if(mem?.agricola)state.info.agricola=mem.agricola;if(mem?.campo)state.info.campo=mem.campo;
@@ -1100,7 +1107,7 @@ $("pdf").addEventListener("click",async()=>{
     document.body.classList.add("capturing");
     for(let i=0;i<pages.length;i++){
       const c=await html2canvas(pages[i],{scale:3,backgroundColor:"#ffffff",useCORS:true,logging:false,
-        onclone:d=>{const s=d.getElementById("stage");s.style.transform="none";d.querySelectorAll(".page").forEach(p=>p.style.boxShadow="none");const o=d.getElementById("obs");if(o)o.removeAttribute("contenteditable")}});
+        onclone:d=>{const s=d.getElementById("stage");s.style.transform="none";d.querySelectorAll(".evo-f").forEach(x=>x.remove());d.querySelectorAll(".page").forEach(p=>p.style.boxShadow="none");const o=d.getElementById("obs");if(o)o.removeAttribute("contenteditable")}});
       if(i)doc.addPage("a4","portrait");
       doc.addImage(c.toDataURL("image/jpeg",0.93),"JPEG",0,0,595.28,841.89,undefined,"FAST");
     }
@@ -1136,27 +1143,30 @@ const decOf=T=>{const mx=Math.max(...T.rd.map(r=>Math.abs(r.v)),0);return mx<10?
 const fmtT=(T,v)=>{if(v==null)return"–";if(Math.abs(v)>=10000)return NF.format(Math.round(v));const d=decOf(T);let s=rnd(v,d).toFixed(d);if(d&&/\.0+$/.test(s)&&T.rd.every(r=>Number.isInteger(r.v)))s=String(Math.round(v));return s.replace(".",",")};
 
 const EVO_COLORS=["#2e8c85","#c0532b","#2f6fdf","#b8860b","#7a4fb5","#3a7d44","#d1477a","#5d716e"];
-function evoChart(E,opt){
+function evoChart(E0,opt){
   const X0=33,W=469.8,TOP=12,H=128,yB=TOP+H+4.5;const ch=el("div","chart");ch.style.height=(yB+14)+"pt";
-  const showG=E.groups.length>1&&E.groups.length<=8;const all=E.total.map(p=>p.v).concat(showG?E.groups.flatMap(g=>g.pts.map(p=>p.v)):[]);
+  const fi=opt.focus!=null?E0.groups.findIndex(g=>g.name===opt.focus):-1;const focusG=fi>=0?E0.groups[fi]:null;
+  const E=focusG?{...E0,total:focusG.pts,groups:[]}:E0;const refL=focusG?E0.total:null;const mainColor=focusG?EVO_COLORS[fi%8]:"#002e2b";
+  const showG=E.groups.length>1&&E.groups.length<=8;const all=E.total.map(p=>p.v).concat(showG?E.groups.flatMap(g=>g.pts.map(p=>p.v)):[]).concat(refL?refL.map(p=>p.v):[]);
   const dmin=Math.min(...all),dmax=Math.max(...all);const sp=Math.max(dmax-dmin,Math.abs(dmax)*0.1,0.01);
   let lo0=dmin-sp*0.25,hi0=dmax+sp*0.25;if(opt.max!=null&&opt.max>hi0&&opt.max<=dmax+sp*2)hi0=opt.max+sp*0.05;if(opt.min!=null&&opt.min<lo0&&opt.min>=dmin-sp*2)lo0=opt.min-sp*0.05;
   const step=niceStep((hi0-lo0)/4,[0.01,0.02,0.05,0.1,0.2,0.25,0.5,1,2,2.5,5,10,20,25,50,100]);
   let y0=Math.floor(lo0/step+1e-9)*step,y1=Math.ceil(hi0/step-1e-9)*step;if(y0<0&&dmin>=0)y0=0;if(y1<=y0)y1=y0+step*4;
-  const y=v=>TOP+H-(v-y0)/(y1-y0)*H;const t0=tsOf(E.total[0].f),t1=tsOf(E.total[E.total.length-1].f);const x=t=>X0+12+(t-t0)/(t1-t0)*(W-24);
+  const y=v=>TOP+H-(v-y0)/(y1-y0)*H;const tsAll=E.total.concat(refL||[]).map(p=>tsOf(p.f));const t0=Math.min(...tsAll),t1=Math.max(...tsAll)||t0+1;const x=t=>X0+12+(t-t0)/(t1-t0)*(W-24);
   for(let v=y0,gi=0;v<=y1+1e-9&&gi<13;v+=step,gi++){const g=el("div","gl");g.style.cssText=`left:${X0}pt;width:${W}pt;top:${y(v)}pt`;ch.append(g);const l=el("div","yl",opt.fmt(v));l.style.left=(X0-24.5)+"pt";l.style.top=(y(v)-4.2)+"pt";ch.append(l)}
   [[opt.max],[opt.min]].forEach(([v])=>{if(v==null||v<=y0||v>=y1)return;const ln=el("div","lim");ln.style.cssText=`left:${X0}pt;width:${W}pt;top:${y(v)}pt`;ch.append(ln)});
   const svg=document.createElementNS("http://www.w3.org/2000/svg","svg");svg.setAttribute("width","510.3pt");svg.setAttribute("height",yB+"pt");svg.setAttribute("viewBox",`0 0 510.3 ${yB}`);
   const line=(pts,color,w,dash)=>{if(pts.length<2)return;const pl=document.createElementNS("http://www.w3.org/2000/svg","polyline");pl.setAttribute("points",pts.map(p=>x(tsOf(p.f))+","+y(p.v)).join(" "));pl.setAttribute("fill","none");pl.setAttribute("stroke",color);pl.setAttribute("stroke-width",w);pl.setAttribute("stroke-linejoin","round");if(dash)pl.setAttribute("stroke-dasharray",dash);svg.append(pl)};
-  if(showG)E.groups.forEach((g,i)=>line(g.pts,EVO_COLORS[i%8],"1.1"));line(E.total,"#002e2b","2.2");ch.append(svg);
+  if(showG)E.groups.forEach((g,i)=>line(g.pts,EVO_COLORS[i%8],"1.1"));if(refL)line(refL,"#9aa8a6","1.1","3 2");line(E.total,mainColor,"2.2");ch.append(svg);
   if(showG)E.groups.forEach((g,i)=>g.pts.forEach(p=>{const d=el("div","ab");d.style.cssText=`left:${x(tsOf(p.f))-1.8}pt;top:${y(p.v)-1.8}pt;width:3.6pt;height:3.6pt;border-radius:50%;background:${EVO_COLORS[i%8]}`;ch.append(d)}));
-  const many=E.total.length>14,dense=E.total.length>40;E.total.forEach((p,i)=>{const cx=x(tsOf(p.f)),cy=y(p.v);if(dense&&i!==E.total.length-1)return;const d=el("div","dot");d.style.left=(cx-3.15)+"pt";d.style.top=(cy-3.15)+"pt";ch.append(d);
+  const many=E.total.length>14,dense=E.total.length>40;E.total.forEach((p,i)=>{const cx=x(tsOf(p.f)),cy=y(p.v);if(dense&&i!==E.total.length-1)return;const d=el("div","dot");if(focusG)d.style.background=mainColor;d.style.left=(cx-3.15)+"pt";d.style.top=(cy-3.15)+"pt";ch.append(d);
     if(!many||i===0||i===E.total.length-1){const t=el("div","vl",opt.fmt(p.v));t.style.left=(cx-12)+"pt";t.style.top=(cy-11.4)+"pt";t.style.fontWeight="700";ch.append(t)}});
   const WD=["Do","Lu","Ma","Mi","Ju","Vi","Sa"];const lbl=f=>E.fine?`${WD[new Date(f.y,f.m-1,f.d).getDay()]} ${pad(f.d)}/${pad(f.m)}`:fdm(f);
   let lastX=-99,lastD=null;E.total.forEach((p,i)=>{if(E.fine&&dayOf(p.f)===lastD)return;const cx=x(tsOf(p.f));if(cx-lastX<30&&i!==E.total.length-1)return;lastX=cx;lastD=dayOf(p.f);const xl=el("div","xl",lbl(p.f));xl.style.width="30pt";xl.style.left=(cx-15)+"pt";xl.style.top=yB+"pt";ch.append(xl)});
-  return{ch,showG};
+  return{ch,showG,focusG,mainColor};
 }
-function evoLegend(E,showG,unit,limTxt){return`<span><i class="dot" style="border-radius:50%"></i>Promedio del campo${unit?" ("+esc(unit)+")":""}</span>${showG?E.groups.map((g,i)=>`<span><i style="width:9pt;height:0;border-top:1.6pt solid ${EVO_COLORS[i%8]};vertical-align:2pt"></i>${esc(g.name)}</span>`).join(""):""}${limTxt?`<span><i style="width:10pt;height:0;border-top:1pt dashed #c0532b;vertical-align:2pt"></i>${esc(limTxt)}</span>`:""}`}
+function evoLegend(E,showG,unit,limTxt,c){if(c&&c.focusG)return`<span><i class="dot" style="border-radius:50%;background:${c.mainColor}"></i>${esc(c.focusG.name)}${unit?" ("+esc(unit)+")":""}</span><span><i style="width:10pt;height:0;border-top:1.2pt dashed #9aa8a6;vertical-align:2pt"></i>Promedio del campo</span>${limTxt?`<span><i style="width:10pt;height:0;border-top:1pt dashed #c0532b;vertical-align:2pt"></i>${esc(limTxt)}</span>`:""}`;
+  return`<span><i class="dot" style="border-radius:50%"></i>Promedio del campo${unit?" ("+esc(unit)+")":""}</span>${showG?E.groups.map((g,i)=>`<span><i style="width:9pt;height:0;border-top:1.6pt solid ${EVO_COLORS[i%8]};vertical-align:2pt"></i>${esc(g.name)}</span>`).join(""):""}${limTxt?`<span><i style="width:10pt;height:0;border-top:1pt dashed #c0532b;vertical-align:2pt"></i>${esc(limTxt)}</span>`:""}`}
 function lineChart(T){
   const X0=33,W=469.8,TOP=14,H=118,yB=TOP+H+4.5;
   const ch=el("div","chart");ch.style.height=(yB+14)+"pt";
@@ -1187,7 +1197,7 @@ async function pdfFrom(stageId,obsId,title,fname,btn,statusId){
   try{await document.fonts.ready;const pages=[...document.querySelectorAll("#"+stageId+" .page")];
     const doc=new jspdf.jsPDF({unit:"pt",format:"a4",compress:true});doc.setProperties({title});
     for(let k=0;k<pages.length;k++){const c=await html2canvas(pages[k],{scale:3,backgroundColor:"#ffffff",useCORS:true,logging:false,
-      onclone:d=>{const s=d.getElementById(stageId);s.style.transform="none";d.querySelectorAll(".page").forEach(p=>p.style.boxShadow="none");const o=d.getElementById(obsId);if(o)o.removeAttribute("contenteditable")}});
+      onclone:d=>{const s=d.getElementById(stageId);s.style.transform="none";d.querySelectorAll(".evo-f").forEach(x=>x.remove());d.querySelectorAll(".page").forEach(p=>p.style.boxShadow="none");const o=d.getElementById(obsId);if(o)o.removeAttribute("contenteditable")}});
       if(k)doc.addPage("a4","portrait");doc.addImage(c.toDataURL("image/jpeg",0.93),"JPEG",0,0,595.28,841.89,undefined,"FAST")}
     const ok=await save(fname,doc.output("blob"));if(ok)setStatus(statusId,"ok","PDF descargado: "+esc(fname));
   }catch(e){setStatus(statusId,"err","No se pudo generar el PDF"+(e&&e.code?` (${esc(e.code)})`:"")+". Intenta de nuevo.")}
@@ -1509,6 +1519,7 @@ addEventListener("resize",fitB);
 $("campoSelB").addEventListener("change",()=>blSelect(+$("campoSelB").value));
 $("fBEq").addEventListener("change",()=>{BL.fEq=$("fBEq").value;BL.obsCustom=null;blForm();blRender()});
 $("fBCul").addEventListener("change",()=>{BL.fCul=$("fBCul").value;BL.obsCustom=null;blForm();blRender()});
+$("stage").addEventListener("click",e=>{const b=e.target.closest(".evo-f button");if(!b)return;state.evoSel[b.dataset.k]=b.dataset.g;render()});
 $("fSEq").addEventListener("change",()=>{state.fEq=$("fSEq").value;state.obsCustom=null;drawCalS();render()});
 $("fSCul").addEventListener("change",()=>{state.fCul=$("fSCul").value;state.obsCustom=null;drawCalS();render()});
 ["code","agricola","campo"].forEach(k=>$(k+"B").addEventListener("input",()=>{BL.info[k]=$(k+"B").value;blRender()}));
