@@ -186,7 +186,9 @@ table.t sup{font-size:7.2pt;font-weight:600;line-height:0;margin-left:.3pt}
 .chart .bar{position:absolute;background:var(--teal)}
 .chart .bandlbl{position:absolute;font-size:6pt;color:var(--mut);line-height:7pt;text-align:right;white-space:nowrap}
 .evo-f{display:flex;flex-wrap:wrap;gap:3pt;margin-top:6pt}
-.evo-f button{font:inherit;font-size:7pt;line-height:9pt;padding:1.5pt 6pt;border-radius:8pt;border:.75pt solid var(--card-b);background:#fff;color:var(--mut);cursor:pointer;display:inline-flex;align-items:center;gap:3pt}
+.evo-f{align-items:center;padding:4pt 6pt;background:#f4faf9;border:.75pt solid #dcefec;border-radius:5pt}
+.evo-l{font-size:8pt;font-weight:700;color:var(--ink);margin-right:2pt}
+.evo-f button{font:inherit;font-size:8pt;line-height:10pt;padding:2.5pt 8pt;border-radius:8pt;border:.75pt solid var(--card-b);background:#fff;color:var(--mut);cursor:pointer;display:inline-flex;align-items:center;gap:3pt}
 .evo-f button[style]::before{content:"";width:5pt;height:5pt;border-radius:50%;background:var(--c)}
 .evo-f button:hover{border-color:var(--teal)}
 .evo-f button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#fff}
@@ -234,6 +236,7 @@ ul.obs[contenteditable="true"]:focus{box-shadow:0 0 0 3pt #dcefec}
         <label class="f full" id="campoWrap" hidden>Campo<select id="campoSel"></select></label>
         <label class="f full" id="fSEqWrap" hidden>Equipo de riego<select id="fSEq"></select></label>
         <label class="f full" id="fSCulWrap" hidden>Cultivo<select id="fSCul"></select></label>
+        <label class="f full" id="evoSecWrap" hidden>Sector en los gráficos de evolución<select id="evoSec"></select></label>
         <div class="f full" id="calWrapS" hidden><span>Fecha de medición</span><div class="cal" id="calS"></div></div>
         <label class="f full" id="dayWrap" hidden>Fecha de medición<select id="day"></select></label>
         <label class="f full" id="depthWrap" hidden>Profundidad<select id="depthVis"></select></label>
@@ -952,12 +955,16 @@ function render(){
    :`<colgroup><col style="width:90pt"><col style="width:93pt"><col style="width:80pt"><col style="width:80pt"><col style="width:70pt"><col></colgroup><thead><tr><th>Equipo</th><th>Sector</th><th>Bloque</th><th class="r">Fecha</th><th class="r">% Humedad</th><th class="c">Estado humedad</th></tr></thead>`;
   const newTable=(cont)=>{const h=el("h2","sec","Detalle por bloque"+(cont?" (continuación)":""));if(cur.c.children.length)h.style.marginTop="14pt";cur.c.append(h);const t=el("table","t",head+"<tbody></tbody>");cur.c.append(t);return t.tBodies[0]};
   const flow=n=>{cur.c.append(n);if(cur.c.scrollHeight>LIMIT+1){n.remove();cur=pageShell();pages.push(cur);stage.append(cur.p);n.style.marginTop="0";cur.c.append(n)}};
+  {const gnames=[...new Set([...(P.evoCE?.groups||[]),...(P.evoH?.groups||[])].map(g=>g.name))];
+    $("evoSecWrap").hidden=gnames.length<2;
+    $("evoSec").innerHTML=`<option value="all">Todos los sectores</option>`+gnames.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join("");
+    $("evoSec").value=state.evoSel.ce===state.evoSel.hum&&gnames.concat("all").includes(state.evoSel.ce)?state.evoSel.ce:"all";}
   {const secs=[];
     if(P.evoCE)secs.push({k:"ce",E:P.evoCE,title:"Evolución de la conductividad eléctrica (CE)",unit:"dS/m",fmt:f2,max:info.cemax!=null&&info.cemax-(info.cemin??0)<50?info.cemax:null,min:null,lim:info.cemax!=null&&info.cemax-(info.cemin??0)<50?`Óptimo máx. ${fnum(info.cemax)} dS/m`:""});
     if(P.evoH)secs.push({k:"hum",E:P.evoH,title:`Evolución de la humedad a ${fnum(P.ref)} cm`,unit:"%",fmt:f1,max:genericH(info)?null:info.hmax,min:genericH(info)?null:info.hmin,lim:genericH(info)||info.hmin==null?"":`Rango óptimo ${fnum(info.hmin)}–${fnum(info.hmax)} %`});
     secs.forEach((S,i)=>{const w=el("div");const h=el("h2","sec",S.title);h.style.marginTop=cur.c.children.length?"16pt":"0";w.append(h);
       let sel=state.evoSel[S.k];if(sel!=="all"&&!S.E.groups.some(g=>g.name===sel))sel=state.evoSel[S.k]="all";
-      if(S.E.groups.length>1){const f=el("div","evo-f");f.innerHTML=[["all","Todos"]].concat(S.E.groups.map(g=>[g.name,g.name])).map(([v,t],i)=>`<button type="button" data-k="${S.k}" data-g="${esc(v)}" aria-pressed="${sel===v}"${i?` style="--c:${EVO_COLORS[(i-1)%8]}"`:""}>${esc(t)}</button>`).join("");w.append(f)}
+      if(S.E.groups.length>1){const f=el("div","evo-f");f.innerHTML=`<span class="evo-l">Ver sector:</span>`+[["all","Todos"]].concat(S.E.groups.map(g=>[g.name,g.name])).map(([v,t],i)=>`<button type="button" data-k="${S.k}" data-g="${esc(v)}" aria-pressed="${sel===v}"${i?` style="--c:${EVO_COLORS[(i-1)%8]}"`:""}>${esc(t)}</button>`).join("");w.append(f)}
       const c=evoChart(S.E,{...S,focus:sel==="all"?null:sel});w.append(el("div","legend",evoLegend(S.E,c.showG,S.unit,S.lim,c)));c.ch.style.marginTop="4pt";w.append(c.ch);
       w.append(el("div","note",`${c.focusG?`Sector mostrado: ${c.focusG.name}. `:""}${S.E.fine?`Lectura a lectura (promedio por hora de los bloques), ${S.E.nDays} días`:`Promedio de los bloques medidos en cada fecha (${S.E.days.length} fechas)`}.${S.E.groups.length>8?" Hay más de 8 sectores, por eso se muestra solo el promedio del campo.":""}`));flow(w)})}
   if(P.riego){const RB=P.riego;const pct=(a,b)=>b?Math.round(a/b*100):0;
@@ -1519,6 +1526,7 @@ addEventListener("resize",fitB);
 $("campoSelB").addEventListener("change",()=>blSelect(+$("campoSelB").value));
 $("fBEq").addEventListener("change",()=>{BL.fEq=$("fBEq").value;BL.obsCustom=null;blForm();blRender()});
 $("fBCul").addEventListener("change",()=>{BL.fCul=$("fBCul").value;BL.obsCustom=null;blForm();blRender()});
+$("evoSec").addEventListener("change",()=>{const v=$("evoSec").value;state.evoSel={ce:v,hum:v};render()});
 $("stage").addEventListener("click",e=>{const b=e.target.closest(".evo-f button");if(!b)return;state.evoSel[b.dataset.k]=b.dataset.g;render()});
 $("fSEq").addEventListener("change",()=>{state.fEq=$("fSEq").value;state.obsCustom=null;drawCalS();render()});
 $("fSCul").addEventListener("change",()=>{state.fCul=$("fSCul").value;state.obsCustom=null;drawCalS();render()});
