@@ -129,6 +129,7 @@ div.f{display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--mute
 .empty p{margin:0;color:var(--muted);max-width:44ch}
 .app.isEmpty .filters,.app.isEmpty details.fold{display:none}
 .tcount.none{background:transparent;color:var(--muted);border:1px solid var(--line)}
+.cal-q{display:flex;gap:6px;flex-wrap:wrap}
 details.help{font-size:12.5px;color:var(--muted)}
 details.help summary{cursor:pointer;color:var(--teal-ink);font-weight:700}
 details.help code{font-size:11.5px;background:var(--soft);padding:0 4px;border-radius:3px;color:var(--fg)}
@@ -441,7 +442,7 @@ const PRESETS={};
 function memGet(k){let m=null;try{m=JSON.parse(localStorage.getItem("suelo:"+k)||"null")}catch(e){}return m||PRESETS[k]||null}
 function memSet(k,v){if(!k)return;try{localStorage.setItem("suelo:"+k,JSON.stringify({...(memGet(k)||{}),...v}))}catch(e){}}
 function parseNames(t){const m={};String(t||"").split(/[;,\n]+/).forEach(x=>{const r=x.trim().match(/^(\d+)\s*[-:=.]?\s*(.*)$/);if(r)m[+r[1]]=r[2].trim()});return m}
-function applyNames(){const m=parseNames(state.names);[state.rows,state.raw||[]].forEach(L=>L.forEach(r=>{if(r.secNum!=null)r.sector=("Sector "+r.secNum+(m[r.secNum]?" "+m[r.secNum]:""))}))}
+function applyNames(){const m=parseNames(state.names);[state.rows,state.raw||[],state.tsr||[]].forEach(L=>L.forEach(r=>{if(r.secNum!=null)r.sector=("Sector "+r.secNum+(m[r.secNum]?" "+m[r.secNum]:""))}))}
 
 /* ---------- Lectura del Excel ---------- */
 function parseFecha(v){
@@ -488,7 +489,7 @@ function parseLong(aoa,hi,sheetName){
     const ckey=(cl?cl[1].toUpperCase()+cl[2].padStart(3,"0"):"")+(cp?"-"+cp[1].toUpperCase():"")||campoRaw||"campo";
     const cname=campoRaw||ckey;
     let C=campos.get(cname);
-    if(!C){C={name:cname,key:ckey,info:{},rec:new Map(),ce:new Map(),vx:new Map(),vars:{},raw:[]};campos.set(cname,C)}
+    if(!C){C={name:cname,key:ckey,info:{},rec:new Map(),ce:new Map(),vx:new Map(),vars:{},raw:[],tsr:[]};campos.set(cname,C)}
     const I=C.info;
     if(I.code==null&&cl)I.code=cl[2].padStart(3,"0");
     if(I.agricola==null&&cCli>=0&&a[cCli])I.agricola=cleanCliente(a[cCli]);
@@ -499,6 +500,7 @@ function parseLong(aoa,hi,sheetName){
     let eqN=eqc?+eqc[1]:null;if(eqN==null&&cEq>=0&&a[cEq]){const m=String(a[cEq]).match(/equipo\s*(\d+)/i);if(m)eqN=+m[1]}
     const trN=tr?+tr[1]:0;const cul=cCul>=0&&a[cCul]!=null&&String(a[cCul]).trim()?String(a[cCul]).trim().toLowerCase().replace(/\s+/g," ").replace(/^./,c=>c.toUpperCase()):"";
     const base=day+"|"+trN+"|"+eqN+"|"+secNum+"|"+blNum;const t=fkey(f);
+    if(isH||isC)C.tsr.push({trN,eqN,secNum,blNum,fecha:f,v,kind:isH?"hum":"ce",depth:isH?((tipo.match(/(\d+)\s*cm/)||[])[1]?+tipo.match(/(\d+)\s*cm/)[1]:null):null,cultivo:cul});
     if(isH){const dm=tipo.match(/(\d+)\s*cm/);const depth=dm?+dm[1]:null;const k=base+"|"+depth;let o=C.rec.get(k);
       if(!o){o={trN,eqN,secNum,blNum,fecha:f,hum:v,depth,ce:null,cultivo:cul,_t:t,_day:day,_base:base};C.rec.set(k,o)}if(cul&&!o.cultivo)o.cultivo=cul;
       else if(t>=o._t){o.hum=v;o.fecha=f;o._t=t}}
@@ -528,7 +530,8 @@ function parseLong(aoa,hi,sheetName){
     const ord=r=>[pad(r.trN),String(r.eqN??0).padStart(4,"0"),String(r.secNum).padStart(4,"0"),String(r.blNum).padStart(4,"0")].join("|");
     const uniq=[...new Set(rows.map(ord))].sort();
     rows.forEach(r=>{r.bloque="Bloque "+(uniq.indexOf(ord(r))+1);r.sector="Sector "+r.secNum;delete r._t;delete r._base;delete r._day});
-    out.push({name:C.name,key:C.key,info:C.info,rows,blocks:uniq.length,vars:C.vars,raw:C.raw});
+    C.tsr.forEach(r=>{r.equipo=(r.eqN!=null?"Equipo "+r.eqN:"")+(multiTR?` · TR${pad(r.trN)}`:"");r.sector="Sector "+r.secNum;const i=uniq.indexOf(ord(r));r.bloque=i>=0?"Bloque "+(i+1):"Bloque ?"});
+    out.push({name:C.name,key:C.key,info:C.info,rows,blocks:uniq.length,vars:C.vars,raw:C.raw,tsr:C.tsr});
   }
   if(!out.length)throw new Error("La hoja «"+sheetName+"» no tiene lecturas de % Humedad ni de CE con código de sector y bloque.");
   out.sort((x,y)=>natCmp(x.name,y.name));
@@ -593,7 +596,11 @@ function eqCulOptions(list,F,pre){
   $(pre+"CulWrap").hidden=culs.length<1;$(pre+"Cul").innerHTML=`<option value="all">Todos los cultivos</option>`+culs.map(e=>`<option value="${esc(e)}">${esc(e)}</option>`).join("");$(pre+"Cul").value=F.fCul;
   $(pre+"Cul").disabled=culs.length<2;
 }
-const selMatch=(sel,f)=>{if(sel==null||sel==="all")return true;if(!f)return false;const v=String(sel);return v.length===6?String(f.y*100+f.m)===v:String(dayOf(f))===v};
+const selMatch=(sel,f)=>{if(sel==null||sel==="all")return true;if(!f)return false;const v=String(sel);
+  if(v[0]==="r"){const[a,b]=v.slice(1).split("-").map(Number);const d=dayOf(f);return d>=a&&d<=b}
+  return v.length===6?String(f.y*100+f.m)===v:String(dayOf(f))===v};
+const isSpan=sel=>{const v=String(sel);return v.length===6||v[0]==="r"};
+function lastDays(maxDay,n){const d=new Date(Date.UTC(maxDay/1e4|0,((maxDay/100|0)%100)-1,maxDay%100));d.setUTCDate(d.getUTCDate()-(n-1));return d.getUTCFullYear()*1e4+(d.getUTCMonth()+1)*100+d.getUTCDate()}
 /* filtro de horario común a todas las pestañas (admite rangos que cruzan medianoche) */
 const TF={from:null,to:null};
 const hm=v=>{if(!v)return null;const m=String(v).match(/^(\d{1,2}):(\d{2})/);return m?(+m[1])*60+(+m[2]):null};
@@ -613,8 +620,8 @@ const median=a=>{if(!a.length)return null;const b=a.slice().sort((x,y)=>x-y);con
 function riegoData(rawIn,sel){
   const raw=(rawIn||[]).filter(r=>(isAforo(r.vk)||isPres(r.vk))&&inTime(r.fecha));if(!raw.some(r=>isAforo(r.vk)))return null;
   const months=[...new Set(raw.map(r=>r.day/100|0))].sort();
-  const sv=sel==null?"all":String(sel);let mon=sv==="all"?null:+sv.slice(0,6);if(sv.length===6&&!months.includes(mon))mon=months[months.length-1];
-  const L=sv==="all"?raw:sv.length===8?raw.filter(r=>String(r.day)===sv):raw.filter(r=>(r.day/100|0)===mon);if(!L.some(r=>isAforo(r.vk)))return null;
+  const sv=sel==null?"all":String(sel);let mon=sv==="all"||sv[0]==="r"?null:+sv.slice(0,6);if(sv.length===6&&!months.includes(mon))mon=months[months.length-1];
+  const L=sv==="all"?raw:sv[0]==="r"?raw.filter(r=>selMatch(sv,r.fecha)):sv.length===8?raw.filter(r=>String(r.day)===sv):raw.filter(r=>(r.day/100|0)===mon);if(!L.some(r=>isAforo(r.vk)))return null;
   const G=new Map();
   L.forEach(r=>{const k=r.equipo+"|"+r.sector;let g=G.get(k);if(!g){g={equipo:r.equipo,sector:r.sector,secNum:r.secNum,A:[],P:[]};G.set(k,g)}(isAforo(r.vk)?g.A:g.P).push(r)});
   const multi=new Set([...G.values()].map(g=>g.equipo)).size>1;
@@ -683,14 +690,18 @@ function prepared(){
   series.forEach(se=>{const vals=se.blocks.map(b=>b.v);const mx=Math.max(...vals.map(Math.abs));se.dec=mx<10?2:mx<100?1:0;se.fmt=v=>v==null?"–":rnd(v,se.dec).toFixed(se.dec).replace(".",",");
     se.band=se.min!=null&&se.max!=null&&!(se.hum&&genericH(info))});
   // evolución: todas las fechas del período (no solo el día elegido), con los mismos filtros de horario, equipo y cultivo
-  const evoSrc=base.filter(r=>String(state.day).length===6?selMatch(state.day,r.fecha):true);
+  const tsBase=state.tsr?state.tsr.filter(r=>inTime(r.fecha)&&eqCulOk(r,state)).map(r=>r.kind==="ce"?{equipo:r.equipo,sector:r.sector,bloque:r.bloque,fecha:r.fecha,ce:r.v,hum:null,depth:null}:{equipo:r.equipo,sector:r.sector,bloque:r.bloque,fecha:r.fecha,hum:r.v,ce:null,depth:r.depth}):base;
+  const evoSrc=tsBase.filter(r=>isSpan(state.day)?selMatch(state.day,r.fecha):true);
+  const perBlockDay=new Map();evoSrc.forEach(r=>{if(!r.fecha)return;const k=r.equipo+"|"+r.sector+"|"+r.bloque+"|"+dayOf(r.fecha);perBlockDay.set(k,(perBlockDay.get(k)||0)+1)});
+  const fine=[...perBlockDay.values()].some(n=>n>1);// varias lecturas por día: se grafica por hora (lectura a lectura)
+  const tkey=f=>fine?dayOf(f)*100+f.H:dayOf(f);
   const evo=k=>{const byG=new Map(),byD=new Map();
-    evoSrc.forEach(r=>{const v=k==="ce"?r.ce:(r.hum!=null&&(state.merge||r.depth==null||r.depth===ref)?r.hum:null);if(v==null||!r.fecha)return;const d=dayOf(r.fecha);
+    evoSrc.forEach(r=>{const v=k==="ce"?r.ce:(r.hum!=null&&(state.merge||r.depth==null||r.depth===ref)?r.hum:null);if(v==null||!r.fecha)return;const d=tkey(r.fecha);
       (byD.get(d)||byD.set(d,[]).get(d)).push(v);const g=r.equipo+"|"+r.sector;let G=byG.get(g);if(!G){G={equipo:r.equipo,sector:r.sector,d:new Map()};byG.set(g,G)}(G.d.get(d)||G.d.set(d,[]).get(d)).push(v)});
-    const days=[...byD.keys()].sort();if(days.length<2)return null;const avg=a=>a.reduce((x,y)=>x+y,0)/a.length;const toF=d=>({y:d/1e4|0,m:(d/100|0)%100,d:d%100,H:12,M:0});
+    const days=[...byD.keys()].sort();if(days.length<2)return null;const avg=a=>a.reduce((x,y)=>x+y,0)/a.length;const toF=k=>fine?({y:k/1e6|0,m:(k/1e4|0)%100,d:(k/100|0)%100,H:k%100,M:0}):({y:k/1e4|0,m:(k/100|0)%100,d:k%100,H:12,M:0});
     const multi=new Set([...byG.values()].map(G=>G.equipo)).size>1;
     const groups=[...byG.values()].sort((a,b)=>natCmp(a.equipo,b.equipo)||natCmp(a.sector,b.sector)).map(G=>({name:(multi?(G.equipo||"").replace(/^Equipo /,"Eq. ")+" · ":"")+G.sector,pts:[...G.d.keys()].sort().map(d=>({f:toF(d),v:avg(G.d.get(d))}))})).filter(G=>G.pts.length);
-    return{days,total:days.map(d=>({f:toF(d),v:avg(byD.get(d)),n:byD.get(d).length})),groups}};
+    return{fine,days,nDays:new Set(days.map(k=>fine?k/100|0:k)).size,total:days.map(d=>({f:toF(d),v:avg(byD.get(d)),n:byD.get(d).length})),groups}};
   return{rows,blocks,ref,multi:blocks.length<rows.length,allBlocks,nDaysFile,series,riego:null,evoCE:evo("ce"),evoH:evo("hum")};
 }
 const stat=a=>{const v=a.filter(x=>x!=null&&!isNaN(x));if(!v.length)return null;return{avg:v.reduce((s,x)=>s+x,0)/v.length,min:Math.min(...v),max:Math.max(...v),n:v.length}};
@@ -821,7 +832,8 @@ function observaciones(P,info){
     const pb=bs.filter(b=>b.flags.some(f=>/Presión/.test(f)));if(pb.length)out.push([`${pb.length} ${pb.length===1?"válvula":"válvulas"} fuera de su rango de presión.`,lista(pb.slice(0,8).map(b=>`${b.full} (${f2(b.pm)} bar)`))+"."]);
   }
   [[P.evoCE,"CE","dS/m",f2],[P.evoH,`Humedad a ${fnum(ref)} cm`,"%",f1]].forEach(([E,lab,u,fm])=>{if(!E)return;const a=E.total[0],b=E.total[E.total.length-1];const d=b.v-a.v;const tol=Math.max(Math.abs(a.v)*0.1,lab==="CE"?0.02:0.5);
-    let t=`El promedio del campo pasó de ${fm(a.v)} ${u} el ${fdm(a.f)} a ${fm(b.v)} ${u} el ${fdate(b.f)} (${E.days.length} fechas).`;
+    let t=`El promedio del campo pasó de ${fm(a.v)} ${u} el ${fdm(a.f)} a ${fm(b.v)} ${u} el ${fdate(b.f)} (${E.fine?`${E.nDays} días de lecturas`:`${E.days.length} fechas`}).`;
+    if(E.fine){const vs=E.total.map(q=>q.v);const mxp=E.total[vs.indexOf(Math.max(...vs))],mnp=E.total[vs.indexOf(Math.min(...vs))];t+=` Máximo ${fm(mxp.v)} ${u} (${fdm(mxp.f)} ${pad(mxp.f.H)}:00) y mínimo ${fm(mnp.v)} ${u} (${fdm(mnp.f)} ${pad(mnp.f.H)}:00).`}
     const ch=E.groups.filter(g=>g.pts.length>1).map(g=>({g,d:g.pts[g.pts.length-1].v-g.pts[0].v}));
     if(ch.length>1){const up=ch.reduce((x,y)=>y.d>x.d?y:x),dn=ch.reduce((x,y)=>y.d<x.d?y:x);
       if(up.d>tol)t+=` El mayor aumento fue en ${up.g.name} (de ${fm(up.g.pts[0].v)} a ${fm(up.g.pts[up.g.pts.length-1].v)} ${u}).`;
@@ -861,6 +873,8 @@ function defaultPeriodo(rows){
   const f=rows.map(r=>r.fecha).filter(Boolean);if(!f.length)return"";
   const ks=f.map(fkey);const a=f[ks.indexOf(Math.min(...ks))],b=f[ks.indexOf(Math.max(...ks))];
   if(String(state.day).length===8||dayOf(a)===dayOf(b)&&String(state.day)!=="all")return`${pad(b.d)} de ${MESES[b.m-1]} ${b.y}`;
+  if(String(state.day)[0]==="r"){const[x0,x1]=String(state.day).slice(1).split("-").map(Number);const A={y:x0/1e4|0,m:(x0/100|0)%100,d:x0%100},B={y:x1/1e4|0,m:(x1/100|0)%100,d:x1%100};
+    return A.m===B.m&&A.y===B.y?`${pad(A.d)} al ${pad(B.d)} de ${MESES[B.m-1]} ${B.y}`:`${pad(A.d)} de ${MESES[A.m-1]} al ${pad(B.d)} de ${MESES[B.m-1]} ${B.y}`}
   if(a.y===b.y&&a.m===b.m)return`01 al ${pad(b.d)} de ${MESES[b.m-1]} ${b.y}`;
   return`${pad(a.d)} de ${MESES[a.m-1]}${a.y!==b.y?" "+a.y:""} al ${pad(b.d)} de ${MESES[b.m-1]} ${b.y}`;
 }
@@ -938,7 +952,7 @@ function render(){
     if(P.evoH)secs.push({E:P.evoH,title:`Evolución de la humedad a ${fnum(P.ref)} cm`,unit:"%",fmt:f1,max:genericH(info)?null:info.hmax,min:genericH(info)?null:info.hmin,lim:genericH(info)||info.hmin==null?"":`Rango óptimo ${fnum(info.hmin)}–${fnum(info.hmax)} %`});
     secs.forEach((S,i)=>{const w=el("div");const h=el("h2","sec",S.title);h.style.marginTop=cur.c.children.length?"16pt":"0";w.append(h);
       const c=evoChart(S.E,S);w.append(el("div","legend",evoLegend(S.E,c.showG,S.unit,S.lim)));c.ch.style.marginTop="4pt";w.append(c.ch);
-      w.append(el("div","note",`Promedio de los bloques medidos en cada fecha (${S.E.days.length} fechas).${S.E.groups.length>8?" Hay más de 8 sectores, por eso se muestra solo el promedio del campo.":""}`));flow(w)})}
+      w.append(el("div","note",`${S.E.fine?`Lectura a lectura (promedio por hora de los bloques), ${S.E.nDays} días`:`Promedio de los bloques medidos en cada fecha (${S.E.days.length} fechas)`}.${S.E.groups.length>8?" Hay más de 8 sectores, por eso se muestra solo el promedio del campo.":""}`));flow(w)})}
   if(P.riego){const RB=P.riego;const pct=(a,b)=>b?Math.round(a/b*100):0;
     const w1=el("div");const h=el("h2","sec","Bloques de riego: presión de válvula y aforos");w1.append(h);
     w1.append(el("div","note",`Cada bloque de riego es una válvula (sector). ${RB.f0&&dayOf(RB.f0)===dayOf(RB.f1)?`Mediciones del ${fdate(RB.f0)}`:`Mediciones del ${fdm(RB.f0)} al ${fdate(RB.f1)}`}.`));
@@ -1000,11 +1014,13 @@ const FIELDS=["code","agricola","campo","periodo","hmin","hmax","cemin","cemax"]
 function calendar(host,days,sel,onPick,opt={}){
   const H=$(host);if(!H)return;const ds=[...days].sort();
   const months=[...new Set(ds.map(d=>d/100|0))].sort().reverse();
-  let h=`<button type="button" class="cal-all" aria-pressed="${sel==="all"}" data-v="all">${opt.allLabel||"Todas las fechas"}</button>`;
+  const mx=ds.length?ds[ds.length-1]:null;const r7=mx?`r${lastDays(mx,7)}-${mx}`:null,r30=mx?`r${lastDays(mx,30)}-${mx}`:null;
+  let h=`<div class="cal-q"><button type="button" class="cal-all" aria-pressed="${sel==="all"}" data-v="all">${opt.allLabel||"Todas las fechas"}</button>${mx?`<button type="button" class="cal-all" aria-pressed="${sel===r7}" data-v="${r7}" title="7 días hasta la última medición">Última semana</button><button type="button" class="cal-all" aria-pressed="${sel===r30}" data-v="${r30}" title="30 días hasta la última medición">Últimos 30 días</button>`:""}</div>`;
   months.forEach(m=>{const y=m/100|0,mo=m%100;const first=new Date(y,mo-1,1).getDay();const off=(first+6)%7;const nd=new Date(y,mo,0).getDate();
-    const cnt=ds.filter(d=>(d/100|0)===m).length;const monSel=String(sel)===String(m);const on=monSel||String(sel).slice(0,6)===String(m);
+    const cnt=ds.filter(d=>(d/100|0)===m).length;const monSel=String(sel)===String(m);const on=monSel||(String(sel)[0]!=="r"&&String(sel).slice(0,6)===String(m));
     h+=`<div class="cal-m${on?" on":""}"><button type="button" class="cal-t${monSel?" msel":""}" data-v="${m}" aria-pressed="${monSel}" title="Ver el mes completo">${MESES[mo-1].replace(/^./,c=>c.toUpperCase())} ${y}<small>${monSel?"mes completo":`${cnt} ${cnt===1?"día":"días"} con datos`}</small></button><div class="cal-g">${["L","M","M","J","V","S","D"].map(w=>`<span class="cal-w">${w}</span>`).join("")}${"<span></span>".repeat(off)}`;
-    for(let d=1;d<=nd;d++){const k=m*100+d;const has=days.has(k);const isSel=String(sel)===String(k);
+    const rg=String(sel)[0]==="r"?String(sel).slice(1).split("-").map(Number):null;
+    for(let d=1;d<=nd;d++){const k=m*100+d;const has=days.has(k);const isSel=String(sel)===String(k)||(rg&&k>=rg[0]&&k<=rg[1]);
       h+=has?`<button type="button" class="cal-d has${isSel?" sel":""}" data-v="${k}" aria-label="${d} de ${MESES[mo-1]}${isSel?" (seleccionado)":""}" aria-pressed="${isSel}">${d}</button>`:`<span class="cal-d">${d}</span>`}
     h+=`</div></div>`});
   H.innerHTML=h;H.querySelectorAll("button[data-v]").forEach(b=>b.addEventListener("click",()=>onPick(b.dataset.v)));
@@ -1044,7 +1060,7 @@ function setStatus(id,cls,html){const s=$(id);s.hidden=false;s.className="status
 /* ---------- Carga de archivo ---------- */
 function selectCampo(i){
   const C=state.campos[i];state.campoIdx=i;
-  state.rows=C.rows;state.key=C.key;state.obsCustom=null;state.merge=false;state.fEq="all";state.fCul="all";state.vars=C.vars||{};state.raw=C.raw||[];
+  state.rows=C.rows;state.key=C.key;state.obsCustom=null;state.merge=false;state.fEq="all";state.fCul="all";state.vars=C.vars||{};state.raw=C.raw||[];state.tsr=C.tsr||null;
   const mem=memGet(C.key);
   state.info=ceDefault({code:"",agricola:"",campo:"",periodo:"",hmin:null,hmax:null,cemin:null,cemax:null,...C.info});
   if(mem?.agricola)state.info.agricola=mem.agricola;if(mem?.campo)state.info.campo=mem.campo;
@@ -1134,9 +1150,10 @@ function evoChart(E,opt){
   const line=(pts,color,w,dash)=>{if(pts.length<2)return;const pl=document.createElementNS("http://www.w3.org/2000/svg","polyline");pl.setAttribute("points",pts.map(p=>x(tsOf(p.f))+","+y(p.v)).join(" "));pl.setAttribute("fill","none");pl.setAttribute("stroke",color);pl.setAttribute("stroke-width",w);pl.setAttribute("stroke-linejoin","round");if(dash)pl.setAttribute("stroke-dasharray",dash);svg.append(pl)};
   if(showG)E.groups.forEach((g,i)=>line(g.pts,EVO_COLORS[i%8],"1.1"));line(E.total,"#002e2b","2.2");ch.append(svg);
   if(showG)E.groups.forEach((g,i)=>g.pts.forEach(p=>{const d=el("div","ab");d.style.cssText=`left:${x(tsOf(p.f))-1.8}pt;top:${y(p.v)-1.8}pt;width:3.6pt;height:3.6pt;border-radius:50%;background:${EVO_COLORS[i%8]}`;ch.append(d)}));
-  const many=E.total.length>14;E.total.forEach((p,i)=>{const cx=x(tsOf(p.f)),cy=y(p.v);const d=el("div","dot");d.style.left=(cx-3.15)+"pt";d.style.top=(cy-3.15)+"pt";ch.append(d);
+  const many=E.total.length>14,dense=E.total.length>40;E.total.forEach((p,i)=>{const cx=x(tsOf(p.f)),cy=y(p.v);if(dense&&i!==E.total.length-1)return;const d=el("div","dot");d.style.left=(cx-3.15)+"pt";d.style.top=(cy-3.15)+"pt";ch.append(d);
     if(!many||i===0||i===E.total.length-1){const t=el("div","vl",opt.fmt(p.v));t.style.left=(cx-12)+"pt";t.style.top=(cy-11.4)+"pt";t.style.fontWeight="700";ch.append(t)}});
-  let lastX=-99;E.total.forEach((p,i)=>{const cx=x(tsOf(p.f));if(cx-lastX<26&&i!==E.total.length-1)return;lastX=cx;const xl=el("div","xl",fdm(p.f));xl.style.left=(cx-12)+"pt";xl.style.top=yB+"pt";ch.append(xl)});
+  const WD=["Do","Lu","Ma","Mi","Ju","Vi","Sa"];const lbl=f=>E.fine?`${WD[new Date(f.y,f.m-1,f.d).getDay()]} ${pad(f.d)}/${pad(f.m)}`:fdm(f);
+  let lastX=-99,lastD=null;E.total.forEach((p,i)=>{if(E.fine&&dayOf(p.f)===lastD)return;const cx=x(tsOf(p.f));if(cx-lastX<30&&i!==E.total.length-1)return;lastX=cx;lastD=dayOf(p.f);const xl=el("div","xl",lbl(p.f));xl.style.width="30pt";xl.style.left=(cx-15)+"pt";xl.style.top=yB+"pt";ch.append(xl)});
   return{ch,showG};
 }
 function evoLegend(E,showG,unit,limTxt){return`<span><i class="dot" style="border-radius:50%"></i>Promedio del campo${unit?" ("+esc(unit)+")":""}</span>${showG?E.groups.map((g,i)=>`<span><i style="width:9pt;height:0;border-top:1.6pt solid ${EVO_COLORS[i%8]};vertical-align:2pt"></i>${esc(g.name)}</span>`).join(""):""}${limTxt?`<span><i style="width:10pt;height:0;border-top:1pt dashed #c0532b;vertical-align:2pt"></i>${esc(limTxt)}</span>`:""}`}
@@ -1504,7 +1521,7 @@ function applySoil(res,name){
   state.isSample=false;
   if(res.long){state.campos=res.campos;selectCampo(0)}
   else{const {rows,info}=res;state.campos=null;
-    state.rows=rows;state.obsCustom=null;state.merge=false;state.key=null;state.vars={};state.raw=[];
+    state.rows=rows;state.obsCustom=null;state.merge=false;state.key=null;state.vars={};state.raw=[];state.tsr=null;
     Object.assign(state.info,info);ceDefault(state.info);state.names="";state.periodoAuto=!info.periodo;state.day="all";
     const cnt={};rows.forEach(r=>{if(r.hum!=null){const d=r.depth??30;cnt[d]=(cnt[d]||0)+1}});
     state.depth=+(Object.entries(cnt).sort((a,b)=>b[1]-a[1])[0]?.[0]??30);
