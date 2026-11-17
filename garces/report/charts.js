@@ -149,36 +149,64 @@ dash.draw('mapa', (el) => {
     .on('mouseleave', () => t.hide());
 });
 
-// Cumplimiento del calendario por campo: barra de avance con marca del avance esperado
-dash.draw('cumplChart', (el) => {
-  const {BL, fail, tip, fint, fdate, textW} = window.GX;
-  const d = dash.data('cumplimiento');
+// Meta semanal: grilla campo × semana con bloques completos (meta 5)
+const SEM_COL = (e, BL) => ({Cumplida: [BL.turquesa, BL.bosque], Casi: [BL.mezcla, '#FFFFFF'], Baja: [BL.naranjo, '#FFFFFF'], 'Solo incompletos': [BL.naranjo45, BL.bosque], 'Sin mediciones': ['#E8EDEC', '#8A9B99']}[e]);
+dash.draw('semanaChart', (el) => {
+  const {BL, fail, tip, fint, textW} = window.GX;
+  const d = dash.data('semanal');
   if (d.status !== 'ok') { fail(el, d.status); return; }
   el.replaceChildren();
-  const rows = d.data.filter((r) => r.campo !== 'Total');
-  const W = el.clientWidth, rowH = 24, H = rows.length * rowH + 30;
+  const campos = [...new Map(d.data.map((r) => [r.campo, r.campo_n]))].sort((a, b) => a[1] - b[1]).map((x) => x[0]);
+  const sems = [...new Map(d.data.map((r) => [r.semana, r]))].sort((a, b) => (a[0] < b[0] ? -1 : 1)).map((x) => x[1]);
+  const W = el.clientWidth, rowH = 22, top = 44, H = top + campos.length * rowH + 8;
   const svg = d3.select(el).append('svg').attr('width', '100%').attr('viewBox', `0 0 ${W} ${H}`).attr('height', H);
-  const lim = (r) => `vence ${fdate(r.fin).replace(/ \d\d$/, '')}`;
-  const ml = Math.max(...rows.map((r) => textW(svg, r.campo))) + 12, mr = 48 + Math.max(...rows.map((r) => textW(svg, lim(r)))) + 8;
-  const x = d3.scaleLinear([0, 100], [ml, W - mr]), y = d3.scaleBand(rows.map((r) => r.campo), [4, H - 24]).padding(0.28);
-  [0, 25, 50, 75, 100].forEach((v) => {
-    svg.append('line').attr('x1', x(v)).attr('x2', x(v)).attr('y1', 0).attr('y2', H - 24).style('stroke', 'var(--cds-chart-grid)');
-    svg.append('text').attr('x', x(v)).attr('y', H - 8).attr('text-anchor', 'middle').text(`${v}%`);
+  const ml = Math.max(...campos.map((c) => textW(svg, c))) + 12;
+  const x = d3.scaleBand(sems.map((s) => s.semana), [ml, W]).paddingInner(0.08), y = d3.scaleBand(campos, [top, H - 8]).paddingInner(0.12);
+  sems.forEach((s) => {
+    const cx = x(s.semana) + x.bandwidth() / 2;
+    svg.append('text').attr('x', cx).attr('y', 16).attr('text-anchor', 'middle').attr('class', s.enCurso ? null : 'strong').text(s.semanaTxt);
+    svg.append('text').attr('x', cx).attr('y', 32).attr('text-anchor', 'middle').style('fill', 'var(--color-fg-muted)').style('font-size', '10px').text(s.enCurso ? 'en curso' : `${s.metaAforos} aforos`);
   });
-  const col = (r) => (r.estado === 'Cumplido' || r.estado === 'Al día' ? BL.turquesa : r.estado === 'Casi completo' ? BL.mezcla : r.estado === 'Por iniciar' ? BL.bosque60 : r.estado === 'Sin avance' ? BL.rojo : BL.naranjo);
+  campos.forEach((c) => svg.append('text').attr('x', ml - 8).attr('y', y(c) + y.bandwidth() / 2).attr('dy', '0.35em').attr('text-anchor', 'end').text(c));
   const t = tip(el);
-  rows.forEach((r) => {
-    const yy = y(r.campo), h = y.bandwidth();
-    svg.append('text').attr('x', ml - 8).attr('y', yy + h / 2).attr('dy', '0.35em').attr('text-anchor', 'end').text(r.campo);
-    svg.append('rect').attr('x', x(0)).attr('y', yy).attr('width', x(100) - x(0)).attr('height', h).attr('rx', 2).style('fill', BL.bosque25).style('opacity', 0.45);
-    svg.append('rect').attr('x', x(0)).attr('y', yy).attr('width', Math.max(r.pct ? 2 : 0, x(Math.min(100, r.pct)) - x(0))).attr('height', h).attr('rx', 2).style('fill', col(r));
-    if (r.esperado < 100) svg.append('line').attr('x1', x(r.esperado)).attr('x2', x(r.esperado)).attr('y1', yy - 3).attr('y2', yy + h + 3).style('stroke', BL.bosque).attr('stroke-width', 2);
-    svg.append('text').attr('x', x(100) + 6).attr('y', yy + h / 2).attr('dy', '0.35em').attr('class', 'strong').text(`${fint(r.pct)}%`);
-    svg.append('text').attr('x', x(100) + 48).attr('y', yy + h / 2).attr('dy', '0.35em').style('fill', r.fin < r.corte && r.estado !== 'Cumplido' ? BL.naranjo : 'var(--color-fg-muted)').text(lim(r));
-    svg.append('rect').attr('x', 0).attr('y', yy - 2).attr('width', W).attr('height', h + 4).style('fill', 'transparent')
-      .on('mousemove', (ev) => { const [px, py] = d3.pointer(ev, el); t.show([r.campo, `${fint(r.medidos)} de ${fint(r.priorizados)} bloques priorizados medidos`, `Período ${fdate(r.inicio)} – ${fdate(r.fin)} · ${r.estado}`, `Calendario original: ${fdate(r.inicio_original)} – ${fdate(r.fin_original)}`, `${fint(r.fueraPlan)} bloques medidos fuera del plan`], px, py); })
+  d.data.forEach((r) => {
+    const [bg, fg] = SEM_COL(r.estado, BL), gx = x(r.semana), gy = y(r.campo);
+    const g = svg.append('g').style('opacity', r.enCurso ? 0.6 : 1);
+    g.append('rect').attr('x', gx).attr('y', gy).attr('width', x.bandwidth()).attr('height', y.bandwidth()).attr('rx', 2).style('fill', bg)
+      .style('stroke', r.enCurso ? BL.bosque60 : 'none').style('stroke-dasharray', r.enCurso ? '3 2' : null);
+    g.append('text').attr('x', gx + x.bandwidth() / 2).attr('y', gy + y.bandwidth() / 2).attr('dy', '0.35em').attr('text-anchor', 'middle').style('fill', fg).attr('class', 'strong')
+      .text(r.medidos ? (r.incompletos ? `${r.completos} (+${r.incompletos})` : r.completos) : '–');
+    g.append('rect').attr('x', gx).attr('y', gy).attr('width', x.bandwidth()).attr('height', y.bandwidth()).style('fill', 'transparent')
+      .on('mousemove', (ev) => { const [px, py] = d3.pointer(ev, el); t.show([`${r.campo} · ${r.semanaTxt}${r.enCurso ? ' (en curso)' : ''}`, `${fint(r.completos)} de 5 bloques con protocolo completo`, `${fint(r.incompletos)} bloques medidos incompletos`, `Regla: ${r.metaAforos} aforos + 1 válvula + 2 colas`], px, py); })
       .on('mouseleave', () => t.hide());
   });
+});
+
+// Meta semanal: total de bloques completos de todos los campos frente a la meta
+dash.draw('semTotal', (el) => {
+  const {BL, fail, tip, fint} = window.GX;
+  const d = dash.data('semanal');
+  if (d.status !== 'ok') { fail(el, d.status); return; }
+  el.replaceChildren();
+  const rows = [...d3.rollup(d.data, (g) => ({semana: g[0].semana, semanaTxt: g[0].semanaTxt, enCurso: g[0].enCurso, completos: d3.sum(g, (r) => r.completos), incompletos: d3.sum(g, (r) => r.incompletos), meta: g.length * 5, cumplen: g.filter((r) => r.estado === 'Cumplida').length, campos: g.length}), (r) => r.semana).values()].sort((a, b) => (a.semana < b.semana ? -1 : 1));
+  const W = el.clientWidth, H = 240, mb = 28, mt = 18;
+  const svg = d3.select(el).append('svg').attr('width', '100%').attr('viewBox', `0 0 ${W} ${H}`).attr('height', H);
+  const meta = d3.max(rows, (r) => r.meta), ymax = Math.max(meta, d3.max(rows, (r) => r.completos + r.incompletos)) * 1.08;
+  const x = d3.scaleBand(rows.map((r) => r.semana), [36, W - 8]).padding(0.3), y = d3.scaleLinear([0, ymax], [H - mb, mt]);
+  y.ticks(4).forEach((v) => { svg.append('line').attr('x1', 36).attr('x2', W - 8).attr('y1', y(v)).attr('y2', y(v)).style('stroke', 'var(--cds-chart-grid)'); svg.append('text').attr('x', 30).attr('y', y(v)).attr('dy', '0.35em').attr('text-anchor', 'end').text(fint(v)); });
+  const t = tip(el);
+  rows.forEach((r) => {
+    const g = svg.append('g').style('opacity', r.enCurso ? 0.6 : 1);
+    g.append('rect').attr('x', x(r.semana)).attr('y', y(r.completos + r.incompletos)).attr('width', x.bandwidth()).attr('height', y(r.completos) - y(r.completos + r.incompletos)).style('fill', BL.naranjo45);
+    g.append('rect').attr('x', x(r.semana)).attr('y', y(r.completos)).attr('width', x.bandwidth()).attr('height', y(0) - y(r.completos)).style('fill', BL.turquesa);
+    g.append('text').attr('x', x(r.semana) + x.bandwidth() / 2).attr('y', y(r.completos + r.incompletos) - 5).attr('text-anchor', 'middle').attr('class', 'strong').text(fint(r.completos));
+    svg.append('text').attr('x', x(r.semana) + x.bandwidth() / 2).attr('y', H - 8).attr('text-anchor', 'middle').text(r.semanaTxt + (r.enCurso ? '*' : ''));
+    g.append('rect').attr('x', x(r.semana)).attr('y', mt).attr('width', x.bandwidth()).attr('height', H - mb - mt).style('fill', 'transparent')
+      .on('mousemove', (ev) => { const [px, py] = d3.pointer(ev, el); t.show([r.semanaTxt + (r.enCurso ? ' (en curso)' : ''), `${fint(r.completos)} bloques completos de ${fint(r.meta)} (meta)`, `${fint(r.incompletos)} bloques medidos incompletos`, `${fint(r.cumplen)} de ${fint(r.campos)} campos cumplieron la meta`], px, py); })
+      .on('mouseleave', () => t.hide());
+  });
+  svg.append('line').attr('x1', 36).attr('x2', W - 8).attr('y1', y(meta)).attr('y2', y(meta)).style('stroke', BL.bosque).attr('stroke-width', 2).style('stroke-dasharray', '6 4');
+  svg.append('text').attr('x', W - 8).attr('y', y(meta) - 6).attr('text-anchor', 'end').attr('class', 'strong').text(`Meta: ${fint(meta)} bloques (5 por campo)`);
 });
 
 // Contorno convexo propio (cadena monótona)

@@ -11,8 +11,8 @@ def build(work, out_dir, user, password, actualizado):
         'css': rd('tokens.css') + rd('fonts.css') + rd('ref.css') + rd('extra.css'),
         'shim': rd('shim.js'),
         'scripts': [rd('draws.js'), rd('calcs.js'), rd('charts.js'), rd('tables.js')],
-        'data': {k: json.load(open(os.path.join(work, f))) for k, f in [('lecturas', 'lecturas_garces.json'), ('bloques', 'bloques_garces.json'), ('plan', 'plan_garces.json')]},
-        'params': {'vista': 'campos', 'campo': '01 · Almahue', 'equipo': None, 'tipo': None, 'estado': None, 'alcance': None, 'prio': None, 'planCampo': None, 'planEstado': None, 'mapaEq': None},
+        'data': {k: json.load(open(os.path.join(work, f))) for k, f in [('lecturas', 'lecturas_garces.json'), ('bloques', 'bloques_garces.json')]},
+        'params': {'vista': 'campos', 'campo': '01 · Almahue', 'equipo': None, 'tipo': None, 'estado': None, 'alcance': None, 'prio': None, 'semCampo': None, 'semSemana': None, 'semEstado': None, 'mapaEq': None},
     }
     raw = gzip.compress(json.dumps(payload, ensure_ascii=False).encode('utf-8'), 9)
     enc = encrypt(raw, user, password); enc['actualizado'] = actualizado

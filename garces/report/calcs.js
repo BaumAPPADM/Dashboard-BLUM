@@ -302,29 +302,79 @@ dash.calc('diag_resumen', {
   }
 });
 
+// Meta semanal (protocolo de mediciones en terreno de Ag. Garcés)
+const PROTO = {inicio: '2026-09-28', cambio: '2026-11-09', meta: 5, valvulas: 1, colas: 2, aforosAntes: 12, aforosAhora: 24};
+const lunes = (s) => { const d = new Date(s + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() - (d.getUTCDay() + 6) % 7); return d.toISOString().slice(0, 10); };
+const masDias = (s, n) => { const d = new Date(s + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+const MES3 = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+const rangoSem = (s) => { const f = masDias(s, 6), d1 = +s.slice(8, 10), d2 = +f.slice(8, 10), m1 = MES3[+s.slice(5, 7) - 1], m2 = MES3[+f.slice(5, 7) - 1]; return m1 === m2 ? `${d1}–${d2} ${m2}` : `${d1} ${m1}–${d2} ${m2}`; };
+const metaAf = (sem) => (sem >= PROTO.cambio ? PROTO.aforosAhora : PROTO.aforosAntes);
+window.GXP = {PROTO, rangoSem, metaAf};
+
+dash.calc('bloque_semana', {
+  inputs: ['lecturas'], title: 'Bloques medidos por semana',
+  description: 'Cada bloque medido en cada semana (lunes a domingo) desde la semana del 28-09-2026: aforos, presiones de válvula y de cola registradas, meta de aforos de esa semana (12 hasta el 08-11-2026, 24 desde el 09-11-2026), si cumple el protocolo completo (aforos + 1 válvula + 2 colas), qué le faltó y cómo se repartieron los aforos a lo largo de la hilera (inicio, mitad, cola) según su GPS.',
+  fn: (lecturas) => {
+    const corte = lecturas.map((r) => r.dia).sort().pop(), semAct = lunes(corte);
+    const L = lecturas.filter((r) => r.incluida && r.dia >= PROTO.inicio);
+    return [...d3.group(L, (r) => lunes(r.dia), (r) => r.bloque_key)].flatMap(([sem, m]) => [...m].map(([key, g]) => {
+      const f = g[0], af = g.filter((r) => r.tipo === 'Aforo');
+      const nA = af.length, nV = g.filter((r) => r.tipo === 'Válvula').length, nC = g.filter((r) => r.tipo === 'Cola').length, meta = metaAf(sem);
+      const faltas = [];
+      if (nA < meta) faltas.push(`${meta - nA} ${meta - nA === 1 ? 'aforo' : 'aforos'}`);
+      if (nV < PROTO.valvulas) faltas.push('presión de válvula');
+      if (nC < PROTO.colas) faltas.push(nC === 1 ? '1 cola' : '2 colas');
+      const t = (k) => af.filter((r) => r.tramo === k).length, ini = t('Inicio'), mit = t('Mitad'), fin = t('Final'), sinT = nA - ini - mit - fin;
+      let mapeo;
+      if (!nA) mapeo = 'Sin aforos';
+      else if (sinT > nA / 2) mapeo = 'Sin GPS para ubicar';
+      else { const fl = [ini ? null : 'inicio', mit ? null : 'mitad', fin ? null : 'cola'].filter(Boolean); mapeo = fl.length ? `Sin aforos en ${fl.join(' ni ')}` : 'En los tres tramos'; }
+      return {id: sem + '|' + key, semana: sem, semanaTxt: rangoSem(sem), enCurso: sem === semAct, campo: f.campo, campo_n: f.campo_n, equipo: f.equipo, sector: f.sector, bloque: f.bloque, bloque_key: key,
+        aforos: nA, metaAforos: meta, valvula: nV, colas: nC, completo: !faltas.length, estado: faltas.length ? 'Incompleto' : 'Completo', falta: faltas.length ? 'Falta ' + faltas.join(', ') : '—',
+        ini, mit, fin, sinTramo: sinT, mapeo, ultima: g.map((r) => r.dia).sort().pop()};
+    }));
+  }
+});
+
+dash.calc('semanal', {
+  inputs: ['bloque_semana', 'bloques', 'lecturas'], title: 'Meta semanal por campo',
+  description: 'Por campo y semana desde la semana del 28-09-2026: bloques con protocolo completo frente a la meta de 5, bloques medidos e incompletos, y estado (Cumplida 5 o más; Casi 3 a 4; Baja 1 a 2; Solo incompletos; Sin mediciones). La semana en curso se marca aparte.',
+  fn: (bs, bloques, lecturas) => {
+    const corte = lecturas.map((r) => r.dia).sort().pop(), semAct = lunes(corte), semanas = [];
+    for (let s = PROTO.inicio; s <= semAct; s = masDias(s, 7)) semanas.push(s);
+    const campos = [...new Map([...bloques, ...bs].map((r) => [r.campo, r.campo_n]))].sort((a, b) => a[1] - b[1]);
+    const idx = d3.group(bs, (r) => r.campo, (r) => r.semana);
+    return campos.flatMap(([campo, campo_n]) => semanas.map((sem) => {
+      const g = idx.get(campo)?.get(sem) || [], comp = g.filter((r) => r.completo).length;
+      return {id: campo + '|' + sem, campo, campo_n, semana: sem, semanaTxt: rangoSem(sem), enCurso: sem === semAct, completos: comp, medidos: g.length, incompletos: g.length - comp, meta: PROTO.meta, metaAforos: metaAf(sem),
+        estado: comp >= PROTO.meta ? 'Cumplida' : comp >= 3 ? 'Casi' : comp >= 1 ? 'Baja' : g.length ? 'Solo incompletos' : 'Sin mediciones'};
+    }));
+  }
+});
+
 dash.calc('cumplimiento', {
-  inputs: ['plan', 'lecturas'], title: 'Cumplimiento del calendario',
-  description: 'Por campo del calendario de mediciones de Ag. Garcés: bloques priorizados, bloques priorizados ya medidos (válvula, cola o aforo desde julio 2026), % de avance, fechas de inicio y fecha límite (corridas un mes), días que faltan para la fecha límite al corte, avance esperado a la fecha de la última medición registrada, estado (casi completo: plazo vencido con 75 % o más) y bloques medidos fuera del plan; la fila Total suma todos los campos.',
-  fn: (plan, lecturas) => {
+  inputs: ['semanal', 'bloque_semana', 'lecturas'], title: 'Cumplimiento de la meta semanal',
+  description: 'Por campo: semanas cerradas evaluadas y cumplidas, bloques completos en la última semana cerrada y en la semana en curso, promedio de bloques completos por semana, % de bloques medidos con protocolo completo, lo que más falta en los incompletos y última medición; la fila Total resume todos los campos.',
+  fn: (sw, bs, lecturas) => {
     const corte = lecturas.map((r) => r.dia).sort().pop();
-    const dias = (a, b) => (Date.parse(b) - Date.parse(a)) / 864e5;
-    const tot = d3.rollup(lecturas, (g) => new Set(g.map((r) => r.bloque_key)).size, (r) => r.campo);
-    const out = [...d3.group(plan, (r) => r.campo)].map(([campo, g]) => {
-      const prio = d3.sum(g, (r) => r.bloques_plan), med = d3.sum(g, (r) => r.bloques_medidos), ini = g[0].inicio, fin = g[0].fin;
-      const pct = Math.round(med * 100 / prio), esperado = corte >= fin ? 100 : Math.max(0, Math.round(dias(ini, corte) * 100 / dias(ini, fin)));
-      const medidosTotal = tot.get(campo) || 0;
-      const restan = Math.round(dias(corte, fin));
-      return {campo, campo_n: g[0].campo_n, inicio: ini, fin, inicio_original: g[0].inicio_original, fin_original: g[0].fin_original, restan, corte, priorizados: prio, medidos: med, pendientes: prio - med, pct, esperado,
-        estado: pct >= 100 ? 'Cumplido' : med === 0 && esperado === 0 ? 'Por iniciar' : med === 0 ? 'Sin avance' : pct >= esperado ? 'Al día' : pct >= 75 ? 'Casi completo' : 'Atrasado',
-        sectores: g.length, sectoresPendientes: g.filter((r) => r.estado === 'Pendiente').length,
-        medidosTotal, fueraPlan: Math.max(0, medidosTotal - med),
-        ultima: g.map((r) => r.ultima).filter(Boolean).sort().pop() || null};
+    const sems = [...new Set(sw.map((r) => r.semana))].sort(), act = sems[sems.length - 1], ult = sems[sems.length - 2];
+    const out = [...d3.group(sw, (r) => r.campo)].map(([campo, g]) => {
+      const c = g.filter((r) => !r.enCurso), a = g.find((r) => r.semana === act), u = g.find((r) => r.semana === ult);
+      const b = bs.filter((r) => r.campo === campo), inc = b.filter((r) => !r.completo);
+      const falt = [['aforos', inc.filter((r) => r.aforos < r.metaAforos).length], ['colas', inc.filter((r) => r.colas < PROTO.colas).length], ['presión de válvula', inc.filter((r) => r.valvula < PROTO.valvulas).length]].sort((x, y) => y[1] - x[1]);
+      return {campo, campo_n: g[0].campo_n, semanas: c.length, cumplidas: c.filter((r) => r.estado === 'Cumplida').length,
+        completos: d3.sum(g, (r) => r.completos), medidos: b.length, incompletos: inc.length,
+        promSemana: c.length ? Math.round(d3.sum(c, (r) => r.completos) / c.length * 10) / 10 : null,
+        pctCompleto: b.length ? Math.round((b.length - inc.length) * 100 / b.length) : null,
+        actual: a?.completos ?? 0, actualMedidos: a?.medidos ?? 0, estadoAct: a?.estado ?? 'Sin mediciones',
+        ultSem: u?.completos ?? 0, ultMedidos: u?.medidos ?? 0, estadoUlt: u?.estado ?? 'Sin mediciones',
+        faltaMas: inc.length && falt[0][1] ? `${falt[0][0]} (${falt[0][1]} de ${inc.length})` : '—', ultima: b.map((r) => r.ultima).sort().pop() || null};
     }).sort((a, b) => a.campo_n - b.campo_n);
-    const P = d3.sum(out, (r) => r.priorizados), Me = d3.sum(out, (r) => r.medidos);
-    out.push({campo: 'Total', campo_n: 999, inicio: d3.min(out, (r) => r.inicio), fin: d3.max(out, (r) => r.fin), inicio_original: null, fin_original: null, restan: null, corte, priorizados: P, medidos: Me, pendientes: P - Me, pct: Math.round(Me * 100 / P), esperado: null,
-      estado: null, sectores: d3.sum(out, (r) => r.sectores), sectoresPendientes: d3.sum(out, (r) => r.sectoresPendientes), medidosTotal: d3.sum(out, (r) => r.medidosTotal),
-      fueraPlan: d3.sum(out, (r) => r.fueraPlan), ultima: null, campos: out.length, sinAvance: out.filter((r) => r.estado === 'Sin avance').length,
-      cumplidos: out.filter((r) => r.estado === 'Cumplido').length, atrasados: out.filter((r) => r.estado === 'Atrasado' || r.estado === 'Sin avance').length, casi: out.filter((r) => r.estado === 'Casi completo').length});
+    const n = out.length, B = d3.sum(out, (r) => r.medidos), I = d3.sum(out, (r) => r.incompletos);
+    out.push({campo: 'Total', campo_n: 999, campos: n, metaSemana: n * PROTO.meta, corte: `${+corte.slice(8, 10)} de ${['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'][+corte.slice(5, 7) - 1]} de ${corte.slice(0, 4)}`, semanaAct: act ? rangoSem(act) : '—', semanaUlt: ult ? rangoSem(ult) : '—',
+      actual: d3.sum(out, (r) => r.actual), ultSem: d3.sum(out, (r) => r.ultSem), cumplenUlt: out.filter((r) => r.estadoUlt === 'Cumplida').length, cumplenAct: out.filter((r) => r.estadoAct === 'Cumplida').length,
+      sinUlt: out.filter((r) => r.estadoUlt === 'Sin mediciones').length, medidos: B, incompletos: I, completos: B - I, pctCompleto: B ? Math.round((B - I) * 100 / B) : null,
+      semanas: null, cumplidas: null, promSemana: null, faltaMas: null, ultima: null});
     return out;
   }
 });
