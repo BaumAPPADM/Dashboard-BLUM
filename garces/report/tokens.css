@@ -14,3 +14,6 @@ html, body { margin: 0; background: var(--color-bg); color: var(--color-fg); fon
 #dash-root { padding: clamp(12px, 3vw, 32px); }
 #dash-root b, #dash-root strong { font-weight: 600; }
 .gx-salir { position: fixed; top: 10px; right: 12px; z-index: 10; font: inherit; font-size: 12px; padding: 4px 10px; border-radius: 999px; border: 1px solid #DFE5E4; background: #FFFFFF; color: #002E2B; cursor: pointer; }
+.gx-actualizado { margin: 0; padding: 10px clamp(12px, 3vw, 32px) 0; padding-right: 90px; font-size: 12px; color: #5C6F6D; }
+.gx-actualizado b { color: #002E2B; font-weight: 600; }
+.gx-actualizado i { width: 8px; height: 8px; border-radius: 50%; background: #77CFC9; display: inline-block; margin-right: 8px; vertical-align: 1px; }
