@@ -1,0 +1,397 @@
+<div class="yb">
+  <nav class="gx-tabs" aria-label="Vistas">
+    <button type="button" class="gx-tab" data-vista="campos" aria-pressed="true">Todos los campos</button>
+    <button type="button" class="gx-tab" data-vista="meta" aria-pressed="false">Meta de mediciones</button>
+    <button type="button" class="gx-tab" data-vista="resumen" aria-pressed="false">Resumen del campo</button>
+    <button type="button" class="gx-tab" data-vista="tecnico" aria-pressed="false">Análisis técnico</button>
+    <button type="button" class="gx-tab" data-vista="plan" aria-pressed="false">Plan de acción</button>
+    <button type="button" class="gx-tab" data-vista="optimos" aria-pressed="false">Actualización de óptimos</button>
+  </nav>
+
+  <nav class="gx-filters gx-campo-filtros" aria-label="Filtros" hidden>
+    <label class="gx-field"><span>Campo</span><select data-draw="campoSel" aria-label="Campo"></select></label>
+    <label class="gx-field gx-solo-tecnico" hidden><span>Equipo o circuito</span><select data-draw="equipoSel" aria-label="Equipo"></select></label>
+    <p class="yb-note">Todo lo que sigue corresponde al campo elegido. Presiones en psi, aforos en l/h y caudal de sector en m³/h.</p>
+  </nav>
+
+  <!-- ============ TODOS LOS CAMPOS ============ -->
+  <div class="gx-page" id="campos">
+    <header class="yb-hero">
+      <div class="yb-hero-top">
+        <div class="yb-logo" role="img" aria-label="blum"></div>
+        <p class="yb-eyebrow">Informe de riego · <span class="data">Temporada 2026-27</span></p>
+      </div>
+      <p class="yb-eyebrow">Ag. Bafar · Todos los campos · Nogal pecanero</p>
+      <h1>Riego de los campos de Ag. Bafar: Wiseconn y terreno, juntos</h1>
+      <p class="lead">Presión de válvula y de cola, aforos de microaspersores y caudal de cada sector desde julio de 2026. Las lecturas automáticas de Wiseconn (vía API) se cruzan con lo que mide el equipo en terreno.</p>
+      <p class="gx-upd">Datos actualizados: <b data-draw="upd">—</b> · Se actualiza todos los viernes y a pedido</p>
+      <div class="yb-kpis">
+        <div class="kpi"><span>Bloques medidos</span><b><span data-draw="m" data-k="bloquesMedidos">—</span><small>/ <span data-draw="m" data-k="bloquesTotal">—</span></small></b></div>
+        <div class="kpi"><span>Lecturas en terreno</span><b data-draw="m" data-k="lecturasManual">—</b></div>
+        <div class="kpi"><span>Lecturas de Wiseconn (API)</span><b data-draw="m" data-k="lecturasApi">—</b></div>
+        <div class="kpi"><span>Aforos en la temporada</span><b class="warn"><span data-draw="m" data-k="aforos">—</span><small>/ <span data-draw="m" data-k="bloquesTotal" data-x="7">—</span> de la meta por ciclo</small></b></div>
+      </div>
+    </header>
+
+    <section class="yb-sec">
+      <div class="yb-sechead">
+        <div class="row"><p class="yb-eyebrow">blum · Campos</p><p class="yb-eyebrow data">/ 01</p></div>
+        <h2>Estado de cada campo</h2>
+        <p>Haga clic en un campo para ver su resumen. Válvulas y colas: cuántas promedian sobre o bajo su rango. Wiseconn: sectores con caudal automático y cuántos de ellos tienen aforos para cruzar.</p>
+      </div>
+      <div class="yb-block"><div class="yb-tablewrap">
+        <table class="yb-table gx-campos-tabla">
+          <thead><tr><th>Campo</th><th class="num">Bloques medidos</th><th>Período en terreno</th><th class="num">Válvulas altas / bajas</th><th class="num">Colas medidas</th><th class="num">Aforos</th><th class="num">Aforo / nominal (l/h)</th><th class="num">Sectores Wiseconn</th><th class="num">Con aforo para cruzar</th><th class="num">Alertas altas</th></tr></thead>
+          <tbody data-draw="camposTabla"></tbody>
+        </table>
+      </div></div>
+    </section>
+
+    <section class="yb-sec">
+      <div class="yb-sechead">
+        <div class="row"><p class="yb-eyebrow">blum · Por qué medir</p><p class="yb-eyebrow data">/ 02</p></div>
+        <h2>Lo que hoy no se puede ver por falta de mediciones</h2>
+        <p>Wiseconn dice cuánta agua entra a cada sector. Las mediciones en terreno dicen si esa agua llega pareja a cada árbol. Con pocas mediciones, esa segunda mitad queda a ciegas.</p>
+      </div>
+      <div class="yb-tiles" data-draw="plusTiles"></div>
+    </section>
+
+    <section class="yb-sec">
+      <div class="yb-sechead">
+        <div class="row"><p class="yb-eyebrow">blum · Origen de los datos</p><p class="yb-eyebrow data">/ 03</p></div>
+        <h2>Mediciones automáticas (API) y manuales</h2>
+        <p>Qué se recibe automáticamente desde Wiseconn y qué mide el equipo en terreno con la app de blum.</p>
+      </div>
+      <div class="yb-block"><div class="yb-tablewrap">
+        <table class="yb-table">
+          <thead><tr><th>Campo</th><th>Medición</th><th>Origen</th><th class="num">Lecturas</th><th class="num">Bloques o sectores</th><th class="num">Días con datos</th><th>Desde</th><th>Hasta</th></tr></thead>
+          <tbody data-draw="origenTabla"></tbody>
+        </table>
+      </div></div>
+    </section>
+
+    <section class="yb-sec">
+      <div class="yb-sechead">
+        <div class="row"><p class="yb-eyebrow">blum · Plan de acción</p><p class="yb-eyebrow data">/ 04</p></div>
+        <h2>Acciones de prioridad alta</h2>
+        <p>Lo que conviene resolver primero en cada campo. El detalle está en el resumen de cada campo y en el plan de acción.</p>
+      </div>
+      <div class="yb-block"><div class="yb-tablewrap gx-tall">
+        <table class="yb-table gx-obs">
+          <thead><tr><th>Campo</th><th>Tema</th><th>Observación</th><th>Acción</th><th>Dónde</th></tr></thead>
+          <tbody data-draw="altasTabla"></tbody>
+        </table>
+      </div></div>
+    </section>
+    <footer class="yb-foot"><span class="brand"><i class="yb-iso" aria-hidden="true"></i>blum · Método de riego</span><span>Ag. Bafar · Temporada 2026-27 · Datos de blum y Wiseconn · Hora local registrada</span></footer>
+  </div>
+
+  <!-- ============ META DE MEDICIONES ============ -->
+  <div class="gx-page" id="meta" hidden>
+    <header class="yb-hero">
+      <div class="yb-hero-top"><div class="yb-logo" role="img" aria-label="blum"></div><p class="yb-eyebrow">Plan de mediciones · <span class="data">Temporada 2026-27</span></p></div>
+      <p class="yb-eyebrow">Ag. Bafar · Plan cargado en blum</p>
+      <h1>Meta de mediciones</h1>
+      <p class="lead">El plan de Ag. Bafar en blum pide medir el 100 % de los bloques de cada campo cada <b data-draw="m" data-k="ciclo">—</b> días. Un bloque cumple cuando en el ciclo tiene al menos <b data-draw="m" data-k="valvula">—</b> presión de válvula, <b data-draw="m" data-k="cola">—</b> presión de cola y <b data-draw="m" data-k="aforosMeta">—</b> aforos. Ciclo actual: del <b data-draw="m" data-k="inicioCiclo" data-f="fecha">—</b> al <b data-draw="m" data-k="finCiclo" data-f="fecha">—</b>.</p>
+      <p class="gx-upd">Datos actualizados: <b data-draw="upd">—</b></p>
+      <div class="yb-kpis" data-draw="metaKpis"></div>
+    </header>
+
+    <section class="yb-sec">
+      <div class="yb-sechead">
+        <div class="row"><p class="yb-eyebrow">blum · Semana a semana</p><p class="yb-eyebrow data">/ 01</p></div>
+        <h2>Cumplimiento semanal por campo</h2>
+        <p>Para cubrir todos los bloques en 90 días, cada campo debe completar cerca de un 8 % de sus bloques por semana (la línea). Las barras muestran los bloques con alguna medición en la semana; en turquesa oscuro, los que completaron la meta (válvula, cola y 7 aforos).</p>
+      </div>
+      <div class="yb-block">
+        <div class="yb-legend"><span><i class="sw gx-sw-vis"></i>Bloques visitados en la semana</span><span><i class="sw gx-sw-comp"></i>Bloques con la meta completa</span><span><i class="sw gx-sw-obj"></i>Bloques por semana para cumplir el ciclo</span></div>
+        <div data-draw="metaSemChart"></div>
+      </div>
+      <div class="yb-block"><div class="yb-tablewrap gx-tall">
+        <table class="yb-table">
+          <thead><tr><th>Campo</th><th>Semana</th><th class="num">Meta (bloques)</th><th class="num">Visitados</th><th class="num">Con válvula</th><th class="num">Con cola</th><th class="num">Con aforo</th><th class="num">Meta completa</th><th class="num">Aforos</th><th class="num">% de la meta</th></tr></thead>
+          <tbody data-draw="metaSemTabla"></tbody>
+        </table>
+      </div></div>
+    </section>
+
+    <section class="yb-sec">
+      <div class="yb-sechead">
+        <div class="row"><p class="yb-eyebrow">blum · Por ciclo</p><p class="yb-eyebrow data">/ 02</p></div>
+        <h2>Avance del ciclo por campo</h2>
+        <p>Bloques que cumplen la meta, que tienen alguna medición (parcial) o que no tienen ninguna, frente al tiempo transcurrido del ciclo.</p>
+      </div>
+      <div class="yb-block"><div class="yb-tablewrap">
+        <table class="yb-table">
+          <thead><tr><th>Campo</th><th>Ciclo</th><th>Período</th><th class="num">Tiempo del ciclo</th><th class="num">Bloques</th><th class="num">Cumplen</th><th class="num">Parciales</th><th class="num">Sin medición</th><th class="num">Con válvula</th><th class="num">Con cola</th><th class="num">Aforos hechos / meta</th></tr></thead>
+          <tbody data-draw="metaCampoTabla"></tbody>
+        </table>
+      </div></div>
+    </section>
+
+    <section class="yb-sec">
+      <div class="yb-sechead">
+        <div class="row"><p class="yb-eyebrow">blum · Por bloque</p><p class="yb-eyebrow data">/ 03</p></div>
+        <h2>Qué faltó en cada bloque</h2>
+        <p>Mediciones registradas en cada bloque durante el ciclo y lo que faltó para cumplir la meta.</p>
+      </div>
+      <div class="gx-row">
+        <label class="gx-field"><span>Campo</span><select class="gx-mb-campo" data-draw="mbCampoSel"></select></label>
+        <label class="gx-field"><span>Ciclo</span><select class="gx-mb-ciclo" data-draw="mbCicloSel"></select></label>
+        <label class="gx-field"><span>Estado</span><select class="gx-mb-estado"><option value="">Todos</option><option>Cumple</option><option>Parcial</option><option>Sin medición</option></select></label>
+      </div>
+      <div class="yb-block"><div class="yb-tablewrap gx-tall">
+        <table class="yb-table">
+          <thead><tr><th>Equipo o circuito</th><th>Sector</th><th>Bloque</th><th class="num">Válvula</th><th class="num">Cola</th><th class="num">Aforos</th><th>Estado</th><th>Faltó</th></tr></thead>
+          <tbody data-draw="metaBloqueTabla"></tbody>
+        </table>
+      </div><p class="yb-note" data-draw="mbNota"></p></div>
+    </section>
+    <footer class="yb-foot"><span class="brand"><i class="yb-iso" aria-hidden="true"></i>blum · Método de riego</span><span>Ag. Bafar · Meta según el plan de mediciones cargado en blum</span></footer>
+  </div>
+
+  <!-- ============ RESUMEN DEL CAMPO ============ -->
+  <div class="gx-page" id="resumen" hidden>
+    <header class="yb-hero">
+      <div class="yb-hero-top"><div class="yb-logo" role="img" aria-label="blum"></div><p class="yb-eyebrow">Resumen para el cliente · <span class="data">Temporada 2026-27</span></p></div>
+      <p class="yb-eyebrow">Ag. Bafar · <span data-draw="campoTxt">—</span></p>
+      <h1>Cómo está regando <span data-draw="campoTxt" data-corto="1">—</span></h1>
+      <p class="lead" data-draw="resumenLead"></p>
+      <p class="gx-upd">Datos actualizados: <b data-draw="upd">—</b></p>
+      <div class="yb-kpis" data-draw="resumenKpis"></div>
+    </header>
+
+    <section class="yb-sec">
+      <div class="yb-sechead">
+        <div class="row"><p class="yb-eyebrow">blum · Observaciones</p><p class="yb-eyebrow data">/ 01</p></div>
+        <h2>Observaciones y qué hacer</h2>
+        <p>Lo principal del campo, en orden. Cada observación trae su acción y dónde aplicarla.</p>
+      </div>
+      <div class="yb-block"><div class="yb-tablewrap">
+        <table class="yb-table gx-obs">
+          <thead><tr><th>Nivel</th><th>Observación</th><th>Acción</th><th>Dónde</th><th>Prioridad</th></tr></thead>
+          <tbody data-draw="obsTabla"></tbody>
+        </table>
+      </div></div>
+    </section>
+
+    <section class="yb-sec">
+      <div class="yb-sechead">
+        <div class="row"><p class="yb-eyebrow">blum · Bloques</p><p class="yb-eyebrow data">/ 02</p></div>
+        <h2>Estado de cada bloque medido</h2>
+        <p>Promedio de la temporada frente al rango cargado en blum. Turquesa: en rango; naranjo: bajo; rojo: sobre. Primero los bloques con más puntos a revisar.</p>
+      </div>
+      <div class="yb-block"><div class="yb-tablewrap gx-tall">
+        <table class="yb-table gx-sema">
+          <thead><tr><th>Equipo o circuito</th><th>Sector</th><th>Bloque</th><th class="num">Válvula (psi)</th><th class="num">Cola (psi)</th><th class="num">Aforo (l/h)</th><th>Diagnóstico</th><th>Prioridad</th></tr></thead>
+          <tbody data-draw="semaforoTabla"></tbody>
+        </table>
+      </div></div>
+    </section>
+    <footer class="yb-foot"><span class="brand"><i class="yb-iso" aria-hidden="true"></i>blum · Método de riego</span><span>Ag. Bafar · Resumen del campo</span></footer>
+  </div>
+
+  <!-- ============ ANÁLISIS TÉCNICO ============ -->
+  <div class="gx-page" id="tecnico" hidden>
+    <header class="yb-hero">
+      <div class="yb-hero-top"><div class="yb-logo" role="img" aria-label="blum"></div><p class="yb-eyebrow">Análisis técnico · <span class="data">Temporada 2026-27</span></p></div>
+      <p class="yb-eyebrow">Ag. Bafar · <span data-draw="campoTxt">—</span></p>
+      <h1>Presiones, aforos y caudal de Wiseconn</h1>
+      <p class="lead">Detalle por equipo o circuito, sector y bloque. Use el filtro de equipo para acotar.</p>
+      <p class="gx-upd">Datos actualizados: <b data-draw="upd">—</b></p>
+    </header>
+
+    <section class="yb-sec">
+      <div class="yb-sechead">
+        <div class="row"><p class="yb-eyebrow">Wiseconn × terreno</p><p class="yb-eyebrow data">/ 01</p></div>
+        <h2>Caudal de cada sector (Wiseconn) frente a los aforos</h2>
+        <p>Caudal mediano de Wiseconn en los días con riego, frente al caudal de diseño cargado en blum y al aforo promedio de los microaspersores del sector. Si entra el agua de diseño pero los emisores entregan menos, hay pérdidas antes del emisor; si entra menos, falta presión u hay obstrucción.</p>
+      </div>
+      <div class="yb-block"><div class="yb-tablewrap">
+        <table class="yb-table gx-obs">
+          <thead><tr><th>Sector</th><th class="num">ha</th><th class="num">Días con riego</th><th class="num">Caudal (m³/h)</th><th class="num">Diseño en blum</th><th class="num">% del diseño</th><th class="num">Lámina (mm/h)</th><th class="num">Aforos (l/h)</th><th>Cruce</th></tr></thead>
+          <tbody data-draw="apiTabla"></tbody>
+        </table>
+      </div><p class="yb-note" data-draw="apiNota"></p></div>
+      <div class="yb-block">
+        <h3>Caudal diario por sector</h3>
+        <div class="yb-legend"><span><i class="sw gx-sw-comp"></i>Caudal mediano del día con riego</span><span><i class="sw gx-sw-obj"></i>Rango de diseño cargado en blum</span></div>
+        <div data-draw="serieChart"></div>
+      </div>
+    </section>
+
+    <section class="yb-sec">
+      <div class="yb-sechead">
+        <div class="row"><p class="yb-eyebrow">Wiseconn × terreno</p><p class="yb-eyebrow data">/ 02</p></div>
+        <h2>Presión automática del cabezal frente a las válvulas medidas a mano</h2>
+        <p>Wiseconn lee la presión en el cabezal (caudalímetro) de cada sector. Se compara con las presiones de válvula medidas en terreno en los bloques de ese mismo sector. Se usan solo las lecturas automáticas de 10 psi o más (con riego).</p>
+      </div>
+      <div class="yb-block"><div class="yb-tablewrap">
+        <table class="yb-table gx-obs">
+          <thead><tr><th>Sector</th><th class="num">Cabezal API (psi)</th><th class="num">Válvulas manuales (psi)</th><th class="num">Principal anotada</th><th class="num">Diferencia</th><th>Resultado y acción</th></tr></thead>
+          <tbody data-draw="presTabla"></tbody>
+        </table>
+      </div></div>
+    </section>
+
+    <section class="yb-sec">
+      <div class="yb-sechead">
+        <div class="row"><p class="yb-eyebrow">Terreno</p><p class="yb-eyebrow data">/ 03</p></div>
+        <h2>Presión de válvula</h2>
+        <p>Cada válvula según su promedio frente al rango óptimo cargado en blum: bajo, en rango, sobre, o inestable (promedio en rango, pero la mitad o más de las lecturas fuera).</p>
+      </div>
+      <div class="yb-block">
+        <div class="yb-legend"><span><i class="sw gx-sw-baja"></i>Presión baja</span><span><i class="sw gx-sw-alta"></i>Presión alta</span><span><i class="sw gx-sw-ines"></i>Inestable</span><span><i class="sw gx-sw-ok"></i>En rango</span><span><i class="sw gx-sw-sin"></i>Rango mal cargado</span></div>
+        <div data-draw="condChart" data-tipo="Válvula"></div>
+      </div>
+      <div class="yb-block"><div class="yb-tablewrap gx-tall">
+        <table class="yb-table"><thead><tr><th>Equipo</th><th>Sector</th><th>Bloque</th><th class="num">Lecturas</th><th class="num">Promedio</th><th class="num">Rango</th><th class="num">Última</th><th>Fecha</th><th class="num">% bajo</th><th class="num">% sobre</th><th>Condición</th><th>Comentarios</th></tr></thead>
+          <tbody data-draw="condTabla" data-tipo="Válvula"></tbody></table>
+      </div></div>
+    </section>
+
+    <section class="yb-sec">
+      <div class="yb-sechead">
+        <div class="row"><p class="yb-eyebrow">Terreno</p><p class="yb-eyebrow data">/ 04</p></div>
+        <h2>Presión de cola</h2>
+        <p>Presión al final del lateral. Si la válvula está en rango y la cola baja, la presión se pierde en el camino.</p>
+      </div>
+      <div class="yb-block">
+        <div data-draw="condChart" data-tipo="Cola"></div>
+      </div>
+      <div class="yb-block"><div class="yb-tablewrap gx-tall">
+        <table class="yb-table"><thead><tr><th>Equipo</th><th>Sector</th><th>Bloque</th><th class="num">Lecturas</th><th class="num">Promedio</th><th class="num">Rango</th><th class="num">Última</th><th>Fecha</th><th class="num">% bajo</th><th class="num">% sobre</th><th>Condición</th><th>Comentarios</th></tr></thead>
+          <tbody data-draw="condTabla" data-tipo="Cola"></tbody></table>
+      </div></div>
+    </section>
+
+    <section class="yb-sec">
+      <div class="yb-sechead">
+        <div class="row"><p class="yb-eyebrow">Terreno</p><p class="yb-eyebrow data">/ 05</p></div>
+        <h2>Aforos de microaspersores y uniformidad</h2>
+        <p>Promedio de cada bloque frente al nominal cargado. La uniformidad (CU de Christiansen) se calcula con 4 aforos o más por bloque; bajo 90 % es alerta. Hoy ningún bloque llega a 4 aforos.</p>
+      </div>
+      <div class="yb-block"><div class="yb-tablewrap gx-tall">
+        <table class="yb-table"><thead><tr><th>Equipo</th><th>Sector</th><th>Bloque</th><th class="num">Aforos</th><th class="num">Promedio (l/h)</th><th class="num">Nominal</th><th class="num">% del nominal</th><th class="num">CU %</th><th class="num">Faltan para CU</th><th>Comentarios</th></tr></thead>
+          <tbody data-draw="aforoTabla"></tbody></table>
+      </div></div>
+    </section>
+
+    <section class="yb-sec">
+      <div class="yb-sechead">
+        <div class="row"><p class="yb-eyebrow">Terreno</p><p class="yb-eyebrow data">/ 06</p></div>
+        <h2>Dónde se aforó</h2>
+        <p>Puntos GPS de los aforos frente a la válvula y la cola de su bloque, y en qué parte de la hilera quedaron (inicio, mitad o cola). Elija el equipo o circuito en el filtro de arriba para ver su mapa.</p>
+      </div>
+      <div class="yb-block">
+        <div class="yb-legend"><span><i class="sw gx-u0"></i>Junto a la válvula</span><span><i class="sw gx-u1"></i>Dentro del bloque</span><span><i class="sw gx-u2"></i>Junto a la cola</span><span><i class="sw gx-u3"></i>Junto a otro bloque</span><span><i class="sw gx-u4"></i>Lejos de su bloque</span><span><i class="sw gx-u5"></i>Fuera del campo</span><span><i class="sw sw-valve"></i>Válvula medida</span><span><i class="sw gx-sw-gris"></i>Válvula sin medición</span><span><i class="sw sw-cola"></i>Cola</span></div>
+        <div class="gx-map" data-draw="mapa"></div>
+        <p class="yb-note" data-draw="mapaNota"></p>
+      </div>
+      <div class="yb-block"><div class="yb-tablewrap">
+        <table class="yb-table"><thead><tr><th>Ubicación del aforo</th><th class="num">Aforos</th><th class="num">%</th></tr></thead><tbody data-draw="ubicTabla"></tbody></table>
+      </div></div>
+    </section>
+
+    <section class="yb-sec" id="anexo">
+      <div class="yb-sechead">
+        <div class="row"><p class="yb-eyebrow">Anexo</p><p class="yb-eyebrow data">/ 07</p></div>
+        <h2>Limpieza y calidad de los datos</h2>
+        <p>Reglas aplicadas a las lecturas del campo antes de analizarlas.</p>
+      </div>
+      <div class="yb-block"><div class="yb-tablewrap">
+        <table class="yb-table"><thead><tr><th>Regla</th><th>Acción</th><th class="num">Lecturas</th></tr></thead><tbody data-draw="limpiezaTabla"></tbody></table>
+      </div></div>
+      <div class="yb-sechead">
+        <h2>Detalle de lecturas</h2>
+        <p>Todas las lecturas del campo, manuales y de la API. Las tachadas no se usan en el análisis (ver nota).</p>
+      </div>
+      <div class="gx-row">
+        <label class="gx-field"><span>Tipo</span><select class="gx-det-tipo"><option value="">Todos</option><option>Válvula</option><option>Cola</option><option>Aforo</option><option>Presión cabezal</option></select></label>
+        <label class="gx-field"><span>Origen</span><select class="gx-det-origen"><option value="">Todos</option><option>Manual en terreno</option><option>API Wiseconn</option></select></label>
+        <label class="gx-field"><span>Estado</span><select class="gx-det-estado"><option value="">Todos</option><option>Bajo</option><option>En rango</option><option>Alto</option><option>Sin rango válido</option><option value="excl">No usadas</option><option value="nota">Con nota</option></select></label>
+        <label class="gx-field gx-grow"><span>Buscar</span><input class="gx-det-q" type="search" placeholder="Sector, bloque o comentario"></label>
+      </div>
+      <div class="yb-block"><div class="yb-tablewrap gx-tall">
+        <table class="yb-table"><thead><tr><th>Fecha</th><th>Tipo</th><th>Origen</th><th>Equipo</th><th>Sector</th><th>Bloque</th><th class="num">Valor</th><th class="num">Rango</th><th>Estado</th><th>Ubicación</th><th>Comentario</th><th>Nota</th></tr></thead>
+          <tbody data-draw="detalleTabla"></tbody></table>
+      </div><p class="yb-note" data-draw="detalleNota"></p></div>
+    </section>
+    <footer class="yb-foot"><span class="brand"><i class="yb-iso" aria-hidden="true"></i>blum · Método de riego</span><span>Ag. Bafar · Análisis técnico</span></footer>
+  </div>
+
+  <!-- ============ PLAN DE ACCIÓN ============ -->
+  <div class="gx-page" id="plan" hidden>
+    <header class="yb-hero">
+      <div class="yb-hero-top"><div class="yb-logo" role="img" aria-label="blum"></div><p class="yb-eyebrow">Plan de acción · <span class="data">Temporada 2026-27</span></p></div>
+      <p class="yb-eyebrow">Ag. Bafar · <span data-draw="campoTxt">—</span></p>
+      <h1>Qué hacer, en orden</h1>
+      <p class="lead">Acciones por bloque (válvula, cola y caudal), por sector (cruce con Wiseconn) y sobre la medición y los datos. Primero las de prioridad alta.</p>
+      <p class="gx-upd">Datos actualizados: <b data-draw="upd">—</b></p>
+    </header>
+    <section class="yb-sec">
+      <div class="yb-sechead">
+        <div class="row"><p class="yb-eyebrow">blum · Diagnósticos</p><p class="yb-eyebrow data">/ 01</p></div>
+        <h2>Diagnósticos encontrados</h2>
+        <p>Bloques del campo por diagnóstico, con la causa probable y la acción principal.</p>
+      </div>
+      <div class="yb-block"><div class="yb-tablewrap">
+        <table class="yb-table gx-obs"><thead><tr><th>Prioridad</th><th>Diagnóstico</th><th class="num">Bloques</th><th>Causa probable</th><th>Acción</th></tr></thead><tbody data-draw="diagResTabla"></tbody></table>
+      </div></div>
+    </section>
+    <section class="yb-sec">
+      <div class="yb-sechead">
+        <div class="row"><p class="yb-eyebrow">blum · Sectores</p><p class="yb-eyebrow data">/ 02</p></div>
+        <h2>Acciones por sector (Wiseconn)</h2>
+      </div>
+      <div class="yb-block"><div class="yb-tablewrap">
+        <table class="yb-table gx-obs"><thead><tr><th>Prioridad</th><th>Equipo o circuito</th><th>Sector</th><th>Cruce</th><th>Detalle</th><th>Acción</th></tr></thead><tbody data-draw="planApiTabla"></tbody></table>
+      </div></div>
+    </section>
+    <section class="yb-sec">
+      <div class="yb-sechead">
+        <div class="row"><p class="yb-eyebrow">blum · Bloques</p><p class="yb-eyebrow data">/ 03</p></div>
+        <h2>Qué hacer en cada bloque</h2>
+      </div>
+      <div class="gx-row">
+        <label class="gx-field"><span>Prioridad</span><select class="gx-prio"><option value="">Todas</option><option>Alta</option><option>Media</option><option>Baja</option></select></label>
+      </div>
+      <div class="yb-block"><div class="yb-tablewrap gx-tall">
+        <table class="yb-table gx-obs"><thead><tr><th>Prioridad</th><th>Equipo</th><th>Sector</th><th>Bloque</th><th>Diagnóstico</th><th>Pasos</th><th>Comentarios de terreno</th></tr></thead><tbody data-draw="planBloques"></tbody></table>
+      </div></div>
+    </section>
+    <section class="yb-sec">
+      <div class="yb-sechead">
+        <div class="row"><p class="yb-eyebrow">blum · Medición y datos</p><p class="yb-eyebrow data">/ 04</p></div>
+        <h2>Medición y calidad de los datos</h2>
+        <p>Lo que hay que corregir para que el análisis sea completo: cobertura, aforos, registros en la app y rangos cargados.</p>
+      </div>
+      <div class="yb-block"><div class="yb-tablewrap">
+        <table class="yb-table gx-obs"><thead><tr><th>Prioridad</th><th>Observación</th><th>Acción</th><th>Dónde</th></tr></thead><tbody data-draw="planDatosTabla"></tbody></table>
+      </div></div>
+    </section>
+    <footer class="yb-foot"><span class="brand"><i class="yb-iso" aria-hidden="true"></i>blum · Método de riego</span><span>Ag. Bafar · Plan de acción</span></footer>
+  </div>
+
+  <!-- ============ ÓPTIMOS ============ -->
+  <div class="gx-page" id="optimos" hidden>
+    <header class="yb-hero">
+      <div class="yb-hero-top"><div class="yb-logo" role="img" aria-label="blum"></div><p class="yb-eyebrow">Parámetros · <span class="data">Temporada 2026-27</span></p></div>
+      <p class="yb-eyebrow">Ag. Bafar · <span data-draw="campoTxt">—</span></p>
+      <h1>Actualización de óptimos en base a las mediciones</h1>
+      <p class="lead">Rangos cargados en blum frente a lo que realmente se mide. Las propuestas son una referencia para revisar con el equipo agronómico, no un cambio automático: una presión puede estar fuera de rango porque el rango está mal o porque el equipo está mal regulado.</p>
+      <p class="gx-upd">Datos actualizados: <b data-draw="upd">—</b></p>
+    </header>
+    <section class="yb-sec">
+      <div class="yb-sechead">
+        <div class="row"><p class="yb-eyebrow">blum · Rangos</p><p class="yb-eyebrow data">/ 01</p></div>
+        <h2>Rangos cargados y propuesta</h2>
+        <p>Válvula: la propuesta usa las válvulas de los bloques cuya cola llega en rango (si hay 5 o más), con ±10 %. Cola y caudal de sector: mediana de lo medido ±10 %. Se propone mantener cuando lo medido está a menos de 15 % del óptimo cargado.</p>
+      </div>
+      <div class="yb-block"><div class="yb-tablewrap">
+        <table class="yb-table gx-obs"><thead><tr><th>Medición</th><th>Cargado en blum (mín / ópt / máx)</th><th class="num">Bloques</th><th class="num">Lecturas</th><th class="num">Mediana (P25–P75)</th><th class="num">% en rango</th><th>Base de la propuesta</th><th>Propuesta</th></tr></thead><tbody data-draw="optTabla"></tbody></table>
+      </div></div>
+    </section>
+    <footer class="yb-foot"><span class="brand"><i class="yb-iso" aria-hidden="true"></i>blum · Método de riego</span><span>Ag. Bafar · Actualización de óptimos</span></footer>
+  </div>
+</div>
