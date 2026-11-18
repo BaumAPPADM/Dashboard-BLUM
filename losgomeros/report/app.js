@@ -24,8 +24,7 @@
     if (V(b) === 'Alto') t.push('Bajar presión');
     if (A(b) === 'Bajo' && V(b) !== 'Bajo') t.push('Limpiar goteros');
     if (b.aforo && b.aforo.cu != null && b.aforo.cu < 90) t.push('Revisar uniformidad');
-    if (/nominal cargado/i.test(b.diagnostico)) t.push('Corregir nominal');
-    b.tags = t.length ? t : ['Sin acción'];
+        b.tags = t.length ? t : ['Sin acción'];
   });
   const con = (tag) => BL.filter((b) => b.tags.includes(tag));
   const lista = (bs) => { const g = {}; bs.forEach((b) => (g[b.equipo] = g[b.equipo] || []).push(`${b.sector.replace('Sector ', 'S')}·${b.bloque.replace('Bloque ', 'B')}`));
@@ -41,26 +40,32 @@
     ['Aforos bajo el mínimo', `${afBajo.length}<small>/ ${afs.length}</small>`, afBajo.length ? 'warn' : '']
   ].map(([k, v, c]) => `<div class="kpi"><span>${k}</span><b class="${c}">${v}</b></div>`).join('');
 
-  // ---------- qué hacer, en orden (global)
+  // ---------- qué hacer, en orden (plan para el equipo del cliente)
+  const sb = (b) => `${b.sector.replace('Sector ', 'S')}·${b.bloque.replace('Bloque ', 'B')}`;
+  const eqc = (e) => e.replace(/^Equipo (\d+) · /, 'E$1 ');
+  const porEq = (bs, fn) => { const g = {}; bs.forEach((b) => (g[b.equipo] = g[b.equipo] || []).push(fn(b)));
+    return Object.entries(g).map(([e, v]) => `${eqc(e)}: ${v.join('; ')}`).join('. ') + '.'; };
   const pasos = [];
-  CS.forEach((c) => {
+  CS.filter((c) => c.prioridad === 'Alta').forEach((c) => {
     const dp = c.entrada != null && c.salida != null ? c.entrada - c.salida : null;
-    const malo = c.prioridad === 'Alta';
-    if (malo) pasos.push(['Alta', `Caseta: retrolavar y limpiar filtros y revisar la bomba`,
-      `${c.caseta}: se pierden ${f(dp)} bar en los filtros (entrada ${f(c.entrada)}, salida ${f(c.salida)} bar)${c.caudal != null ? ` y el caudal es de ${f(c.caudal)} m³/h, bajo lo esperado` : ''}. Medición del ${fd(c.ultima)}: volver a medir entrada, salida y caudal.`]);
+    pasos.push(['Alta', `${c.caseta}: retrolavar y limpiar los filtros y revisar la bomba`,
+      `Se midió ${f(c.entrada)} bar antes de los filtros y ${f(c.salida)} bar después: se pierden ${f(dp)} bar (lo normal es hasta 0,5)${c.caudal != null ? `. Caudal ${f(c.caudal)} m³/h, bajo lo esperado` : ''}. Al terminar, medir de nuevo entrada, salida y caudal.`]);
   });
   const sub = con('Subir presión');
-  if (sub.length) pasos.push(['Alta', 'Subir la presión de las válvulas bajas', `Después de revisar la caseta, calibrar el piloto o regulador hasta el óptimo en ${lista(sub)}.`]);
-  const conf = con('Confirmar registro');
-  if (conf.length) pasos.push(['Media', 'Confirmar en qué bloque se midió', `${lista(conf)}: el GPS quedó junto a otro bloque. Corregir el registro en blum.`]);
+  if (sub.length) pasos.push(['Alta', 'Subir la presión de estas válvulas (piloto o regulador)',
+    'Una vez limpia la caseta. ' + porEq(sub, (b) => `${sb(b)} de ${f(b.valvula.valor)} a ${f(b.valvula.min, 2)}–${f(b.valvula.max, 2)} bar`)]);
   const lim = con('Limpiar goteros');
-  if (lim.length) pasos.push(['Media', 'Limpiar goteros y lavar laterales', `Válvula en rango pero caudal bajo en ${lista(lim)}.`]);
+  if (lim.length) pasos.push(['Media', 'Limpiar goteros y lavar laterales',
+    'La válvula está bien, pero los goteros entregan menos de lo que deben. ' + porEq(lim, (b) => `${sb(b)} (${f(b.aforo.pct, 0)}% del caudal nominal)`)]);
   const baj = con('Bajar presión');
-  if (baj.length) pasos.push(['Baja', 'Bajar la presión de válvula', `${lista(baj)}: levemente sobre el máximo.`]);
-  const nom = con('Corregir nominal');
-  if (nom.length) pasos.push(['Baja', 'Corregir el caudal nominal en blum', `${lista(nom)} tiene un nominal distinto al resto del campo (${f(M.nominal_comun)} l/h).`]);
+  if (baj.length) pasos.push(['Baja', 'Bajar la presión de estas válvulas',
+    porEq(baj, (b) => `${sb(b)} de ${f(b.valvula.valor)} a ${f(b.valvula.min, 2)}–${f(b.valvula.max, 2)} bar`)]);
+  const conf = con('Confirmar registro');
   const sinCola = BL.filter((b) => !b.cola).length, pocosAf = BL.filter((b) => !b.aforo || b.aforo.n < 3).length;
-  pasos.push(['', 'Próxima ronda de mediciones', `En cada bloque medir válvula, cola y 3 aforos (inicio, mitad y final de la hilera). Hoy falta la cola en ${sinCola} de ${BL.length} bloques y hay menos de 3 aforos en ${pocosAf}. Van ${M.bloques_medidos} de ${M.bloques_total} bloques medidos.`]);
+  pasos.push(['', 'Próxima medición',
+    `En cada bloque medir válvula, cola y 3 aforos (inicio, mitad y final de la hilera); hoy falta la cola en ${sinCola} de ${BL.length} bloques y hay menos de 3 aforos en ${pocosAf}.` +
+    (conf.length ? ` Al registrar en la app, elegir el bloque donde se está midiendo: ${conf.map((b) => `${eqc(b.equipo)} ${sb(b)}`).join(' y ')} quedaron registrados en otro lugar del campo.` : '') +
+    ` Van ${M.bloques_medidos} de ${M.bloques_total} bloques medidos.`]);
   $('pasos').innerHTML = pasos.map(([p, t, x]) => `<li class="${p}"><div><b>${esc(t)}</b>${p ? ` <span class="yb-chip ${p}">${p}</span>` : ''}</div><span>${esc(x)}</span></li>`).join('');
 
   // ---------- tabla de bloques
@@ -68,7 +73,7 @@
   $('t-sema').innerHTML = BL.map((b) => `<tr><td><span class="yb-chip ${b.prioridad}">${b.prioridad}</span></td><td>${esc(b.key)}</td>
     <td class="num">${cel(b.valvula)}</td><td class="num">${cel(b.cola)}</td>
     <td class="num">${b.aforo ? `<span class="lg-v ${(b.aforo.estado || '').split(' ')[0]}">${f(b.aforo.pct, 0)}%</span>` : '<span class="gx-muted">—</span>'}</td>
-    <td>${b.tags.map(esc).join(' · ')}</td></tr>`).join('');
+    <td>${b.tags.map((x) => x === 'Confirmar registro' ? 'Verificar bloque al registrar' : x).map(esc).join(' · ')}</td></tr>`).join('');
 
   // ---------- detalle
   $('t-caseta').innerHTML = LI.filter((x) => x.caseta).map((x) => `<tr><td>${fd(x.fecha)}</td><td>${esc(x.sector)} · ${esc(x.bloque)}</td><td>${esc(x.tipo)}</td><td class="num">${f(x.valor)} ${x.unidad}</td><td class="num">${f(x.min, 2)}</td><td class="num">${f(x.max, 2)}</td><td>${chip(x.estado)}</td></tr>`).join('') || '<tr><td colspan="7" class="gx-muted">Sin mediciones de caseta.</td></tr>';
