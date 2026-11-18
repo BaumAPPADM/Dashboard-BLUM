@@ -54,6 +54,8 @@ body { font-family: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', Robot
 .pt-entrar:active { transform: translateY(1px); }
 .pt-entrar svg { width: 18px; height: 18px; stroke: var(--turquesa); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .pt-entrar:disabled { opacity: .7; cursor: wait; }
+.pt-rec { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--gris); margin: -4px 0 6px; cursor: pointer; }
+.pt-rec input { width: 16px; height: 16px; accent-color: var(--bosque); }
 .lg-err { color: #C30016; font-size: 13px; min-height: 20px; margin-top: 12px; }
 .pt-seguro { display: flex; gap: 10px; align-items: flex-start; margin-top: 26px; padding: 14px; border-radius: 8px; background: #F1F6F5; font-size: 12px; line-height: 1.5; color: var(--gris); }
 .pt-seguro svg { flex: none; width: 18px; height: 18px; stroke: var(--bosque); fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; margin-top: 1px; }
@@ -92,6 +94,7 @@ body { font-family: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', Robot
       <p>Ingrese con el usuario y la clave entregados por blum.</p>
       <div class="pt-campo"><label for="u">Usuario</label><div class="pt-input"><input id="u" autocomplete="username" placeholder="Nombre del cliente"></div></div>
       <div class="pt-campo"><label for="p">Clave</label><div class="pt-input"><input id="p" type="password" autocomplete="current-password"><button class="pt-ver" id="ver" type="button" aria-label="Mostrar clave">Mostrar</button></div></div>
+      <label class="pt-rec"><input type="checkbox" id="rec" checked> Recordar usuario y clave en este equipo</label>
       <button class="pt-entrar" id="go" type="button"><span>Entrar al informe</span><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
       <div class="lg-err" id="err" role="alert"></div>
       <div class="pt-seguro"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><span>La información está cifrada y solo se abre con su usuario y clave. Nadie más puede leerla, aunque tenga el link.</span></div>
@@ -129,10 +132,16 @@ body { font-family: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', Robot
   const b64 = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
   const norm = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '');
   let enc = null;
-  fetch('reporte.enc.json', {cache: 'no-store'}).then((r) => r.json()).then((j) => { enc = j; $('upd').textContent = j.actualizado || '—'; })
+  const KEY = 'blum-acceso:' + location.pathname.replace(/index\.html$/, '');
+  const leer = () => { try { return JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) { return null; } };
+  const guardar = (u, p) => { try { localStorage.setItem(KEY, JSON.stringify({u, p})); } catch (e) {} };
+  const olvidar = () => { try { localStorage.removeItem(KEY); } catch (e) {} };
+  const memo = leer();
+  if (memo) { $('u').value = memo.u || ''; $('p').value = memo.p || ''; }
+  fetch('reporte.enc.json', {cache: 'no-store'}).then((r) => r.json()).then((j) => { enc = j; $('upd').textContent = j.actualizado || '—'; if (memo && memo.p) entrar(true); })
     .catch(() => { $('err').textContent = 'No se pudo cargar el informe. Intente nuevamente.'; });
   $('ver').addEventListener('click', () => { const p = $('p'), v = p.type === 'password'; p.type = v ? 'text' : 'password'; $('ver').textContent = v ? 'Ocultar' : 'Mostrar'; });
-  async function entrar() {
+  async function entrar(auto) {
     $('err').textContent = '';
     if (!enc) { $('err').textContent = 'El informe aún se está cargando, espere unos segundos.'; return; }
     const btn = $('go'); btn.disabled = true; btn.querySelector('span').textContent = 'Abriendo…';
@@ -143,9 +152,10 @@ body { font-family: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', Robot
       const plain = await crypto.subtle.decrypt({name: 'AES-GCM', iv: b64(enc.iv)}, key, b64(enc.ct));
       const ds = new DecompressionStream('gzip');
       const text = await new Response(new Blob([new Uint8Array(plain)]).stream().pipeThrough(ds)).text();
+      if ($('rec').checked) guardar($('u').value, $('p').value); else olvidar();
       abrir(JSON.parse(text));
     } catch (e) {
-      $('err').textContent = 'Usuario o clave incorrectos.';
+      if (auto === true) { olvidar(); $('p').value = ''; } else $('err').textContent = 'Usuario o clave incorrectos.';
       btn.disabled = false; btn.querySelector('span').textContent = 'Entrar al informe';
     }
   }
@@ -154,7 +164,7 @@ body { font-family: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', Robot
     $('login').remove();
     const app = $('app'); app.hidden = false;
     app.innerHTML = '<button class="gx-salir" type="button">Salir</button><div id="dash-root"></div>';
-    app.querySelector('.gx-salir').onclick = () => location.reload();
+    app.querySelector('.gx-salir').onclick = () => { olvidar(); location.reload(); };
     document.getElementById('dash-root').innerHTML = P.html;
     (new Function(P.shim))();
     window.dash._init(P.data, P.params);
