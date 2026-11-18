@@ -35,3 +35,9 @@
 .yb-table tbody tr.gx-click td:first-child { white-space: nowrap; }
 .gx-wrap { white-space: normal !important; }
 @media (max-width: 40rem) { .lg-item { grid-template-columns: 1fr; } }
+.lg-pasos { margin: 0; padding: 0; list-style: none; counter-reset: p; display: flex; flex-direction: column; }
+.lg-pasos li { counter-increment: p; display: grid; grid-template-columns: 2rem 1fr; column-gap: var(--cds-gap-sm); row-gap: 2px; padding: var(--cds-pad-md) 0; border-top: 1px solid var(--color-border-line); font-size: var(--cds-font-size-body); line-height: 1.5; }
+.lg-pasos li:first-child { border-top: 0; }
+.lg-pasos li::before { content: counter(p); grid-row: span 2; width: 1.6rem; height: 1.6rem; border-radius: 50%; background: #002E2B; color: #77CFC9; display: grid; place-items: center; font-family: var(--yb-data); font-size: 12px; font-weight: 600; }
+.lg-pasos li > span { color: var(--color-fg-muted); }
+.lg-pasos li b { font-weight: 600; }

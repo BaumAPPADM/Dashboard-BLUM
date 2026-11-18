@@ -2,7 +2,7 @@
 
 Uso: python pipeline.py <carpeta con meter.json y blocks.txt>
 Reglas de limpieza: las mismas de Ag. Garcés (ver METODO.md), más dos ajustes propios de Los Gomeros:
-- rango de válvula cargado en blum ×10 (p. ej. 13–30): se lee como m.c.a. y se divide por 10 para pasarlo a bar;
+- rango de válvula que en BigQuery viene ×10 (p. ej. 13–30): se divide por 10 para compararlo con la lectura en bar;
 - nominal de aforo distinto al del resto del campo: se marca para revisar.
 """
 import json, math, re, sys, os, collections, statistics
@@ -68,7 +68,6 @@ for rid, rs in por_id.items():
     if tipo == 'Aforo' and v <= 0.2: notas.append('Se marca: aforo casi nulo (gotero tapado o sin riego)')
     if tipo == 'Válvula' and mx is not None and mx >= 10:
         mn, op, mx = mn / 10, (op / 10 if op else None), mx / 10
-        notas.append('Rango cargado en blum ×10 (m.c.a.): se convierte a bar')
     estado = 'Sin rango' if mn is None else ('Bajo' if v < mn else ('Alto' if v > mx else 'En rango'))
     if caseta:
         equipo, sector, bloque = lbl(r['bloque']), (r['sector'] or '').strip().capitalize(), (r['activo'] or '').strip().capitalize()

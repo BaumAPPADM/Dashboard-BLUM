@@ -1,4 +1,4 @@
-// Informe Ag. Los Gomeros: pestañas, tablas, plan de acción y mapa de aforos.
+// Informe Ag. Los Gomeros (versión corta): plan global, bloques, mapa de aforos y detalle.
 (function () {
   const dash = window.dash, D = dash.D, P = dash.P;
   const $ = (id) => document.getElementById(id);
@@ -7,114 +7,80 @@
   const fd = (s) => s ? s.slice(0, 10).split('-').reverse().join('-') + (s.length > 10 ? ' ' + s.slice(11, 16) : '') : '—';
   const corto = (k) => k.replace(/^Equipo (\d+) · /, 'E$1 ').replace('Sector ', 'S').replace('Bloque ', 'B');
   const chip = (e) => e ? `<span class="yb-chip ${e === 'En rango' ? 'ok' : e === 'Bajo' ? 'low' : e === 'Alto' ? 'alert' : 'mid'}">${esc(e)}</span>` : '';
-  const val = (o, d = 1) => o ? `<span class="lg-v ${o.estado.split(' ')[0]}">${f(o.valor, d)}</span>` : '<span class="gx-muted">—</span>';
   const opts = (sel, arr, todos) => { sel.innerHTML = (todos ? `<option value="">${todos}</option>` : '') + arr.map((a) => `<option>${esc(a)}</option>`).join(''); };
   const L = D.lecturas, BL = D.bloques, CS = D.casetas, M = D.meta;
   const LI = L.filter((x) => x.incluida);
   const bkey = (x) => `${x.equipo} · ${x.sector} · ${x.bloque}`;
   const BK = Object.fromEntries(BL.map((b) => [b.key, b]));
+  const equipos = M.equipos;
+  const afs = LI.filter((x) => x.tipo === 'Aforo');
+
+  // ---------- acciones por bloque (una por tipo de problema, sin repetir texto)
+  const V = (b) => b.valvula && b.valvula.estado, A = (b) => b.aforo && b.aforo.estado;
+  BL.forEach((b) => {
+    const t = [];
+    if (b.registro_dudoso) t.push('Confirmar registro');
+    if (V(b) === 'Bajo') t.push('Subir presión');
+    if (V(b) === 'Alto') t.push('Bajar presión');
+    if (A(b) === 'Bajo' && V(b) !== 'Bajo') t.push('Limpiar goteros');
+    if (b.aforo && b.aforo.cu != null && b.aforo.cu < 90) t.push('Revisar uniformidad');
+    if (/nominal cargado/i.test(b.diagnostico)) t.push('Corregir nominal');
+    b.tags = t.length ? t : ['Sin acción'];
+  });
+  const con = (tag) => BL.filter((b) => b.tags.includes(tag));
+  const lista = (bs) => { const g = {}; bs.forEach((b) => (g[b.equipo] = g[b.equipo] || []).push(`${b.sector.replace('Sector ', 'S')}·${b.bloque.replace('Bloque ', 'B')}`));
+    return Object.entries(g).map(([e, v]) => `${e.replace(/^Equipo (\d+) · /, 'E$1 ')} (${v.join(', ')})`).join('; '); };
 
   // ---------- encabezado
   $('h-desde').textContent = fd(M.desde); $('h-hasta').textContent = fd(M.hasta); $('h-upd').textContent = P.actualizado || '—';
-  const vals = BL.filter((b) => b.valvula), vFuera = vals.filter((b) => b.valvula.estado !== 'En rango');
-  const afs = LI.filter((x) => x.tipo === 'Aforo');
+  const vals = BL.filter((b) => b.valvula), vFuera = vals.filter((b) => V(b) !== 'En rango');
   const afBajo = afs.filter((x) => { const b = BK[bkey(x)]; return b && b.aforo && x.valor < b.aforo.min; });
-  const altas = BL.filter((b) => b.prioridad === 'Alta').length + CS.filter((c) => c.prioridad === 'Alta').length;
   $('h-kpis').innerHTML = [
     ['Bloques medidos', `${M.bloques_medidos}<small>/ ${M.bloques_total}</small>`, ''],
     ['Válvulas fuera de rango', `${vFuera.length}<small>/ ${vals.length}</small>`, vFuera.length ? 'warn' : ''],
-    ['Aforos bajo el mínimo', `${afBajo.length}<small>/ ${afs.length}</small>`, afBajo.length ? 'warn' : ''],
-    ['Acciones de prioridad alta', `${altas}`, altas ? 'warn' : '']
+    ['Aforos bajo el mínimo', `${afBajo.length}<small>/ ${afs.length}</small>`, afBajo.length ? 'warn' : '']
   ].map(([k, v, c]) => `<div class="kpi"><span>${k}</span><b class="${c}">${v}</b></div>`).join('');
 
-  // ---------- observaciones
-  const obs = [];
-  CS.filter((c) => c.prioridad === 'Alta').forEach((c) => obs.push(['alert', 'Caseta', `${c.caseta} · ${c.equipo}`, c.diagnostico + ' Es lo primero a revisar: una presión baja a la salida llega baja a todas las válvulas del equipo.']));
-  if (vals.length) {
-    const peor = [...vFuera].sort((a, b) => a.valvula.valor / a.valvula.min - b.valvula.valor / b.valvula.min)[0];
-    const porEq = {}; vFuera.forEach((b) => porEq[b.equipo] = (porEq[b.equipo] || 0) + 1);
-    const eqTop = Object.entries(porEq).sort((a, b) => b[1] - a[1])[0];
-    obs.push([vFuera.length ? 'alert' : '', 'Presión de válvula', `${vFuera.length} de ${vals.length} válvulas fuera de rango`,
-      vFuera.length ? `${eqTop[1]} están en ${eqTop[0]} (de ${vals.filter((b) => b.equipo === eqTop[0]).length} medidas en ese equipo). La más baja: <b>${f(peor.valvula.valor)} bar</b> en ${corto(peor.key)} (mínimo ${f(peor.valvula.min, 2)} bar).` : 'Todas las válvulas medidas están en su rango.']);
-  }
-  if (afs.length) {
-    const peorA = [...afs].sort((a, b) => a.valor / (BK[bkey(a)]?.aforo?.nominal || 1) - b.valor / (BK[bkey(b)]?.aforo?.nominal || 1))[0];
-    const nomP = BK[bkey(peorA)]?.aforo?.nominal;
-    obs.push([afBajo.length ? 'alert' : '', 'Aforos', `${afBajo.length} de ${afs.length} aforos bajo el mínimo`,
-      `El más bajo: <b>${f(peorA.valor)} l/h</b> (${f(100 * peorA.valor / nomP, 0)}% del nominal) en ${corto(bkey(peorA))}. Cuando la válvula también está baja, corregir la presión es lo primero; si la válvula está en rango, revisar goteros y laterales.`]);
-  }
-  const dud = BL.filter((b) => b.registro_dudoso);
-  if (dud.length) obs.push(['alert', 'Registro', `${dud.length} bloque${dud.length > 1 ? 's' : ''} con lecturas fuera de su lugar`,
-    `${dud.map((b) => corto(b.key)).join(' y ')}: el GPS de las lecturas quedó lejos de su válvula y junto a otro bloque. Confirmar en qué bloque se midió antes de actuar.`]);
-  const conCola = BL.filter((b) => b.cola).length, sinTramo = afs.filter((x) => !['Inicio', 'Mitad', 'Final'].includes(x.tramo)).length;
-  obs.push(['', 'Cobertura', `${M.bloques_medidos} de ${M.bloques_total} bloques medidos en ${M.visitas} visitas`,
-    `Solo ${conCola} bloque${conCola === 1 ? '' : 's'} tiene${conCola === 1 ? '' : 'n'} presión de cola, por lo que en ${sinTramo} de ${afs.length} aforos no se sabe en qué parte de la hilera se tomaron. En cada bloque conviene medir válvula, cola y 3 aforos (inicio, mitad y final).`]);
-  $('obs').innerHTML = obs.map(([c, t, l, x]) => `<li class="${c}"><span class="tag">${t}</span><span class="lead">${l}</span>${x}</li>`).join('');
+  // ---------- qué hacer, en orden (global)
+  const pasos = [];
+  CS.forEach((c) => {
+    const dp = c.entrada != null && c.salida != null ? c.entrada - c.salida : null;
+    const malo = c.prioridad === 'Alta';
+    if (malo) pasos.push(['Alta', `Caseta: retrolavar y limpiar filtros y revisar la bomba`,
+      `${c.caseta}: se pierden ${f(dp)} bar en los filtros (entrada ${f(c.entrada)}, salida ${f(c.salida)} bar)${c.caudal != null ? ` y el caudal es de ${f(c.caudal)} m³/h, bajo lo esperado` : ''}. Medición del ${fd(c.ultima)}: volver a medir entrada, salida y caudal.`]);
+  });
+  const sub = con('Subir presión');
+  if (sub.length) pasos.push(['Alta', 'Subir la presión de las válvulas bajas', `Después de revisar la caseta, calibrar el piloto o regulador hasta el óptimo en ${lista(sub)}.`]);
+  const conf = con('Confirmar registro');
+  if (conf.length) pasos.push(['Media', 'Confirmar en qué bloque se midió', `${lista(conf)}: el GPS quedó junto a otro bloque. Corregir el registro en blum.`]);
+  const lim = con('Limpiar goteros');
+  if (lim.length) pasos.push(['Media', 'Limpiar goteros y lavar laterales', `Válvula en rango pero caudal bajo en ${lista(lim)}.`]);
+  const baj = con('Bajar presión');
+  if (baj.length) pasos.push(['Baja', 'Bajar la presión de válvula', `${lista(baj)}: levemente sobre el máximo.`]);
+  const nom = con('Corregir nominal');
+  if (nom.length) pasos.push(['Baja', 'Corregir el caudal nominal en blum', `${lista(nom)} tiene un nominal distinto al resto del campo (${f(M.nominal_comun)} l/h).`]);
+  const sinCola = BL.filter((b) => !b.cola).length, pocosAf = BL.filter((b) => !b.aforo || b.aforo.n < 3).length;
+  pasos.push(['', 'Próxima ronda de mediciones', `En cada bloque medir válvula, cola y 3 aforos (inicio, mitad y final de la hilera). Hoy falta la cola en ${sinCola} de ${BL.length} bloques y hay menos de 3 aforos en ${pocosAf}. Van ${M.bloques_medidos} de ${M.bloques_total} bloques medidos.`]);
+  $('pasos').innerHTML = pasos.map(([p, t, x]) => `<li class="${p}"><div><b>${esc(t)}</b>${p ? ` <span class="yb-chip ${p}">${p}</span>` : ''}</div><span>${esc(x)}</span></li>`).join('');
 
-  // ---------- semáforo
-  $('t-sema').innerHTML = BL.map((b, i) => `<tr class="gx-click" data-i="${i}"><td><span class="yb-chip ${b.prioridad}">${b.prioridad}</span></td><td>${esc(b.key)}${b.registro_dudoso ? ' <span class="yb-chip low">verificar registro</span>' : ''}</td>
-    <td class="num">${val(b.valvula)}</td><td class="num">${val(b.cola)}</td>
-    <td class="num">${b.aforo ? `<span class="lg-v ${(b.aforo.estado || '').split(' ')[0]}">${f(b.aforo.prom, 2)}</span>` : '<span class="gx-muted">—</span>'}</td>
-    <td class="num">${b.aforo ? f(b.aforo.pct, 0) + '%' : '—'}</td><td class="num">${b.aforo && b.aforo.cu != null ? f(b.aforo.cu) : '—'}</td><td>${fd(b.ultima)}</td></tr>`).join('');
-  $('t-sema').querySelectorAll('tr').forEach((tr) => tr.addEventListener('click', () => { irA('plan'); const el = $('pl-' + tr.dataset.i); if (el) { el.scrollIntoView({behavior: 'smooth', block: 'center'}); el.classList.add('flash'); setTimeout(() => el.classList.remove('flash'), 1600); } }));
+  // ---------- tabla de bloques
+  const cel = (o, d = 1) => o ? `<span class="lg-v ${o.estado.split(' ')[0]}">${f(o.valor, d)}</span>` : '<span class="gx-muted">—</span>';
+  $('t-sema').innerHTML = BL.map((b) => `<tr><td><span class="yb-chip ${b.prioridad}">${b.prioridad}</span></td><td>${esc(b.key)}</td>
+    <td class="num">${cel(b.valvula)}</td><td class="num">${cel(b.cola)}</td>
+    <td class="num">${b.aforo ? `<span class="lg-v ${(b.aforo.estado || '').split(' ')[0]}">${f(b.aforo.pct, 0)}%</span>` : '<span class="gx-muted">—</span>'}</td>
+    <td>${b.tags.map(esc).join(' · ')}</td></tr>`).join('');
 
-  // ---------- plan de acción
-  const equipos = M.equipos;
-  opts($('f-eq-plan'), equipos, 'Todos');
-  function plan() {
-    const pr = $('f-prio').value, eq = $('f-eq-plan').value;
-    const items = [
-      ...CS.map((c) => ({id: 'c', pri: c.prioridad, eq: c.equipo, tit: `${c.caseta} · ${c.equipo}`, diag: c.diagnostico, acc: c.acciones, meta: `Última medición ${fd(c.ultima)}`})),
-      ...BL.map((b, i) => ({id: i, pri: b.prioridad, eq: b.equipo, tit: b.key, diag: b.diagnostico, acc: b.acciones, meta: `Última medición ${fd(b.ultima)}`}))
-    ].filter((x) => (!pr || x.pri === pr) && (!eq || x.eq === eq));
-    $('plan-list').innerHTML = items.length ? items.map((x) => `<article class="lg-item ${x.pri}" id="pl-${x.id}"><div class="lg-meta"><span class="yb-chip ${x.pri}">Prioridad ${x.pri.toLowerCase()}</span><span>${x.meta}</span></div>
-      <div><h3>${esc(x.tit)}</h3><p>${esc(x.diag)}</p><ol>${x.acc.map((a) => `<li>${esc(a)}</li>`).join('')}</ol></div></article>`).join('') : '<div class="gx-empty">Sin acciones para este filtro.</div>';
-  }
-  $('f-prio').onchange = plan; $('f-eq-plan').onchange = plan;
-
-  // ---------- aplicado a Los Arroyos
-  const ap = [];
-  CS.forEach((c) => { if (c.salida != null && c.entrada != null) ap.push(`<b>${c.caseta}:</b> la pérdida en filtros es de ${f(c.entrada - c.salida)} bar (lo normal es 0,3–0,5). Retrolavar y limpiar filtros y revisar la bomba debiera subir la presión en las válvulas de ${c.equipo}.`); });
-  vFuera.filter((b) => b.valvula.estado === 'Bajo').forEach((b) => ap.push(`<b>${corto(b.key)}:</b> válvula en ${f(b.valvula.valor)} bar; llevarla a ${f(b.valvula.min, 2)}–${f(b.valvula.max, 2)} bar calibrando el piloto o regulador, una vez revisada la caseta.`));
-  vFuera.filter((b) => b.valvula.estado === 'Alto').forEach((b) => ap.push(`<b>${corto(b.key)}:</b> válvula en ${f(b.valvula.valor)} bar, sobre el máximo de ${f(b.valvula.max, 2)} bar: bajarla calibrando el piloto.`));
-  BL.filter((b) => b.valvula && b.valvula.estado === 'En rango' && b.aforo && b.aforo.estado === 'Bajo').forEach((b) => ap.push(`<b>${corto(b.key)}:</b> la válvula está bien pero los goteros entregan ${f(b.aforo.pct, 0)}% del nominal: limpiar goteros y lavar laterales${b.registro_dudoso ? ', una vez confirmado en qué bloque se midió' : ''}.`));
-  $('aplicado').innerHTML = ap.map((x) => `<li>${x}</li>`).join('');
-
-  // ---------- técnico
-  const cas = LI.filter((x) => x.caseta);
-  $('t-caseta').innerHTML = cas.map((x) => `<tr><td>${fd(x.fecha)}</td><td>${esc(x.equipo)}</td><td>${esc(x.sector)} · ${esc(x.bloque)}</td><td>${esc(x.tipo)}</td><td class="num">${f(x.valor)} ${x.unidad}</td><td class="num">${f(x.min, 2)}</td><td class="num">${f(x.max, 2)}</td><td>${chip(x.estado)}</td></tr>`).join('') || '<tr><td colspan="8" class="gx-muted">Sin mediciones de caseta.</td></tr>';
-  const vv = LI.filter((x) => x.tipo === 'Válvula');
-  const prom = (a) => a.length ? a.reduce((s, x) => s + x.valor, 0) / a.length : null;
-  $('tiles-v').innerHTML = [
-    ['Bajo el mínimo', vv.filter((x) => x.estado === 'Bajo').length, `de ${vv.length} lecturas`, 1],
-    ['Sobre el máximo', vv.filter((x) => x.estado === 'Alto').length, 'lecturas', 0],
-    ['Presión promedio', f(prom(vv)) + '<small> bar</small>', 'en las válvulas medidas', 0]
-  ].map(([l, b, ft, a]) => `<div class="yb-tile ${a && b ? 'is-alert' : ''}"><span class="lbl">${l}</span><span class="big">${b}</span><span class="foot">${ft}</span></div>`).join('');
-  $('t-val').innerHTML = vv.map((x) => `<tr><td>${fd(x.fecha)}</td><td>${esc(bkey(x))}</td><td class="num">${f(x.valor)}</td><td class="num">${f(x.min, 2)}</td><td class="num">${f(x.optimo, 2)}</td><td class="num">${f(x.max, 2)}</td><td>${chip(x.estado)}</td></tr>`).join('');
-  $('t-cola').innerHTML = LI.filter((x) => x.tipo === 'Cola').map((x) => { const b = BK[bkey(x)]; const v = b && b.valvula && b.valvula.dia === x.dia ? f(b.valvula.valor) : '—';
-    return `<tr><td>${fd(x.fecha)}</td><td>${esc(bkey(x))}</td><td class="num">${f(x.valor)}</td><td class="num">${f(x.min, 2)}</td><td class="num">${f(x.max, 2)}</td><td class="num">${v}</td><td>${chip(x.estado)}</td></tr>`; }).join('');
-  $('t-af').innerHTML = BL.filter((b) => b.aforo).map((b) => `<tr><td>${esc(b.key)}</td><td class="num">${b.aforo.n}</td><td class="num">${f(b.aforo.prom, 2)}</td><td class="num">${f(b.aforo.nominal)}</td><td class="num">${f(b.aforo.pct, 0)}%</td><td class="num">${b.aforo.cu != null ? f(b.aforo.cu) : '—'}</td><td>${chip(b.aforo.estado)}</td></tr>`).join('');
-  const cnt = (re) => L.filter((x) => re.test(x.nota)).length;
-  $('limpieza').innerHTML = [
-    `Aforos de 10 l/h o más se corrigen por decimal omitido (÷10): ${cnt(/decimal/)}.`,
-    `Presiones de 5 bar o más se excluyen: ${cnt(/fuera de escala/)}.`,
-    `Equipos de jardín o impulsión y lecturas de prueba se excluyen: ${cnt(/jardín|fuera de los bloques|prueba/i)}.`,
-    `Aforos sobre el doble del nominal o bajo 0,2 l/h se marcan: ${cnt(/doble|casi nulo/)}.`,
-    `Rango de válvula cargado ×10 en blum (m.c.a.), convertido a bar: ${cnt(/×10/)} lecturas.`,
-    `Nominal de gotero distinto al del resto del campo, evaluado con ${f(M.nominal_comun)} l/h: ${cnt(/Nominal cargado/)} aforos.`,
-    `Lecturas de caseta con varios rangos cargados (se usa el más amplio): ${cnt(/rangos cargados/)}.`,
-    `Lecturas consideradas: ${LI.length} de ${L.length}.`
-  ].map((x) => `<li>${x}</li>`).join('');
-
-  // detalle filtrable
+  // ---------- detalle
+  $('t-caseta').innerHTML = LI.filter((x) => x.caseta).map((x) => `<tr><td>${fd(x.fecha)}</td><td>${esc(x.sector)} · ${esc(x.bloque)}</td><td>${esc(x.tipo)}</td><td class="num">${f(x.valor)} ${x.unidad}</td><td class="num">${f(x.min, 2)}</td><td class="num">${f(x.max, 2)}</td><td>${chip(x.estado)}</td></tr>`).join('') || '<tr><td colspan="7" class="gx-muted">Sin mediciones de caseta.</td></tr>';
+  $('t-af').innerHTML = BL.filter((b) => b.aforo).map((b) => `<tr><td>${esc(b.key)}</td><td class="num">${b.aforo.n}</td><td class="num">${f(b.aforo.prom, 2)}</td><td class="num">${f(b.aforo.nominal)}</td><td class="num">${b.aforo.cu != null ? f(b.aforo.cu) : '—'}</td></tr>`).join('');
   opts($('f-tipo'), [...new Set(L.map((x) => x.tipo))], 'Todos');
   opts($('f-estado'), [...new Set(L.map((x) => x.estado))], 'Todos');
   opts($('f-eq-det'), [...new Set(L.map((x) => x.equipo))].sort(), 'Todos');
   function detalle() {
     const t = $('f-tipo').value, e = $('f-estado').value, q = $('f-eq-det').value, s = $('f-q').value.trim().toLowerCase();
-    const r = L.filter((x) => (!t || x.tipo === t) && (!e || x.estado === e) && (!q || x.equipo === q) && (!s || [x.sector, x.bloque, x.activo, x.comentario, x.nota, x.equipo].join(' ').toLowerCase().includes(s)));
-    $('t-det').innerHTML = r.map((x) => `<tr class="${x.incluida ? '' : 'gx-excl'}"><td>${fd(x.fecha)}</td><td>${esc(x.tipo)}</td><td>${esc(x.equipo)}</td><td>${esc(x.sector)}</td><td>${esc(x.bloque)}</td><td class="num">${f(x.valor, 2)}</td><td>${x.unidad}</td><td class="num">${f(x.min, 2)}</td><td class="num">${f(x.max, 2)}</td><td>${chip(x.estado)}</td>
-      <td>${esc(x.ubicacion)}${x.bloque_gps ? ' (' + esc(corto(x.bloque_gps)) + ')' : ''}</td><td class="gx-wrap">${esc(x.comentario)}</td><td class="gx-wrap">${esc(x.nota)}</td></tr>`).join('');
+    const r = L.filter((x) => (!t || x.tipo === t) && (!e || x.estado === e) && (!q || x.equipo === q) && (!s || [x.sector, x.bloque, x.activo, x.comentario, x.equipo].join(' ').toLowerCase().includes(s)));
+    $('t-det').innerHTML = r.map((x) => `<tr class="${x.incluida ? '' : 'gx-excl'}"><td>${fd(x.fecha)}</td><td>${esc(x.tipo)}</td><td>${esc(bkey(x))}</td><td class="num">${f(x.valor, 2)} ${x.unidad}</td><td class="num">${f(x.min, 2)}</td><td class="num">${f(x.max, 2)}</td><td>${chip(x.estado)}</td>
+      <td>${esc(x.ubicacion)}${x.bloque_gps ? ' (' + esc(corto(x.bloque_gps)) + ')' : ''}</td><td class="gx-wrap">${esc(x.comentario)}</td></tr>`).join('');
     $('det-n').textContent = `${r.length} lecturas.`;
   }
   ['f-tipo', 'f-estado', 'f-eq-det'].forEach((i) => $(i).onchange = detalle); $('f-q').oninput = detalle;
@@ -126,12 +92,8 @@
   opts($('f-eq-mapa'), eqMapa);
   if (P.mapaEq && eqMapa.includes(P.mapaEq)) $('f-eq-mapa').value = P.mapaEq;
   $('f-eq-mapa').onchange = () => mapa();
-  const ub = {}; afs.forEach((x) => ub[x.ubicacion] = (ub[x.ubicacion] || 0) + 1);
-  $('mapa-take').innerHTML = `Se registraron <b>${afs.length} aforos</b> en ${new Set(afs.map(bkey)).size} bloques: ` + Object.entries(ub).map(([k, v]) => `${v} ${k.toLowerCase()}`).join(', ') + '. ' +
-    (dud.length ? `Las lecturas de ${dud.map((b) => corto(b.key)).join(' y ')} quedaron junto a otro bloque: revise el mapa de ese equipo.` : '');
-  $('t-ubic').innerHTML = afs.map((x) => { const b = BK[bkey(x)]; const pct = b && b.aforo ? 100 * x.valor / b.aforo.nominal : null;
-    return `<tr><td>${fd(x.fecha)}</td><td>${esc(bkey(x))}</td><td class="num">${f(x.valor)}</td><td class="num"><span class="lg-v ${pct < 80 ? 'Alto' : (b && x.valor < b.aforo.min ? 'Bajo' : 'En')}">${f(pct, 0)}%</span></td><td>${esc(x.ubicacion)}${x.bloque_gps ? ' (' + esc(corto(x.bloque_gps)) + ')' : ''}</td><td class="num">${f(x.dist_valvula, 0)}</td><td>${esc(x.tramo || '—')}</td><td class="gx-wrap">${esc(x.comentario)}</td></tr>`; }).join('');
-
+  const dudB = BL.filter((b) => b.registro_dudoso);
+  $('mapa-take').innerHTML = `${afs.length} aforos en ${new Set(afs.map(bkey)).size} bloques. ` + (dudB.length ? `Las lecturas de ${dudB.map((b) => corto(b.key)).join(' y ')} quedaron junto a otro bloque (ver equipo 2).` : '');
   function mapa() {
     const el = $('mapa-svg'), eq = $('f-eq-mapa').value; if (!eq) { el.innerHTML = '<div class="gx-empty">Sin aforos con GPS.</div>'; return; }
     const pts = LI.filter((x) => !x.caseta && x.equipo === eq && x.lat).sort((a, b) => (a.tipo === 'Aforo') - (b.tipo === 'Aforo'));
@@ -186,10 +148,11 @@
     });
   }
 
+  
   // ---------- pestañas
-  const vistas = ['resumen', 'plan', 'mapa', 'presiones', 'tecnico'];
+  const vistas = ['plan', 'mapa', 'presiones', 'tecnico'];
   function irA(v) {
-    if (!vistas.includes(v)) v = 'resumen';
+    if (!vistas.includes(v)) v = 'plan';
     vistas.forEach((k) => $(k).hidden = k !== v);
     document.querySelectorAll('.gx-tab').forEach((b) => b.setAttribute('aria-pressed', b.dataset.vista === v));
     history.replaceState(null, '', '#' + v);
@@ -198,5 +161,5 @@
   document.querySelectorAll('.gx-tab').forEach((b) => b.addEventListener('click', () => irA(b.dataset.vista)));
   let t = null; window.addEventListener('resize', () => { clearTimeout(t); t = setTimeout(() => { if (!$('mapa').hidden) mapa(); }, 200); });
 
-  dash.render = () => { plan(); detalle(); irA(P.vista); };
+  dash.render = () => { detalle(); irA(P.vista); };
 })();

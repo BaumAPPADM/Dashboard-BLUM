@@ -16,7 +16,7 @@ def build(work, out_dir, user, password, actualizado):
         'shim': rd('shim.js'),
         'scripts': [rd('app.js')],
         'data': json.load(open(os.path.join(work, 'datos.json'), encoding='utf-8')),
-        'params': {'vista': 'resumen', 'actualizado': actualizado, 'mapaEq': None},
+        'params': {'vista': 'plan', 'actualizado': actualizado, 'mapaEq': None},
     }
     raw = gzip.compress(json.dumps(payload, ensure_ascii=False).encode('utf-8'), 9)
     enc = encrypt(raw, user, password); enc['actualizado'] = actualizado
