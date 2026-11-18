@@ -1,0 +1,131 @@
+<div class="yb lg">
+  <header class="yb-hero">
+    <div class="yb-hero-top"><div class="yb-logo" role="img" aria-label="blum"></div><p class="yb-eyebrow">Informe de riego · Temporada 2026-27</p></div>
+    <h1>Ag. Los Gomeros · Campo Los Arroyos</h1>
+    <p class="lead">Mediciones del <span class="data" id="h-desde">—</span> al <span class="data" id="h-hasta">—</span>: presión de válvula y de cola, aforo de goteros y caseta de riego. Última actualización: <span class="data" id="h-upd">—</span>.</p>
+    <div class="yb-kpis" id="h-kpis"></div>
+  </header>
+
+  <nav class="gx-tabs" aria-label="Vistas">
+    <button type="button" class="gx-tab" data-vista="resumen" aria-pressed="true">Resumen del campo</button>
+    <button type="button" class="gx-tab" data-vista="plan" aria-pressed="false">Plan de acción</button>
+    <button type="button" class="gx-tab" data-vista="mapa" aria-pressed="false">Mapa de aforos</button>
+    <button type="button" class="gx-tab" data-vista="presiones" aria-pressed="false">Presiones altas y bajas: qué hacer</button>
+    <button type="button" class="gx-tab" data-vista="tecnico" aria-pressed="false">Análisis técnico</button>
+  </nav>
+
+  <!-- RESUMEN -->
+  <div class="gx-page" id="resumen">
+    <section class="yb-sec">
+      <div class="yb-sechead"><h2>Lo más importante</h2><p>Este informe se concentra en los bloques que se midieron y en lo que está fuera de rango. Con más bloques medidos, el diagnóstico gana precisión.</p></div>
+      <ul class="yb-obs" id="obs"></ul>
+    </section>
+    <section class="yb-block">
+      <h2>Estado de cada bloque medido</h2>
+      <div class="yb-legend"><span><i class="sw gx-sw-ok"></i>En rango</span><span><i class="sw gx-sw-baja"></i>Bajo el mínimo</span><span><i class="sw gx-sw-alta"></i>Sobre el máximo</span></div>
+      <div class="yb-tablewrap"><table class="yb-table gx-sema"><thead><tr><th>Prioridad</th><th>Equipo · sector · bloque</th><th class="num">Válvula (bar)</th><th class="num">Cola (bar)</th><th class="num">Aforo (l/h)</th><th class="num">% nominal</th><th class="num">CU %</th><th>Última medición</th></tr></thead><tbody id="t-sema"></tbody></table></div>
+      <p class="yb-note">Haga clic en un bloque para ver su diagnóstico y plan de acción.</p>
+    </section>
+  </div>
+
+  <!-- PLAN -->
+  <div class="gx-page" id="plan" hidden>
+    <section class="yb-sec">
+      <div class="yb-sechead"><h2>Plan de acción</h2><p>Primero la caseta, porque una presión baja a la salida de los filtros llega baja a todas las válvulas del equipo. Luego cada bloque, ordenado por prioridad.</p></div>
+      <div class="gx-row"><label class="gx-field"><span>Prioridad</span><select id="f-prio"><option value="">Todas</option><option>Alta</option><option>Media</option><option>Baja</option></select></label>
+        <label class="gx-field"><span>Equipo</span><select id="f-eq-plan"></select></label></div>
+      <div id="plan-list" class="lg-plan"></div>
+    </section>
+  </div>
+
+  <!-- MAPA -->
+  <div class="gx-page" id="mapa" hidden>
+    <section class="yb-block">
+      <h2>Dónde se midió</h2>
+      <p class="yb-take" id="mapa-take"></p>
+      <div class="gx-row"><label class="gx-field"><span>Equipo de riego</span><select id="f-eq-mapa"></select></label></div>
+      <div class="yb-legend">
+        <span><i class="sw lg-sw-af ok"></i>Aforo en rango</span><span><i class="sw lg-sw-af bajo"></i>Aforo bajo el mínimo</span><span><i class="sw lg-sw-af muy"></i>Aforo bajo 80% del nominal</span>
+        <span><i class="sw lg-sw-v"></i>Lectura de válvula</span><span><i class="sw lg-sw-c"></i>Lectura de cola</span><span><i class="sw lg-sw-vb"></i>Válvula en blum (bloque)</span>
+      </div>
+      <div class="yb-chart gx-map" id="mapa-svg" style="min-height: 460px"></div>
+      <p class="yb-note">Posición GPS que guardó la app al registrar cada lectura, frente a la coordenada de la válvula de cada bloque cargada en blum. La línea punteada une cada aforo con la válvula de su bloque. Pase el cursor sobre un punto para ver el detalle.</p>
+    </section>
+    <section class="yb-block">
+      <h2>Aforos y su ubicación</h2>
+      <div class="yb-tablewrap"><table class="yb-table"><thead><tr><th>Fecha</th><th>Equipo · sector · bloque</th><th class="num">Aforo (l/h)</th><th class="num">% nominal</th><th>Ubicación</th><th class="num">A la válvula (m)</th><th>Tramo de la hilera</th><th>Comentario</th></tr></thead><tbody id="t-ubic"></tbody></table></div>
+      <p class="yb-note">Junto a la válvula: a 15 m o menos. Dentro del bloque: hasta 160 m de su válvula. Junto a otro bloque: el GPS quedó al lado de la válvula de otro bloque. Tramo: inicio, mitad o final de la hilera según la posición entre la válvula y la cola.</p>
+    </section>
+  </div>
+
+  <!-- PRESIONES -->
+  <div class="gx-page" id="presiones" hidden>
+    <section class="yb-sec">
+      <div class="yb-sechead"><h2>Cuando la presión está alta o baja, ¿qué manejos podemos hacer?</h2>
+        <p>La presión correcta en la válvula hace que cada gotero entregue su caudal y que el riego sea parejo. El orden recomendado es revisar de la caseta hacia el bloque: bomba → filtros → válvula → laterales.</p></div>
+      <div class="yb-grid">
+        <div class="yb-block lg-card baja"><h2>Presión baja</h2>
+          <p class="yb-note">Riesgo: goteros que entregan menos agua (si no son autocompensados) y riego disparejo entre el inicio y el final de la hilera.</p>
+          <ol class="yb-steps">
+            <li><span><b>Filtros:</b> medir presión antes y después del filtrado. Si la pérdida supera 0,3–0,5 bar, retrolavar y limpiar (anillas, malla o arena) y revisar la frecuencia del retrolavado.</span></li>
+            <li><span><b>Bomba y turnos:</b> confirmar que la bomba entrega la presión y el caudal de diseño (setpoint del variador, succión, desgaste) y que no se abran más sectores a la vez de los que la bomba puede abastecer.</span></li>
+            <li><span><b>Válvula del bloque:</b> calibrar el piloto o regulador a la presión óptima; revisar el filtro de comando, el diafragma y que la válvula abra completa.</span></li>
+            <li><span><b>Red y laterales:</b> buscar fugas, laterales rotos o finales abiertos; lavar matrices y laterales si hay sedimentos.</span></li>
+            <li><span><b>Comprobar:</b> volver a medir válvula, cola y 3 aforos (inicio, mitad y final de la hilera).</span></li>
+          </ol>
+        </div>
+        <div class="yb-block lg-card alta"><h2>Presión alta</h2>
+          <p class="yb-note">Riesgo: más agua de la necesaria, goteros que se sueltan, roturas de laterales y mayor gasto de energía.</p>
+          <ol class="yb-steps">
+            <li><span><b>Válvula del bloque:</b> bajar la presión calibrando el piloto o regulador hasta el óptimo del bloque.</span></li>
+            <li><span><b>Bomba:</b> ajustar el setpoint del variador o la válvula de alivio; la presión sube cuando se riegan menos sectores de los previstos.</span></li>
+            <li><span><b>Turnos:</b> equilibrar los sectores de cada turno para que la bomba trabaje en su punto de diseño.</span></li>
+            <li><span><b>Obstrucciones:</b> si sube en la cola, revisar laterales o goteros tapados que frenan la salida del agua.</span></li>
+            <li><span><b>Comprobar:</b> volver a medir válvula, cola y aforos.</span></li>
+          </ol>
+        </div>
+      </div>
+      <div class="yb-block lg-card"><h2>Cómo leer la presión de cola</h2>
+        <ul class="lg-list">
+          <li><b>Válvula bien y cola baja:</b> el agua se pierde en el camino (fugas, laterales rotos, obstrucciones o hileras muy largas). Lavar laterales y revisar fugas.</li>
+          <li><b>Válvula baja y cola baja:</b> el problema viene de antes: caseta, bomba o la válvula misma.</li>
+          <li><b>Cola mayor que la válvula:</b> revisar los manómetros o la pendiente del terreno.</li>
+          <li>Como referencia, la diferencia entre válvula y cola no debiera superar el 20% de la presión de la válvula.</li>
+        </ul>
+      </div>
+      <div class="yb-block lg-card"><h2>Aplicado a Los Arroyos</h2><ul class="lg-list" id="aplicado"></ul></div>
+    </section>
+  </div>
+
+  <!-- TÉCNICO -->
+  <div class="gx-page" id="tecnico" hidden>
+    <section class="yb-block"><h2>Caseta de riego</h2>
+      <div class="yb-tablewrap"><table class="yb-table"><thead><tr><th>Fecha</th><th>Equipo</th><th>Activo</th><th>Medición</th><th class="num">Valor</th><th class="num">Mín</th><th class="num">Máx</th><th>Estado</th></tr></thead><tbody id="t-caseta"></tbody></table></div>
+    </section>
+    <section class="yb-block"><h2>Presión de válvulas</h2>
+      <div class="yb-tiles" id="tiles-v"></div>
+      <div class="yb-tablewrap"><table class="yb-table"><thead><tr><th>Fecha</th><th>Equipo · sector · bloque</th><th class="num">Presión (bar)</th><th class="num">Mín</th><th class="num">Óptimo</th><th class="num">Máx</th><th>Estado</th></tr></thead><tbody id="t-val"></tbody></table></div>
+      <p class="yb-note">Los rangos de válvula están cargados en blum en metros de columna de agua (por ejemplo 13–30). Se convierten a bar dividiendo por 10.</p>
+    </section>
+    <section class="yb-block"><h2>Presión de cola</h2>
+      <div class="yb-tablewrap"><table class="yb-table"><thead><tr><th>Fecha</th><th>Equipo · sector · bloque</th><th class="num">Presión (bar)</th><th class="num">Mín</th><th class="num">Máx</th><th class="num">Válvula mismo día</th><th>Estado</th></tr></thead><tbody id="t-cola"></tbody></table></div>
+    </section>
+    <section class="yb-block"><h2>Aforos y uniformidad por bloque</h2>
+      <div class="yb-tablewrap"><table class="yb-table"><thead><tr><th>Equipo · sector · bloque</th><th class="num">Aforos</th><th class="num">Promedio (l/h)</th><th class="num">Nominal</th><th class="num">% nominal</th><th class="num">CU %</th><th>Estado</th></tr></thead><tbody id="t-af"></tbody></table></div>
+      <p class="yb-note">CU (Christiansen) = 100 × (1 − desviación media / promedio). Se calcula con 2 aforos o más; bajo 90% es alerta. Con pocos aforos por bloque el CU es solo referencial.</p>
+    </section>
+    <section class="yb-block"><h2>Limpieza de datos</h2><ul class="lg-list" id="limpieza"></ul></section>
+    <section class="yb-block"><h2>Detalle de lecturas</h2>
+      <div class="gx-row">
+        <label class="gx-field"><span>Tipo</span><select id="f-tipo"></select></label>
+        <label class="gx-field"><span>Estado</span><select id="f-estado"></select></label>
+        <label class="gx-field"><span>Equipo</span><select id="f-eq-det"></select></label>
+        <label class="gx-field gx-grow"><span>Buscar</span><input id="f-q" type="search" placeholder="Sector, bloque, comentario…"></label>
+      </div>
+      <div class="yb-tablewrap gx-tall"><table class="yb-table"><thead><tr><th>Fecha</th><th>Tipo</th><th>Equipo</th><th>Sector</th><th>Bloque / activo</th><th class="num">Valor</th><th>Unidad</th><th class="num">Mín</th><th class="num">Máx</th><th>Estado</th><th>Ubicación GPS</th><th>Comentario</th><th>Nota de limpieza</th></tr></thead><tbody id="t-det"></tbody></table></div>
+      <p class="yb-note" id="det-n"></p>
+    </section>
+  </div>
+
+  <footer class="yb-foot"><span class="brand"><i class="yb-iso"></i>blum · Método de riego</span><span>Se actualiza todos los viernes y a pedido</span></footer>
+</div>
