@@ -145,32 +145,47 @@ dash.draw('planBloques', (tb) => {
   }, 'bloque_key');
 });
 
-// Cumplimiento del calendario
-const estKind = (e) => (e === 'Cumplido' || e === 'Completo' || e === 'Al día' ? 'ok' : e === 'Casi completo' ? 'casi' : e === 'Por iniciar' ? 'mid' : e === 'Sin avance' || e === 'Pendiente' ? 'alert' : 'low');
-const plazo = (r) => (r.restan == null ? '—' : r.estado === 'Cumplido' ? 'Cumplido' : r.restan > 1 ? `Quedan ${r.restan} días` : r.restan === 1 ? 'Queda 1 día' : r.restan === 0 ? 'Vence hoy' : r.restan === -1 ? 'Venció hace 1 día' : `Venció hace ${-r.restan} días`);
+// Meta semanal
+const estKind = (e) => (e === 'Cumplida' || e === 'Completo' ? 'ok' : e === 'Casi' ? 'casi' : e === 'Baja' || e === 'Incompleto' || e === 'Solo incompletos' ? 'low' : 'mid');
 dash.draw('cumplTabla', (tb) => {
   const {fdate} = window.GX;
   fillRows(tb, 'cumplimiento', (r) => r.campo !== 'Total', (a, b) => a.campo_n - b.campo_n, (tr, r) => {
-    cell(tr, r.campo, 'strong'); cell(tr, fdate(r.inicio)); cell(tr, fdate(r.fin), 'strong'); cell(tr, plazo(r), r.restan < 0 && r.estado !== 'Cumplido' ? 'gx-vencido' : 'gx-muted'); cell(tr, nv(r.priorizados), 'num'); cell(tr, nv(r.medidos), 'num'); cell(tr, nv(r.pct), 'num strong');
-    chip(tr, r.estado, estKind(r.estado)); cell(tr, `${nv(r.sectoresPendientes)} / ${nv(r.sectores)}`, 'num'); cell(tr, nv(r.fueraPlan), 'num'); cell(tr, fdate(r.ultima));
+    cell(tr, r.campo, 'strong');
+    cell(tr, `${nv(r.ultSem)} / 5`, 'num strong'); chip(tr, r.estadoUlt, estKind(r.estadoUlt));
+    cell(tr, `${nv(r.actual)} / 5`, 'num');
+    cell(tr, `${nv(r.cumplidas)} de ${nv(r.semanas)}`, 'num'); cell(tr, nv(r.promSemana), 'num');
+    cell(tr, nv(r.completos), 'num'); cell(tr, nv(r.incompletos), 'num'); cell(tr, r.pctCompleto == null ? '—' : `${r.pctCompleto} %`, 'num');
+    cell(tr, r.faltaMas, 'gx-muted'); cell(tr, fdate(r.ultima));
   }, 'campo');
 });
-const pcSel = document.querySelectorAll('.gx-plan-campo'), peSel = document.querySelectorAll('.gx-plan-estado');
-peSel.forEach((s) => s.addEventListener('change', () => dash.setParams({planEstado: s.value || null})));
-dash.onData(() => { peSel.forEach((s) => { s.value = dash.params().planEstado || ''; }); });
-dash.draw('planCampoSel', (sel) => {
-  const d = dash.data('plan');
-  const cs = d.status === 'ok' ? [...new Set(d.data.map((r) => r.campo))] : [];
+const seEstado = document.querySelectorAll('.gx-sem-estado');
+seEstado.forEach((s) => s.addEventListener('change', () => dash.setParams({semEstado: s.value || null})));
+dash.onData(() => { seEstado.forEach((s) => { s.value = dash.params().semEstado || ''; }); });
+dash.draw('semCampoSel', (sel) => {
+  const d = dash.data('cumplimiento');
+  const cs = d.status === 'ok' ? d.data.filter((r) => r.campo !== 'Total').map((r) => r.campo) : [];
   sel.replaceChildren(new Option('Todos', ''), ...cs.map((c) => new Option(c, c)));
-  sel.value = dash.params().planCampo || '';
-  sel.onchange = () => dash.setParams({planCampo: sel.value || null});
+  sel.value = dash.params().semCampo || '';
+  sel.onchange = () => dash.setParams({semCampo: sel.value || null});
 });
-dash.draw('planDetalle', (tb) => {
+dash.draw('semSemanaSel', (sel) => {
+  const d = dash.data('bloque_semana');
+  const ss = d.status === 'ok' ? [...new Map(d.data.map((r) => [r.semana, r.semanaTxt + (r.enCurso ? ' (en curso)' : '')]))].sort((a, b) => (a[0] < b[0] ? 1 : -1)) : [];
+  sel.replaceChildren(new Option('Todas', ''), ...ss.map(([k, v]) => new Option(v, k)));
+  sel.value = dash.params().semSemana || '';
+  sel.onchange = () => dash.setParams({semSemana: sel.value || null});
+});
+dash.draw('semDetalle', (tb) => {
   const {fdate} = window.GX;
-  const c = dash.params().planCampo || '', e = dash.params().planEstado || '';
-  const ord = {Pendiente: 0, Parcial: 1, Completo: 2};
-  fillRows(tb, 'plan', (r) => (!c || r.campo === c) && (!e || r.estado === e), (a, b) => a.campo_n - b.campo_n || ord[a.estado] - ord[b.estado] || a.equipo.localeCompare(b.equipo, 'es', {numeric: true}) || a.sector.localeCompare(b.sector, 'es', {numeric: true}), (tr, r) => {
-    cell(tr, r.campo); cell(tr, r.categoria, 'gx-wrap gx-muted'); cell(tr, r.equipo); cell(tr, r.sector); cell(tr, nv(r.bloques_plan), 'num'); cell(tr, nv(r.bloques_medidos), 'num strong');
-    chip(tr, r.estado, estKind(r.estado)); cell(tr, fdate(r.inicio)); cell(tr, fdate(r.fin), 'strong'); cell(tr, fdate(r.ultima));
-  });
+  const c = dash.params().semCampo || '', s = dash.params().semSemana || '', e = dash.params().semEstado || '';
+  fillRows(tb, 'bloque_semana', (r) => (!c || r.campo === c) && (!s || r.semana === s) && (!e || r.estado === e),
+    (a, b) => (a.semana < b.semana ? 1 : a.semana > b.semana ? -1 : 0) || a.campo_n - b.campo_n || bySite(a, b), (tr, r) => {
+      cell(tr, r.semanaTxt + (r.enCurso ? ' · en curso' : ''), 'gx-muted'); cell(tr, r.campo); cell(tr, `${r.equipo} · ${r.sector} · ${r.bloque}`);
+      cell(tr, `${nv(r.aforos)} / ${r.metaAforos}`, 'num' + (r.aforos < r.metaAforos ? ' gx-vencido' : ' strong'));
+      cell(tr, `${nv(r.valvula)} / 1`, 'num' + (r.valvula < 1 ? ' gx-vencido' : ''));
+      cell(tr, `${nv(r.colas)} / 2`, 'num' + (r.colas < 2 ? ' gx-vencido' : ''));
+      chip(tr, r.estado, estKind(r.estado)); cell(tr, r.falta, 'gx-wrap');
+      cell(tr, r.aforos ? `${r.ini} · ${r.mit} · ${r.fin}${r.sinTramo ? ` (+${r.sinTramo} sin ubicar)` : ''}` : '—', 'num gx-muted'); cell(tr, r.mapeo, r.mapeo.startsWith('Sin aforos en') ? 'gx-vencido' : 'gx-muted');
+      cell(tr, fdate(r.ultima));
+    });
 });

@@ -1,7 +1,7 @@
 <div class="yb">
   <nav class="gx-tabs" aria-label="Vistas">
     <button type="button" class="gx-tab" data-vista="campos" aria-pressed="true">Todos los campos</button>
-    <button type="button" class="gx-tab" data-vista="cumplimiento" aria-pressed="false">Cumplimiento del plan</button>
+    <button type="button" class="gx-tab" data-vista="cumplimiento" aria-pressed="false">Meta semanal</button>
     <button type="button" class="gx-tab" data-vista="resumen" aria-pressed="false">Resumen del campo</button>
     <button type="button" class="gx-tab" data-vista="tecnico" aria-pressed="false">Análisis técnico</button>
     <button type="button" class="gx-tab" data-vista="plan" aria-pressed="false">Plan de acción</button>
@@ -22,11 +22,11 @@
     <header class="yb-hero" id="campos-inicio">
       <div class="yb-hero-top">
         <div class="yb-logo" role="img" aria-label="blum"></div>
-        <p class="yb-eyebrow">Informe de riego · <span class="data">Temporada 2026-27</span></p>
+        <p class="yb-eyebrow">Informe de riego · <span class="data"><span data-draw="v" data-source="periodo" data-field="texto">—</span></span></p>
       </div>
       <p class="yb-eyebrow">Ag. Garcés · Todos los campos</p>
       <h1>Presiones y caudal de goteros en los campos de Ag. Garcés</h1>
-      <p class="lead">Mediciones de terreno registradas en blum desde julio de 2026: presión de válvula, presión de cola y aforo de goteros, con la ubicación GPS de cada aforo.</p>
+      <p class="lead">Mediciones de terreno registradas en blum en los últimos 2 meses (<span data-draw="v" data-source="periodo" data-field="texto">—</span>): presión de válvula, presión de cola y aforo de goteros, con la ubicación GPS de cada aforo.</p>
       <div class="yb-kpis">
         <div class="kpi"><span>Campos con mediciones</span><b data-draw="v" data-source="general" data-field="campos" data-where="campo=Total">—</b></div>
         <div class="kpi"><span>Bloques medidos</span><b><span data-draw="v" data-source="general" data-field="bloques" data-where="campo=Total">—</span><small>/ <span data-draw="v" data-source="general" data-field="bloquesCampo" data-where="campo=Total">—</span></small></b></div>
@@ -69,74 +69,87 @@
 
     <footer class="yb-foot">
       <span class="brand"><i class="yb-iso" aria-hidden="true"></i>blum · Método de riego</span>
-      <span>Ag. Garcés · Temporada 2026-27 · Mediciones registradas en blum · Horario de Chile</span>
+      <span>Ag. Garcés · Período evaluado <span data-draw="v" data-source="periodo" data-field="texto">—</span> · Mediciones registradas en blum · Horario de Chile</span>
     </footer>
   </div>
 
-  <!-- ============ CUMPLIMIENTO DEL PLAN ============ -->
+  <!-- ============ META SEMANAL ============ -->
   <div class="gx-page" id="cumplimiento" hidden>
     <header class="yb-hero" id="cumplimiento-inicio">
       <div class="yb-hero-top">
         <div class="yb-logo" role="img" aria-label="blum"></div>
-        <p class="yb-eyebrow">Calendario de mediciones · <span class="data">Temporada 2026-27</span></p>
+        <p class="yb-eyebrow">Meta semanal de mediciones · <span class="data"><span data-draw="v" data-source="periodo" data-field="texto">—</span></span></p>
       </div>
-      <p class="yb-eyebrow">Ag. Garcés · Plan prioritario</p>
-      <h1>Cumplimiento del calendario de mediciones</h1>
-      <p class="lead">Bloques priorizados por Ag. Garcés (sectores sin mediciones la temporada pasada o con baja uniformidad) frente a lo registrado en blum al <span class="data" data-draw="v" data-source="cumplimiento" data-field="corte" data-where="campo=Total">—</span>. Un bloque cuenta como medido si tiene presión de válvula, de cola o aforo esta temporada.</p>
+      <p class="yb-eyebrow">Ag. Garcés · Protocolo de mediciones en terreno</p>
+      <h1>5 bloques por campo, cada semana</h1>
+      <p class="lead">Cada campo debe medir 5 bloques por semana con el protocolo completo: <b>24 aforos</b> (6 plantas, 4 goteros por planta), <b>1 presión de válvula</b> y <b>2 presiones de cola</b> por bloque. Hasta la semana del 2 de noviembre se evalúa con la regla anterior de 12 aforos. Semanas de lunes a domingo, desde la semana del <span data-draw="v" data-source="cumplimiento" data-field="semanaIni" data-where="campo=Total">—</span> (últimos 2 meses); datos al <span data-draw="v" data-source="cumplimiento" data-field="corte" data-where="campo=Total">—</span>.</p>
       <div class="yb-kpis">
-        <div class="kpi"><span>Bloques priorizados</span><b data-draw="v" data-source="cumplimiento" data-field="priorizados" data-where="campo=Total">—</b></div>
-        <div class="kpi"><span>Medidos</span><b data-draw="v" data-source="cumplimiento" data-field="medidos" data-where="campo=Total">—</b></div>
-        <div class="kpi"><span>Cumplimiento</span><b class="warn"><span data-draw="v" data-source="cumplimiento" data-field="pct" data-where="campo=Total">—</span><small>%</small></b></div>
-        <div class="kpi"><span>Campos sin avance</span><b class="warn"><span data-draw="v" data-source="cumplimiento" data-field="sinAvance" data-where="campo=Total">—</span><small>/ <span data-draw="v" data-source="cumplimiento" data-field="campos" data-where="campo=Total">—</span></small></b></div>
+        <div class="kpi"><span>Campos que cumplieron · <span data-draw="v" data-source="cumplimiento" data-field="semanaUlt" data-where="campo=Total">—</span></span><b><span data-draw="v" data-source="cumplimiento" data-field="cumplenUlt" data-where="campo=Total">—</span><small>/ <span data-draw="v" data-source="cumplimiento" data-field="campos" data-where="campo=Total">—</span></small></b></div>
+        <div class="kpi"><span>Bloques completos · <span data-draw="v" data-source="cumplimiento" data-field="semanaUlt" data-where="campo=Total">—</span></span><b class="warn"><span data-draw="v" data-source="cumplimiento" data-field="ultSem" data-where="campo=Total">—</span><small>/ <span data-draw="v" data-source="cumplimiento" data-field="metaSemana" data-where="campo=Total">—</span></small></b></div>
+        <div class="kpi"><span>Semana en curso · <span data-draw="v" data-source="cumplimiento" data-field="semanaAct" data-where="campo=Total">—</span></span><b><span data-draw="v" data-source="cumplimiento" data-field="actual" data-where="campo=Total">—</span><small>/ <span data-draw="v" data-source="cumplimiento" data-field="metaSemana" data-where="campo=Total">—</span></small></b></div>
+        <div class="kpi"><span>Bloques medidos con protocolo completo</span><b class="warn"><span data-draw="v" data-source="cumplimiento" data-field="pctCompleto" data-where="campo=Total">—</span><small>%</small></b></div>
       </div>
     </header>
 
+    <section class="yb-sec" id="cumplimiento-semanas">
+      <div class="yb-sechead">
+        <div class="row"><p class="yb-eyebrow">blum · Meta semanal</p><p class="yb-eyebrow data">/ 01</p></div>
+        <h2>Semana a semana, todos los campos</h2>
+        <p>Bloques con protocolo completo frente a la meta de todos los campos (5 por campo). En naranjo claro, los bloques que se midieron pero quedaron incompletos. * semana en curso.</p>
+      </div>
+      <div class="yb-block">
+        <div class="yb-legend"><span><i class="sw gx-sw-ok"></i>Bloques con protocolo completo</span><span><i class="sw gx-sw-ines"></i>Medidos incompletos</span></div>
+        <div class="yb-chart" data-draw="semTotal" data-source="semanal" style="min-height: 240px"></div>
+      </div>
+    </section>
+
     <section class="yb-sec" id="cumplimiento-campos">
       <div class="yb-sechead">
-        <div class="row"><p class="yb-eyebrow">blum · Avance</p><p class="yb-eyebrow data">/ 01</p></div>
-        <h2>Avance por campo</h2>
-        <p>Porcentaje de los bloques priorizados que ya tienen medición. Calendario corrido un mes respecto del documento original: todos los campos parten el 5 de noviembre y cada uno tiene su fecha límite, que se muestra junto a la barra (en naranjo si ya venció sin completar). La línea marca el avance esperado a la fecha para los campos cuyo plazo aún no vence; los demás deberían estar al 100 %.</p>
+        <div class="row"><p class="yb-eyebrow">blum · Por campo</p><p class="yb-eyebrow data">/ 02</p></div>
+        <h2>Bloques completos por campo y semana</h2>
+        <p>Cada casilla muestra los bloques con protocolo completo de esa semana; entre paréntesis, los medidos que quedaron incompletos. La meta es 5. Bajo cada semana se indica la regla de aforos que aplica.</p>
       </div>
       <div class="yb-block">
         <div class="yb-legend">
-          <span><i class="sw gx-sw-ok"></i>Cumplido o al día</span>
-          <span><i class="sw gx-sw-casi"></i>Casi completo (75 % o más, plazo vencido)</span>
-          <span><i class="sw gx-sw-baja"></i>Atrasado (bajo 75 %)</span>
-          <span><i class="sw gx-sw-alta"></i>Sin avance</span>
-          <span><i class="sw gx-sw-ini"></i>Por iniciar (plazo recién comenzado, sin mediciones)</span>
+          <span><i class="sw gx-sw-ok"></i>Cumplida (5 o más)</span>
+          <span><i class="sw gx-sw-casi"></i>Casi (3 a 4)</span>
+          <span><i class="sw gx-sw-baja"></i>Baja (1 a 2)</span>
+          <span><i class="sw gx-sw-ines"></i>Solo bloques incompletos</span>
+          <span><i class="sw gx-sw-nada"></i>Sin mediciones</span>
         </div>
-        <div class="yb-chart" data-draw="cumplChart" data-source="cumplimiento" style="min-height: 900px"></div>
+        <div class="yb-chart" data-draw="semanaChart" data-source="semanal" style="min-height: 900px"></div>
       </div>
       <div class="yb-block">
         <div class="yb-tablewrap gx-tall">
           <table class="yb-table" data-source="cumplimiento" data-row-key="campo">
-            <thead><tr><th data-field="campo">Campo</th><th data-field="inicio">Inicio</th><th data-field="fin">Fecha límite</th><th data-field="restan">Plazo</th><th class="num" data-field="priorizados">Priorizados</th><th class="num" data-field="medidos">Medidos</th><th class="num" data-field="pct">% avance</th><th data-field="estado">Estado</th><th class="num" data-field="sectoresPendientes">Sectores sin medir</th><th class="num" data-field="fueraPlan">Medidos fuera del plan</th><th data-field="ultima">Última medición del plan</th></tr></thead>
+            <thead><tr><th data-field="campo">Campo</th><th class="num" data-field="ultSem">Última semana cerrada</th><th data-field="estadoUlt">Estado</th><th class="num" data-field="actual">Semana en curso</th><th class="num" data-field="cumplidas">Semanas cumplidas</th><th class="num" data-field="promSemana">Completos por semana</th><th class="num" data-field="completos">Bloques completos</th><th class="num" data-field="incompletos">Medidos incompletos</th><th class="num" data-field="pctCompleto">% completos</th><th data-field="faltaMas">Lo que más falta</th><th data-field="ultima">Última medición</th></tr></thead>
             <tbody data-draw="cumplTabla"></tbody>
           </table>
         </div>
-        <p class="yb-note">Medidos fuera del plan: bloques con medición esta temporada que no estaban entre los priorizados. Lihueimo, Mallorca, El Descanso y El Roble no tienen sectores priorizados en el calendario.</p>
+        <p class="yb-note">Semanas cumplidas: semanas cerradas con 5 o más bloques completos dentro del período evaluado (últimos 2 meses). Lo que más falta: lo que se repite en los bloques medidos que no completaron el protocolo.</p>
       </div>
     </section>
 
-    <section class="yb-sec" id="cumplimiento-sectores">
+    <section class="yb-sec" id="cumplimiento-bloques">
       <div class="yb-sechead">
-        <div class="row"><p class="yb-eyebrow">blum · Pendientes</p><p class="yb-eyebrow data">/ 02</p></div>
-        <h2>Sectores priorizados y su estado</h2>
-        <p>Cada sector del calendario con sus bloques planificados y medidos. Primero los pendientes.</p>
+        <div class="row"><p class="yb-eyebrow">blum · Bloques</p><p class="yb-eyebrow data">/ 03</p></div>
+        <h2>Bloques medidos y qué les faltó</h2>
+        <p>Cada bloque medido en cada semana con lo registrado frente al protocolo. <b>Reparto de aforos</b>: el protocolo pide plantas al inicio, a mitad y cerca de la cola de la hilera (8 aforos en cada tramo con la regla de 24); se calcula con el GPS de cada aforo y se muestra como inicio · mitad · cola.</p>
       </div>
       <div class="gx-row">
-        <label class="gx-field"><span>Campo</span><select data-draw="planCampoSel" data-source="plan" aria-label="Campo del plan"></select></label>
+        <label class="gx-field"><span>Campo</span><select data-draw="semCampoSel" data-source="cumplimiento" aria-label="Campo"></select></label>
+        <label class="gx-field"><span>Semana</span><select data-draw="semSemanaSel" data-source="bloque_semana" aria-label="Semana"></select></label>
         <label class="gx-field"><span>Estado</span>
-          <select class="gx-plan-estado" aria-label="Estado del sector">
-            <option value="">Todos</option><option value="Pendiente">Pendiente</option><option value="Parcial">Parcial</option><option value="Completo">Completo</option>
+          <select class="gx-sem-estado" aria-label="Estado del bloque">
+            <option value="">Todos</option><option value="Completo">Completo</option><option value="Incompleto">Incompleto</option>
           </select>
         </label>
       </div>
       <div class="yb-block">
         <div class="yb-tablewrap gx-tall">
-          <table class="yb-table" data-source="plan" data-row-key="id">
-            <thead><tr><th data-field="campo">Campo</th><th data-field="categoria">Motivo de prioridad</th><th data-field="equipo">Equipo</th><th data-field="sector">Sector</th><th class="num" data-field="bloques_plan">Bloques plan</th><th class="num" data-field="bloques_medidos">Medidos</th><th data-field="estado">Estado</th><th data-field="inicio">Inicio</th><th data-field="fin">Fecha límite</th><th data-field="ultima">Última medición</th></tr></thead>
-            <tbody data-draw="planDetalle"></tbody>
+          <table class="yb-table" data-source="bloque_semana" data-row-key="id">
+            <thead><tr><th data-field="semana">Semana</th><th data-field="campo">Campo</th><th data-field="bloque">Equipo · Sector · Bloque</th><th class="num" data-field="aforos">Aforos</th><th class="num" data-field="valvula">Válvula</th><th class="num" data-field="colas">Colas</th><th data-field="estado">Estado</th><th data-field="falta">Qué faltó</th><th class="num" data-field="ini">Reparto de aforos</th><th data-field="mapeo">Cobertura de la hilera</th><th data-field="ultima">Última medición</th></tr></thead>
+            <tbody data-draw="semDetalle"></tbody>
           </table>
         </div>
       </div>
@@ -144,7 +157,7 @@
 
     <footer class="yb-foot">
       <span class="brand"><i class="yb-iso" aria-hidden="true"></i>blum · Método de riego</span>
-      <span>Ag. Garcés · Calendario de mediciones temporada 2026-2027 · Mediciones registradas en blum</span>
+      <span>Ag. Garcés · Protocolo de mediciones en terreno · Mediciones registradas en blum</span>
     </footer>
   </div>
 
@@ -153,7 +166,7 @@
     <header class="yb-hero" id="resumen-inicio">
       <div class="yb-hero-top">
         <div class="yb-logo" role="img" aria-label="blum"></div>
-        <p class="yb-eyebrow">Informe de riego · <span class="data">Temporada 2026-27</span></p>
+        <p class="yb-eyebrow">Informe de riego · <span class="data"><span data-draw="v" data-source="periodo" data-field="texto">—</span></span></p>
       </div>
       <p class="yb-eyebrow">Ag. Garcés</p>
       <h1>Campo <span data-draw="v" data-source="general" data-field="campo" data-where-t="campo={campo}">—</span></h1>
@@ -248,7 +261,7 @@
 
     <footer class="yb-foot">
       <span class="brand"><i class="yb-iso" aria-hidden="true"></i>blum · Método de riego</span>
-      <span>Ag. Garcés · Temporada 2026-27 · Mediciones registradas en blum · Horario de Chile</span>
+      <span>Ag. Garcés · Período evaluado <span data-draw="v" data-source="periodo" data-field="texto">—</span> · Mediciones registradas en blum · Horario de Chile</span>
     </footer>
   </div>
 
@@ -425,7 +438,7 @@
 
     <footer class="yb-foot">
       <span class="brand"><i class="yb-iso" aria-hidden="true"></i>blum · Método de riego</span>
-      <span>Ag. Garcés · Temporada 2026-27 · Datos de BigQuery de Baumsystem · Horario de Chile</span>
+      <span>Ag. Garcés · Período evaluado <span data-draw="v" data-source="periodo" data-field="texto">—</span> · Datos de BigQuery de Baumsystem · Horario de Chile</span>
     </footer>
   </div>
   <!-- ============ PLAN DE ACCIÓN ============ -->
@@ -509,7 +522,7 @@
 
     <footer class="yb-foot">
       <span class="brand"><i class="yb-iso" aria-hidden="true"></i>blum · Método de riego</span>
-      <span>Ag. Garcés · Temporada 2026-27 · Diagnóstico por reglas sobre mediciones registradas en blum</span>
+      <span>Ag. Garcés · Período evaluado <span data-draw="v" data-source="periodo" data-field="texto">—</span> · Diagnóstico por reglas sobre mediciones registradas en blum</span>
     </footer>
   </div>
 </div>

@@ -1,9 +1,10 @@
 # Informe de riego · Ag. Garcés (blum)
 
-Página con el informe de presiones, aforos y cumplimiento del calendario de mediciones de Ag. Garcés, temporada 2026-27.
+Página con el informe de presiones, aforos y meta semanal de mediciones (5 bloques por campo con protocolo completo: 24 aforos, 1 presión de válvula y 2 colas) de Ag. Garcés, temporada 2026-27.
 
 - Se abre en el link de GitHub Pages de este repositorio.
 - Pide **usuario** (`Ag. Garcés`) y **clave**. Todo el informe y sus datos están cifrados: sin la clave no se puede leer nada, ni siquiera mirando los archivos del repositorio.
+- Evalúa los últimos 2 meses hasta la última medición (`MESES_VENTANA` en scripts/build.py) y muestra el período en la portada y en el informe.
 - Se actualiza todos los viernes y cuando el cliente lo pide: Claude consulta Baumsystem, recalcula y publica (ver «Actualizar a pedido»). El workflow de GitHub queda disponible para correrlo a mano si algún día se cargan las credenciales GCP_SA_KEY y REPORT_PASSWORD.
 
 ## Configuración (una sola vez, desde el navegador)
@@ -20,20 +21,19 @@ En el proyecto `baumapp-prod`: IAM → Service accounts → Create, con los role
 
 ## Cambiar la clave
 
-Cambiar el secreto `REPORT_PASSWORD` no basta: el calendario (`plan/calendario.enc.json`) también está cifrado con la clave actual. Pedir el cambio a blum para volver a cifrarlo.
+Para cambiar la clave basta con volver a generar el informe con la nueva clave.
 
 ## Qué hay en el repositorio
 
 - `index.html`: pantalla de acceso (pública).
 - `reporte.enc.json`: informe completo cifrado (AES-GCM).
-- `plan/calendario.enc.json`: calendario de mediciones entregado por Ag. Garcés, cifrado.
+- `plan/calendario.enc.json`: calendario de mediciones original de Ag. Garcés (cifrado). Ya no se usa en el informe; queda como respaldo.
 - `report/`: diseño del informe (HTML, estilos y cálculos).
-- `scripts/`: descarga desde BigQuery, limpieza, cruce con el calendario y cifrado.
+- `scripts/`: descarga desde BigQuery, limpieza y cifrado.
 - `.github/workflows/actualizar.yml`: actualización automática.
 
 ## Actualizar a pedido
 
 1. Exportar desde BigQuery de Baumsystem `meter.json` y `blocks.json` (consultas de `scripts/fetch_bq.py`).
 2. `python scripts/pipeline.py` en la carpeta de trabajo → `lecturas_garces.json`, `bloques_garces.json`.
-3. `python scripts/plan_match.py` → `plan_garces.json` (calendario corrido un mes).
-4. `REPORT_PASSWORD=… python scripts/build.py <carpeta de trabajo> garces/` y publicar `reporte.enc.json` en `main`.
+3. `REPORT_PASSWORD=… python scripts/build.py <carpeta de trabajo> garces/` y publicar `reporte.enc.json` en `main`.

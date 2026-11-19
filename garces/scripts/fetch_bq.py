@@ -4,7 +4,9 @@ from google.cloud import bigquery
 
 PROYECTO = 'baumapp-prod'
 EMPRESA = '186d5686-54ec-413c-88fd-ca61d65d23df'  # 039- Ag. G.F
-DESDE = '2026-07-01'
+# Se trae un poco más de 2 meses; build.py recorta la ventana exacta (2 meses hasta la última medición)
+import datetime
+DESDE = (datetime.date.today() - datetime.timedelta(days=70)).isoformat()
 
 SQL_MEDICIONES = f"""
 WITH a AS (SELECT id,name,parentId FROM `baumapp-prod.baumsystem_legacy.asset` WHERE companyId='{EMPRESA}')
