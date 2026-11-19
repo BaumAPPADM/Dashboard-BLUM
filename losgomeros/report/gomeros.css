@@ -1,0 +1,37 @@
+/* Ajustes propios del informe de Ag. Los Gomeros (paleta blum) */
+.lg .yb-steps li > span { display: block; }
+.lg-list { margin: 0; padding-left: 1.1rem; display: flex; flex-direction: column; gap: 6px; font-size: var(--cds-font-size-body); line-height: 1.55; }
+.lg-list b { font-weight: 600; }
+.lg-card.baja { box-shadow: inset 3px 0 0 #F64500; }
+.lg-card.alta { box-shadow: inset 3px 0 0 #C30016; }
+.lg-plan { display: flex; flex-direction: column; gap: var(--cds-gap-md); }
+.lg-item { background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: 4px; padding: var(--cds-pad-md) var(--cds-pad-lg); display: grid; grid-template-columns: 8.5rem 1fr; gap: var(--cds-gap-md); scroll-margin-top: 1rem; }
+.lg-item.Alta { box-shadow: inset 3px 0 0 #C30016; }
+.lg-item.Media { box-shadow: inset 3px 0 0 #F64500; }
+.lg-item.Baja { box-shadow: inset 3px 0 0 #77CFC9; }
+.lg-item.flash { outline: 2px solid #77CFC9; }
+.lg-item h3 { margin: 0 0 4px; font-size: var(--cds-font-size-body); font-weight: 600; }
+.lg-item p { margin: 0 0 6px; font-size: var(--cds-font-size-body); line-height: 1.55; color: var(--color-fg-muted); }
+.lg-item ol { margin: 0; padding-left: 1.1rem; font-size: var(--cds-font-size-body); line-height: 1.55; }
+.lg-meta { display: flex; flex-direction: column; gap: 6px; font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+.yb-chip.Alta { color: #FFFFFF; background: #C30016; border: 1px solid #C30016; }
+.yb-chip.Media { color: #F64500; border: 1px solid #F64500; }
+.yb-chip.Baja { color: #002E2B; background: color-mix(in srgb, #77CFC9 45%, transparent); }
+.lg-v { font-family: var(--yb-data); font-variant-numeric: tabular-nums; }
+.lg-v.Bajo { color: #F64500; font-weight: 600; }
+.lg-v.Alto { color: #C30016; font-weight: 600; }
+.lg-v.En { color: #002E2B; }
+.yb-legend .lg-sw-af { border-radius: 50%; }
+.yb-legend .lg-sw-af.ok { background: #77CFC9; border-color: #002E2B; }
+.yb-legend .lg-sw-af.bajo { background: #F64500; border-color: #F64500; }
+.yb-legend .lg-sw-af.muy { background: #C30016; border-color: #C30016; }
+.yb-legend .lg-sw-v { background: #002E2B; border-color: #002E2B; border-radius: 1px; transform: rotate(45deg) scale(.85); }
+.yb-legend .lg-sw-c { background: #FFFFFF; border-color: #002E2B; border-radius: 1px; }
+.yb-legend .lg-sw-vb { background: transparent; border: 2px dashed #5C6F6D; border-radius: 1px; transform: rotate(45deg) scale(.85); }
+.gx-map svg text { font-family: 'IBM Plex Sans', sans-serif; font-size: 11px; fill: #0F2624; paint-order: stroke; stroke: #FFFFFF; stroke-width: 3px; }
+.gx-map svg text.ctx { fill: #8A9B99; font-size: 10px; }
+.lg-tip { position: absolute; pointer-events: none; background: #FFFFFF; border: 1px solid #DFE5E4; border-radius: 4px; box-shadow: 0 4px 16px rgba(0, 46, 43, .14); padding: 6px 9px; font-size: 12px; line-height: 1.45; max-width: 18rem; z-index: 5; }
+.lg-tip b { font-weight: 600; }
+.yb-table tbody tr.gx-click td:first-child { white-space: nowrap; }
+.gx-wrap { white-space: normal !important; }
+@media (max-width: 40rem) { .lg-item { grid-template-columns: 1fr; } }

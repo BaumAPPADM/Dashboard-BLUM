@@ -1,0 +1,16 @@
+/* Variables que entrega el entorno del dashboard, con la paleta Blum */
+:root {
+  --color-fg: #0F2624; --color-fg-muted: #5C6F6D; --color-bg: #F5F7F6; --color-panel: #FFFFFF; --color-border-line: #DFE5E4;
+  --color-ok: #2E7D74; --color-warn: #F64500; --color-bad: #C30016;
+  --cds-gap-xs: 4px; --cds-gap-sm: 8px; --cds-gap-md: 12px; --cds-gap-lg: 16px; --cds-gap-xl: 24px;
+  --cds-pad-xs: 4px; --cds-pad-sm: 8px; --cds-pad-md: 12px; --cds-pad-lg: 16px; --cds-pad-xl: 24px;
+  --cds-radius: 4px; --cds-font-size-caption: 12px; --cds-font-size-body: 14px; --cds-font-size-heading: 17px; --cds-font-size-title: 24px;
+  --cds-font-weight-medium: 500; --cds-dur-slow: .3s; --cds-ease-out: cubic-bezier(.2, .8, .2, 1);
+  --cds-chart-grid: #E8EDEC; --cds-chart-axis: #B8C4C2; --cds-chart-reference: #8A9B99; --cds-chart-muted: #BFCBCA; --cds-chart-status-critical: #C30016;
+  --cds-surface-popover: #FFFFFF; --cds-border: #DFE5E4; --cds-text-secondary: #5C6F6D; --cds-shadow-popover: 0 4px 16px rgba(0, 46, 43, .14);
+  --font-anthropic-sans: system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif; --font-anthropic-serif: Georgia, serif;
+}
+html, body { margin: 0; background: var(--color-bg); color: var(--color-fg); font-family: var(--font-anthropic-sans); }
+#dash-root { padding: clamp(12px, 3vw, 32px); }
+#dash-root b, #dash-root strong { font-weight: 600; }
+.gx-salir { position: fixed; top: 10px; right: 12px; z-index: 10; font: inherit; font-size: 12px; padding: 4px 10px; border-radius: 999px; border: 1px solid #DFE5E4; background: #FFFFFF; color: #002E2B; cursor: pointer; }
