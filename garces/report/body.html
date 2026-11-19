@@ -22,11 +22,11 @@
     <header class="yb-hero" id="campos-inicio">
       <div class="yb-hero-top">
         <div class="yb-logo" role="img" aria-label="blum"></div>
-        <p class="yb-eyebrow">Informe de riego · <span class="data">Temporada 2026-27</span></p>
+        <p class="yb-eyebrow">Informe de riego · <span class="data"><span data-draw="v" data-source="periodo" data-field="texto">—</span></span></p>
       </div>
       <p class="yb-eyebrow">Ag. Garcés · Todos los campos</p>
       <h1>Presiones y caudal de goteros en los campos de Ag. Garcés</h1>
-      <p class="lead">Mediciones de terreno registradas en blum desde julio de 2026: presión de válvula, presión de cola y aforo de goteros, con la ubicación GPS de cada aforo.</p>
+      <p class="lead">Mediciones de terreno registradas en blum en los últimos 2 meses (<span data-draw="v" data-source="periodo" data-field="texto">—</span>): presión de válvula, presión de cola y aforo de goteros, con la ubicación GPS de cada aforo.</p>
       <div class="yb-kpis">
         <div class="kpi"><span>Campos con mediciones</span><b data-draw="v" data-source="general" data-field="campos" data-where="campo=Total">—</b></div>
         <div class="kpi"><span>Bloques medidos</span><b><span data-draw="v" data-source="general" data-field="bloques" data-where="campo=Total">—</span><small>/ <span data-draw="v" data-source="general" data-field="bloquesCampo" data-where="campo=Total">—</span></small></b></div>
@@ -69,7 +69,7 @@
 
     <footer class="yb-foot">
       <span class="brand"><i class="yb-iso" aria-hidden="true"></i>blum · Método de riego</span>
-      <span>Ag. Garcés · Temporada 2026-27 · Mediciones registradas en blum · Horario de Chile</span>
+      <span>Ag. Garcés · Período evaluado <span data-draw="v" data-source="periodo" data-field="texto">—</span> · Mediciones registradas en blum · Horario de Chile</span>
     </footer>
   </div>
 
@@ -78,11 +78,11 @@
     <header class="yb-hero" id="cumplimiento-inicio">
       <div class="yb-hero-top">
         <div class="yb-logo" role="img" aria-label="blum"></div>
-        <p class="yb-eyebrow">Meta semanal de mediciones · <span class="data">Temporada 2026-27</span></p>
+        <p class="yb-eyebrow">Meta semanal de mediciones · <span class="data"><span data-draw="v" data-source="periodo" data-field="texto">—</span></span></p>
       </div>
       <p class="yb-eyebrow">Ag. Garcés · Protocolo de mediciones en terreno</p>
       <h1>5 bloques por campo, cada semana</h1>
-      <p class="lead">Cada campo debe medir 5 bloques por semana con el protocolo completo: <b>24 aforos</b> (6 plantas, 4 goteros por planta), <b>1 presión de válvula</b> y <b>2 presiones de cola</b> por bloque. Hasta la semana del 2 de noviembre se evalúa con la regla anterior de 12 aforos. Semanas de lunes a domingo; datos al <span data-draw="v" data-source="cumplimiento" data-field="corte" data-where="campo=Total">—</span>.</p>
+      <p class="lead">Cada campo debe medir 5 bloques por semana con el protocolo completo: <b>24 aforos</b> (6 plantas, 4 goteros por planta), <b>1 presión de válvula</b> y <b>2 presiones de cola</b> por bloque. Hasta la semana del 2 de noviembre se evalúa con la regla anterior de 12 aforos. Semanas de lunes a domingo, desde la semana del <span data-draw="v" data-source="cumplimiento" data-field="semanaIni" data-where="campo=Total">—</span> (últimos 2 meses); datos al <span data-draw="v" data-source="cumplimiento" data-field="corte" data-where="campo=Total">—</span>.</p>
       <div class="yb-kpis">
         <div class="kpi"><span>Campos que cumplieron · <span data-draw="v" data-source="cumplimiento" data-field="semanaUlt" data-where="campo=Total">—</span></span><b><span data-draw="v" data-source="cumplimiento" data-field="cumplenUlt" data-where="campo=Total">—</span><small>/ <span data-draw="v" data-source="cumplimiento" data-field="campos" data-where="campo=Total">—</span></small></b></div>
         <div class="kpi"><span>Bloques completos · <span data-draw="v" data-source="cumplimiento" data-field="semanaUlt" data-where="campo=Total">—</span></span><b class="warn"><span data-draw="v" data-source="cumplimiento" data-field="ultSem" data-where="campo=Total">—</span><small>/ <span data-draw="v" data-source="cumplimiento" data-field="metaSemana" data-where="campo=Total">—</span></small></b></div>
@@ -126,7 +126,7 @@
             <tbody data-draw="cumplTabla"></tbody>
           </table>
         </div>
-        <p class="yb-note">Semanas cumplidas: semanas cerradas con 5 o más bloques completos, desde la semana del 28 de septiembre. Lo que más falta: lo que se repite en los bloques medidos que no completaron el protocolo.</p>
+        <p class="yb-note">Semanas cumplidas: semanas cerradas con 5 o más bloques completos dentro del período evaluado (últimos 2 meses). Lo que más falta: lo que se repite en los bloques medidos que no completaron el protocolo.</p>
       </div>
     </section>
 
@@ -166,7 +166,7 @@
     <header class="yb-hero" id="resumen-inicio">
       <div class="yb-hero-top">
         <div class="yb-logo" role="img" aria-label="blum"></div>
-        <p class="yb-eyebrow">Informe de riego · <span class="data">Temporada 2026-27</span></p>
+        <p class="yb-eyebrow">Informe de riego · <span class="data"><span data-draw="v" data-source="periodo" data-field="texto">—</span></span></p>
       </div>
       <p class="yb-eyebrow">Ag. Garcés</p>
       <h1>Campo <span data-draw="v" data-source="general" data-field="campo" data-where-t="campo={campo}">—</span></h1>
@@ -261,7 +261,7 @@
 
     <footer class="yb-foot">
       <span class="brand"><i class="yb-iso" aria-hidden="true"></i>blum · Método de riego</span>
-      <span>Ag. Garcés · Temporada 2026-27 · Mediciones registradas en blum · Horario de Chile</span>
+      <span>Ag. Garcés · Período evaluado <span data-draw="v" data-source="periodo" data-field="texto">—</span> · Mediciones registradas en blum · Horario de Chile</span>
     </footer>
   </div>
 
@@ -438,7 +438,7 @@
 
     <footer class="yb-foot">
       <span class="brand"><i class="yb-iso" aria-hidden="true"></i>blum · Método de riego</span>
-      <span>Ag. Garcés · Temporada 2026-27 · Datos de BigQuery de Baumsystem · Horario de Chile</span>
+      <span>Ag. Garcés · Período evaluado <span data-draw="v" data-source="periodo" data-field="texto">—</span> · Datos de BigQuery de Baumsystem · Horario de Chile</span>
     </footer>
   </div>
   <!-- ============ PLAN DE ACCIÓN ============ -->
@@ -522,7 +522,7 @@
 
     <footer class="yb-foot">
       <span class="brand"><i class="yb-iso" aria-hidden="true"></i>blum · Método de riego</span>
-      <span>Ag. Garcés · Temporada 2026-27 · Diagnóstico por reglas sobre mediciones registradas en blum</span>
+      <span>Ag. Garcés · Período evaluado <span data-draw="v" data-source="periodo" data-field="texto">—</span> · Diagnóstico por reglas sobre mediciones registradas en blum</span>
     </footer>
   </div>
 </div>

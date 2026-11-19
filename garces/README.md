@@ -4,6 +4,7 @@ Página con el informe de presiones, aforos y meta semanal de mediciones (5 bloq
 
 - Se abre en el link de GitHub Pages de este repositorio.
 - Pide **usuario** (`Ag. Garcés`) y **clave**. Todo el informe y sus datos están cifrados: sin la clave no se puede leer nada, ni siquiera mirando los archivos del repositorio.
+- Evalúa los últimos 2 meses hasta la última medición (`MESES_VENTANA` en scripts/build.py) y muestra el período en la portada y en el informe.
 - Se actualiza todos los viernes y cuando el cliente lo pide: Claude consulta Baumsystem, recalcula y publica (ver «Actualizar a pedido»). El workflow de GitHub queda disponible para correrlo a mano si algún día se cargan las credenciales GCP_SA_KEY y REPORT_PASSWORD.
 
 ## Configuración (una sola vez, desde el navegador)
