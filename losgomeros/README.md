@@ -2,7 +2,7 @@
 
 Página con el informe de presiones, aforos, mapa de aforos y plan de acción de Ag. Los Gomeros (campo 01- Los Arroyos), temporada 2026-27.
 
-- Link: `https://baumappadm.github.io/dashboard-blum/losgomeros/`
+- Link: `https://baumappadm.github.io/Dashboard-BLUM/losgomeros/`
 - Pide **usuario** (`Ag. Los Gomeros`) y **clave** (la entrega blum; no está escrita en el repositorio). Todo el informe y sus datos están cifrados (AES-GCM): sin la clave no se puede leer nada, ni siquiera mirando los archivos.
 - Se actualiza todos los viernes y a pedido. El método está en [METODO.md](METODO.md).
 
