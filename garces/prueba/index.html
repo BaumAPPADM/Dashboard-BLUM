@@ -72,7 +72,7 @@ body { font-family: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', Robot
     <svg class="pt-curvas" id="curvas" aria-hidden="true"></svg>
     <div class="lg-logo" role="img" aria-label="blum"></div>
     <div class="pt-centro">
-      <p class="pt-eyebrow">Informe de riego · Temporada 2026-27</p>
+      <p class="pt-eyebrow">Informe de riego · Últimos 2 meses</p>
       <h1>Cada bloque, medido.<br><b>Cada decisión, informada.</b></h1>
       <p class="pt-lead">Presiones, caudal y uniformidad de sus campos, con el plan de acción para corregir lo que no está funcionando.</p>
       <ul class="pt-items">
@@ -83,6 +83,7 @@ body { font-family: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', Robot
     </div>
     <div class="pt-pie">
       <span><i class="pt-dot"></i>Datos actualizados: <b id="upd">—</b></span>
+      <span>Período evaluado: <b id="per">—</b></span>
       <span>Se actualiza todos los viernes y a pedido</span>
     </div>
   </section>
@@ -129,7 +130,7 @@ body { font-family: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', Robot
   const b64 = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
   const norm = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '');
   let enc = null;
-  fetch('reporte.enc.json', {cache: 'no-store'}).then((r) => r.json()).then((j) => { enc = j; $('upd').textContent = j.actualizado || '—'; })
+  fetch('reporte.enc.json', {cache: 'no-store'}).then((r) => r.json()).then((j) => { enc = j; $('upd').textContent = j.actualizado || '—'; $('per').textContent = j.periodo || '—'; })
     .catch(() => { $('err').textContent = 'No se pudo cargar el informe. Intente nuevamente.'; });
   $('ver').addEventListener('click', () => { const p = $('p'), v = p.type === 'password'; p.type = v ? 'text' : 'password'; $('ver').textContent = v ? 'Ocultar' : 'Mostrar'; });
   async function entrar() {
@@ -153,8 +154,8 @@ body { font-family: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', Robot
     const st = document.createElement('style'); st.textContent = P.css; document.head.appendChild(st);
     $('login').remove();
     const app = $('app'); app.hidden = false;
-    app.innerHTML = '<button class="gx-salir" type="button">Salir</button><p class="gx-actualizado"><i></i>Información actualizada al <b></b> · Se actualiza todos los viernes y a pedido</p><div id="dash-root"></div>';
-    app.querySelector('.gx-actualizado b').textContent = (enc && enc.actualizado) || '—';
+    app.innerHTML = '<button class="gx-salir" type="button">Salir</button><p class="gx-actualizado"><i></i>Período evaluado <b class="gx-per"></b> (últimos 2 meses) · Información actualizada al <b class="gx-upd"></b> · Se actualiza todos los viernes y a pedido</p><div id="dash-root"></div>';
+    app.querySelector('.gx-upd').textContent = (enc && enc.actualizado) || '—'; app.querySelector('.gx-per').textContent = (enc && enc.periodo) || '—';
     app.querySelector('.gx-salir').onclick = () => location.reload();
     document.getElementById('dash-root').innerHTML = P.html;
     (new Function(P.shim))();
